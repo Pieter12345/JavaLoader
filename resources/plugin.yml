@@ -1,0 +1,11 @@
+name: WoeshBackup
+main: io.github.pieter12345.woeshbackup.WoeshBackupPlugin
+version: 0.0.1-SNAPSHOT
+author: Pieter12345/Woesh0007
+load: postworld
+commands:
+    woeshbackup:
+        description: This plugin generates recursive backups of worlds and plugins.
+        usage: /woeshbackup
+        permission: woeshbackup.woeshbackup
+        permission-message: You don't have permission woeshbackup.woeshbackup.

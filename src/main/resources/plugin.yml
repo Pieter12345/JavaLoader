@@ -1,0 +1,11 @@
+name: JavaLoader
+main: io.github.pieter12345.javaloader.bukkit.JavaLoaderBukkitPlugin
+version: 0.0.1-SNAPSHOT
+author: Pieter12345/Woesh0007
+load: postworld
+commands:
+    javaloader:
+        description: This plugin can compile, load, unload and hotswap java projects in runtime.
+        usage: /javaloader <recompile, load, unload> [project]
+        permission: javaloader.use
+        permission-message: You don't have permission to use this command (javaloader.use).
