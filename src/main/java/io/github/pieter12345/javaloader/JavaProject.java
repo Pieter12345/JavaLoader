@@ -36,6 +36,21 @@ public class JavaProject {
 	private String version = null;
 	private ProjectStateListener stateListener;
 	
+	private static final char CLASSPATH_SEPERATOR;
+	
+	static {
+		String os = System.getProperty("os.name").toLowerCase();
+		if(os.startsWith("win")) {
+			CLASSPATH_SEPERATOR = ';';
+		} else if(os.equals("linux") || os.equals("mac os x")) {
+			CLASSPATH_SEPERATOR = ':';
+		} else {
+			// Unknown OS. Default to ':' and hope it'll work.
+			CLASSPATH_SEPERATOR = ':';
+		}
+		
+	}
+	
 	/**
 	 * Constructor.
 	 * Creates a new JavaProject with the given parameters.
@@ -65,6 +80,8 @@ public class JavaProject {
 	/**
 	 * compile method.
 	 * Compiles the JavaProject.
+	 * @param feedbackWriter - A Writer to write all compile errors/warnings from the java compiler to.
+	 *  If this is null, System.err will be used.
 	 * @throws CompileException If an Exception occurs while compiling the project.
 	 */
 	public void compile(Writer feedbackWriter) throws CompileException {
@@ -108,10 +125,10 @@ public class JavaProject {
 			if(codeSource == null || codeSource.getLocation().getFile().isEmpty()) {
 				throw new CompileException("Unable to include this plugins .jar file to the classpath because the CodeSource returned null.");
 			}
-			String pluginJarFilePath = codeSource.getLocation().getFile();
+			String pluginJarFilePath = codeSource.getLocation().toURI().getPath();
 			
 			// Get the complete classpath (including the binDir and passed classpath entries such as jar file paths).
-			String classpath = System.getProperty("java.class.path") + ";" + pluginJarFilePath;
+			String classpath = System.getProperty("java.class.path") + CLASSPATH_SEPERATOR + pluginJarFilePath;
 			for(String dependency : dependencies) {
 				classpath = classpath + ";" + dependency;
 			}

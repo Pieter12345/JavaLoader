@@ -20,7 +20,7 @@ public class ExampleProjectStandalone extends JavaLoaderProject {
 	public void onUnload() {
 		
 		// Print feedback.
-		System.out.println(AnsiColor.GREEN + "[DEBUG] ExampleProjectStandalone project unloaded." + AnsiColor.RESET);
+		System.out.println(AnsiColor.RED + "[DEBUG] ExampleProjectStandalone project unloaded." + AnsiColor.RESET);
 	}
 	
 	@Override
