@@ -318,7 +318,7 @@ public class JavaLoaderStandalone {
 					project.setBinDirName("bin");
 					
 					// Replace the current "bin" directory with "bin_new" and remove "bin_new".
-					if(!Utils.removeFile(project.getBinDir())) {
+					if(project.getBinDir().exists() && !Utils.removeFile(project.getBinDir())) {
 						printFeedback(PREFIX_ERROR + "Failed to rename \"bin_new\" to \"bin\" because the \"bin\""
 								+ " directory could not be removed for project \"" + project.getName() + "\"."
 								+ " This can be fixed manually or by attempting another recompile. The project has"
@@ -453,7 +453,7 @@ public class JavaLoaderStandalone {
 				}
 				
 				// Replace the current "bin" directory with "bin_new" and remove "bin_new".
-				if(!Utils.removeFile(project.getBinDir())) {
+				if(project.getBinDir().exists() && !Utils.removeFile(project.getBinDir())) {
 					printFeedback(PREFIX_ERROR + "Failed to rename \"bin_new\" to \"bin\" because the \"bin\""
 							+ " directory could not be removed for project \"" + project.getName() + "\"."
 							+ " This can be fixed manually or by attempting another recompile. The project has"
