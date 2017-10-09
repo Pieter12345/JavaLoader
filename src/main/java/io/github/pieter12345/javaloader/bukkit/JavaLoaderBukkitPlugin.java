@@ -46,8 +46,10 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 	// Variables & Constants.
 	private HashMap<String, JavaProject> projects = null;
 	private static final String VERSION;
-	private static final String PREFIX_INFO = ChatColor.GOLD + "[" + ChatColor.DARK_AQUA + "JavaLoader" + ChatColor.GOLD + "]" + ChatColor.GREEN + " ";
-	private static final String PREFIX_ERROR = ChatColor.GOLD + "[" + ChatColor.DARK_AQUA + "JavaLoader" + ChatColor.GOLD + "]" + ChatColor.RED + " ";
+	private static final String PREFIX_INFO =
+			ChatColor.GOLD + "[" + ChatColor.DARK_AQUA + "JavaLoader" + ChatColor.GOLD + "]" + ChatColor.GREEN + " ";
+	private static final String PREFIX_ERROR =
+			ChatColor.GOLD + "[" + ChatColor.DARK_AQUA + "JavaLoader" + ChatColor.GOLD + "]" + ChatColor.RED + " ";
 	private final File projectsDir = new File(this.getDataFolder().getAbsolutePath() + "/JavaProjects");
 	private ProjectStateListener projectStateListener;
 	
@@ -73,16 +75,17 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 		// Check if a JDK is available, otherwise disable the plugin.
 		JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
 		if(compiler == null) {
-			Bukkit.getConsoleSender().sendMessage(PREFIX_ERROR + "No java compiler available. This plugin requires a JDK to run on. Disabling plugin.");
+			Bukkit.getConsoleSender().sendMessage(PREFIX_ERROR
+					+ "No java compiler available. This plugin requires a JDK to run on. Disabling plugin.");
 			this.setEnabled(false);
-//			throw new RuntimeException("No java compiler available. This plugin requires a JDK to run on.");
 			return;
 		}
 		
 		// Ensure that the "/plugins/JavaLoader" directory exists.
 		this.getDataFolder().mkdirs();
 		
-		// Create the "/plugins/JavaLoader/JavaProjects" directory if it doesn't exist and initialize it with an example.
+		// Create the "/plugins/JavaLoader/JavaProjects" directory if it doesn't exist
+		// and initialize it with an example.
 		if(!this.projectsDir.exists()) {
 			this.projectsDir.mkdir();
 			this.createExampleProject();
@@ -94,7 +97,8 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 			@Override
 			public void onLoad(JavaProject project) {
 				
-				// Initialize the project instance class with the JavaPlugin and possibly a Bukkit Plugin implementation.
+				// Initialize the project instance class with the JavaPlugin.
+				// Add a Bukkit Plugin implementation for JavaLoaderBukkitProjects.
 				if(project.getInstance() instanceof JavaLoaderBukkitProject) {
 					JavaLoaderBukkitProject bukkitProjectInstance = (JavaLoaderBukkitProject) project.getInstance();
 					JavaLoaderBukkitProjectPlugin bukkitProjectPlugin = new JavaLoaderBukkitProjectPlugin(project);
@@ -132,12 +136,14 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 						Field cmdMapField = SimplePluginManager.class.getDeclaredField("commandMap");
 						cmdMapField.setAccessible(true);
 						cmdMap = (SimpleCommandMap) cmdMapField.get(pluginManager);
-					} catch (NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException e) {
-						throw new RuntimeException("Could not inject Bukkit commands because an Exception occured in reflection code.", e);
+					} catch (NoSuchFieldException | SecurityException
+							| IllegalArgumentException | IllegalAccessException e) {
+						throw new RuntimeException("Could not inject Bukkit commands"
+								+ " because an Exception occurred in reflection code.", e);
 					}
 				} else {
-					throw new RuntimeException("Could not inject Bukkit commands because"
-							+ " Bukkit.getPluginManager() was not an instance of " + SimplePluginManager.class.getName());
+					throw new RuntimeException("Could not inject Bukkit commands because Bukkit.getPluginManager()"
+							+ " was not an instance of " + SimplePluginManager.class.getName());
 				}
 				
 				// Get the currently known commands.
@@ -146,7 +152,8 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 					Field knownCommandsField = SimpleCommandMap.class.getDeclaredField("knownCommands");
 					knownCommandsField.setAccessible(true);
 					knownCommands = (Map<String, Command>) knownCommandsField.get(cmdMap);
-				} catch (NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException e) {
+				} catch (NoSuchFieldException | SecurityException
+						| IllegalArgumentException | IllegalAccessException e) {
 					throw new RuntimeException("Could not inject Bukkit commands because"
 							+ " the already existing commands could not be obtained.", e);
 				}
@@ -156,13 +163,14 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 					// Generate the new command.
 					PluginCommand bukkitCmd;
 					try {
-						Constructor<PluginCommand> constructor = PluginCommand.class.getDeclaredConstructor(String.class, Plugin.class);
+						Constructor<PluginCommand> constructor =
+								PluginCommand.class.getDeclaredConstructor(String.class, Plugin.class);
 						constructor.setAccessible(true);
 						bukkitCmd = constructor.newInstance(command.getName(), bukkitProjectPlugin);
 					} catch (NoSuchMethodException | SecurityException | InstantiationException
 							| IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
 						throw new RuntimeException("Could not inject Bukkit commands because"
-								+ " an Exception occured in reflection code while creating a new PluginCommand.", e);
+								+ " an Exception occurred in reflection code while creating a new PluginCommand.", e);
 					}
 					bukkitCmd.setDescription(command.getDescription());
 					bukkitCmd.setUsage(command.getUsageMessage());
@@ -200,12 +208,14 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 						Field cmdMapField = SimplePluginManager.class.getDeclaredField("commandMap");
 						cmdMapField.setAccessible(true);
 						cmdMap = (SimpleCommandMap) cmdMapField.get(pluginManager);
-					} catch (NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException e) {
-						throw new RuntimeException("Could not uninject Bukkit commands because an Exception occured in reflection code.", e);
+					} catch (NoSuchFieldException | SecurityException
+							| IllegalArgumentException | IllegalAccessException e) {
+						throw new RuntimeException("Could not uninject Bukkit commands"
+								+ " because an Exception occurred in reflection code.", e);
 					}
 				} else {
-					throw new RuntimeException("Could not uninject Bukkit commands because"
-							+ " Bukkit.getPluginManager() was not an instance of " + SimplePluginManager.class.getName());
+					throw new RuntimeException("Could not uninject Bukkit commands because Bukkit.getPluginManager()"
+							+ " was not an instance of " + SimplePluginManager.class.getName());
 				}
 				
 				// Unregister all commands owned by the given plugin.
@@ -225,7 +235,8 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 		if(projectDirs != null) {
 			for(File projectDir : projectDirs) {
 				if(projectDir.isDirectory() && !projectDir.getName().endsWith(".disabled")) {
-					this.projects.put(projectDir.getName(), new JavaProject(projectDir.getName(), projectDir, this.projectStateListener));
+					this.projects.put(projectDir.getName(),
+							new JavaProject(projectDir.getName(), projectDir, this.projectStateListener));
 				}
 			}
 		}
@@ -319,7 +330,8 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 			
 			// "/javaloader help [command]".
 			if(args.length == 1) {
-				sender.sendMessage(PREFIX_INFO + colorize("&aJavaLoader - Version: &8" + VERSION + "&a. Author:&8 Pieter12345/woesh0007&a."
+				sender.sendMessage(PREFIX_INFO + colorize("&aJavaLoader - Version: &8" + VERSION + "&a."
+						+ " Author:&8 Pieter12345/woesh0007&a."
 						+ "\n&6  - /javaloader help [subcommand]"
 						+ "\n&3	  Displays this page or information about the subcommand."
 						+ "\n&6  - /javaloader recompile [project]"
@@ -342,11 +354,13 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 				case "load":
 					sender.sendMessage(PREFIX_INFO + colorize("&6/javaloader load [project] &8-&3 Loads the given"
 							+ " project or all projects when no project is given. To load a project, only the .class"
-							+ " files in the project folder have to be valid. This will also load newly added projects."));
+							+ " files in the project folder have to be valid."
+							+ " This will also load newly added projects."));
 					return true;
 				case "unload":
 					sender.sendMessage(PREFIX_INFO + colorize("&6/javaloader unload [project] &8-&3 Unloads the given"
-							+ " project or all projects when no project is given. Projects that no longer exist will be removed."));
+							+ " project or all projects when no project is given."
+							+ " Projects that no longer exist will be removed."));
 					return true;
 				default:
 					sender.sendMessage(PREFIX_ERROR + "Unknown subcommand: /javaloader " + args[1]);
@@ -440,14 +454,16 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 					
 					// Replace the current "bin" directory with "bin_new" and remove "bin_new".
 					if(project.getBinDir().exists() && !Utils.removeFile(project.getBinDir())) {
-						sender.sendMessage(PREFIX_ERROR + "Failed to rename \"bin_new\" to \"bin\" because the \"bin\" directory could not be removed"
-								+ " for project \"" + project.getName() + "\". This can be fixed manually or by attempting another recompile."
-								+ " The project has already been disabled and some files of the \"bin\" directory might be removed.");
+						sender.sendMessage(PREFIX_ERROR + "Failed to rename \"bin_new\" to \"bin\" because the \"bin\""
+								+ " directory could not be removed for project \"" + project.getName() + "\"."
+								+ " This can be fixed manually or by attempting another recompile. The project has"
+								+ " already been disabled and some files of the \"bin\" directory might be removed.");
 						errorProjects.add(project);
 						continue;
 					}
 					if(!newBinDir.renameTo(project.getBinDir())) {
-						sender.sendMessage(PREFIX_ERROR + "Failed to rename \"bin_new\" to \"bin\" for project \"" + project.getName() + "\"."
+						sender.sendMessage(PREFIX_ERROR
+								+ "Failed to rename \"bin_new\" to \"bin\" for project \"" + project.getName() + "\"."
 								+ " This can be fixed manually or by attempting another recompile."
 								+ " The project has already been disabled and the \"bin\" directory has been removed.");
 						errorProjects.add(project);
@@ -476,10 +492,11 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 				int count = this.projects.size();
 				int errorCount = errorProjects.size();
 				if(errorCount == 0) {
-					sender.sendMessage(PREFIX_INFO + "Successfully compiled and loaded " + count + (count == 1 ? " project" : " projects") + ".");
+					sender.sendMessage(PREFIX_INFO + "Successfully compiled and loaded "
+							+ count + (count == 1 ? " project" : " projects") + ".");
 				} else {
-					sender.sendMessage(PREFIX_INFO + "Compiled and loaded " + count + (count == 1 ? " project" : " projects")
-							+ " of which " + errorCount + " failed.");
+					sender.sendMessage(PREFIX_INFO + "Compiled and loaded " + count
+							+ (count == 1 ? " project" : " projects") + " of which " + errorCount + " failed.");
 				}
 				
 			}
@@ -488,14 +505,16 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 				String projectName = args[1];
 				JavaProject project = this.projects.get(projectName);
 				
-				// Check if the given project exists. Add it from the filesystem if it was added and remove it if it's not on the filesystem anymore.
+				// Check if the given project exists.
+				// Add it from the filesystem if it was added and remove it if it's not on the filesystem anymore.
 				if(project == null) {
 					
 					// Check if the project directory was added.
 					File[] projectDirs = this.projectsDir.listFiles();
 					if(projectDirs != null) {
 						for(File projectDir : projectDirs) {
-							if(projectDir.getName().equals(projectName) && projectDir.isDirectory() && !projectDir.getName().endsWith(".disabled")) {
+							if(projectDir.getName().equals(projectName)
+									&& projectDir.isDirectory() && !projectDir.getName().endsWith(".disabled")) {
 								project = new JavaProject(projectDir.getName(), projectDir, this.projectStateListener);
 								this.projects.put(project.getName(), project);
 							}
@@ -518,8 +537,8 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 							}
 						}
 						this.projects.remove(projectName);
-						sender.sendMessage(PREFIX_INFO + "Project unloaded and removed because the project directory no longer exists: "
-								+ projectName);
+						sender.sendMessage(PREFIX_INFO + "Project unloaded and removed because the project directory"
+								+ " no longer exists: " + projectName);
 						return true;
 					}
 				}
@@ -570,13 +589,15 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 				
 				// Replace the current "bin" directory with "bin_new" and remove "bin_new".
 				if(project.getBinDir().exists() && !Utils.removeFile(project.getBinDir())) {
-					sender.sendMessage(PREFIX_ERROR + "Failed to rename \"bin_new\" to \"bin\" because the \"bin\" directory could not be removed"
-							+ " for project \"" + project.getName() + "\". This can be fixed manually or by attempting another recompile."
-							+ " The project has already been disabled and some files of the \"bin\" directory might be removed.");
+					sender.sendMessage(PREFIX_ERROR + "Failed to rename \"bin_new\" to \"bin\" because the \"bin\""
+							+ " directory could not be removed for project \"" + project.getName() + "\"."
+							+ " This can be fixed manually or by attempting another recompile. The project has"
+							+ " already been disabled and some files of the \"bin\" directory might be removed.");
 					return true;
 				}
 				if(!newBinDir.renameTo(project.getBinDir())) {
-					sender.sendMessage(PREFIX_ERROR + "Failed to rename \"bin_new\" to \"bin\" for project \"" + project.getName() + "\"."
+					sender.sendMessage(PREFIX_ERROR
+							+ "Failed to rename \"bin_new\" to \"bin\" for project \"" + project.getName() + "\"."
 							+ " This can be fixed manually or by attempting another recompile."
 							+ " The project has already been disabled and the \"bin\" directory has been removed.");
 					return true;
@@ -592,7 +613,8 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 				}
 				
 				// Send feedback.
-				sender.sendMessage(PREFIX_INFO + "Successfully compiled and loaded project: " + project.getName() + ".");
+				sender.sendMessage(PREFIX_INFO
+						+ "Successfully compiled and loaded project: " + project.getName() + ".");
 				
 			} else {
 				sender.sendMessage(PREFIX_ERROR + "Too many arguments.");
@@ -626,7 +648,8 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 					}
 					
 				}
-				sender.sendMessage(PREFIX_INFO + "Unloaded " + unloadCount + " project" + (unloadCount == 1 ? "" : "s") + ".");
+				sender.sendMessage(PREFIX_INFO
+						+ "Unloaded " + unloadCount + " project" + (unloadCount == 1 ? "" : "s") + ".");
 			}
 			// "/javaloader unload <projectName>".
 			else if(args.length == 2) {
@@ -681,7 +704,8 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 						}
 					}
 				}
-				sender.sendMessage(PREFIX_INFO + "Loaded " + loadCount + " project" + (loadCount == 1 ? "" : "s") + ".");
+				sender.sendMessage(PREFIX_INFO
+						+ "Loaded " + loadCount + " project" + (loadCount == 1 ? "" : "s") + ".");
 			}
 			// "/javaloader load <projectName>".
 			else if(args.length == 2) {
@@ -695,7 +719,8 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 					File[] projectDirs = this.projectsDir.listFiles();
 					if(projectDirs != null) {
 						for(File projectDir : projectDirs) {
-							if(projectDir.getName().equals(projectName) && projectDir.isDirectory() && !projectDir.getName().endsWith(".disabled")) {
+							if(projectDir.getName().equals(projectName)
+									&& projectDir.isDirectory() && !projectDir.getName().endsWith(".disabled")) {
 								project = new JavaProject(projectDir.getName(), projectDir, this.projectStateListener);
 								this.projects.put(project.getName(), project);
 							}
@@ -748,7 +773,8 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 			}
 			
 			// TAB-complete "/javaloader <load, unload, recompile> <arg>".
-			if(args.length == 2 && (args[0].equalsIgnoreCase("load") || args[0].equalsIgnoreCase("unload") || args[0].equalsIgnoreCase("recompile"))) {
+			if(args.length == 2 && (args[0].equalsIgnoreCase("load")
+					|| args[0].equalsIgnoreCase("unload") || args[0].equalsIgnoreCase("recompile"))) {
 				List<String> ret = new ArrayList<String>();
 				for(String comp : this.getProjectNames()) {
 					if(comp.toLowerCase().startsWith(search)) {
@@ -767,8 +793,10 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 		File[] projectDirs = this.projectsDir.listFiles();
 		if(projectDirs != null) {
 			for(File projectDir : projectDirs) {
-				if(projectDir.isDirectory() && !projectDir.getName().endsWith(".disabled") && !this.projects.containsKey(projectDir.getName())) {
-					this.projects.put(projectDir.getName(), new JavaProject(projectDir.getName(), projectDir, this.projectStateListener));
+				if(projectDir.isDirectory() && !projectDir.getName().endsWith(".disabled")
+						&& !this.projects.containsKey(projectDir.getName())) {
+					this.projects.put(projectDir.getName(),
+							new JavaProject(projectDir.getName(), projectDir, this.projectStateListener));
 				}
 			}
 		}
@@ -806,7 +834,8 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 				while((zipEntry = inStream.getNextEntry()) != null) {
 					String name = zipEntry.getName();
 					if(name.startsWith("exampleprojects/bukkit/")) {
-						File targetFile = new File(this.projectsDir + "/" + name.substring("exampleprojects/bukkit/".length()));
+						File targetFile = new File(this.projectsDir
+								+ "/" + name.substring("exampleprojects/bukkit/".length()));
 						if(name.endsWith("/")) {
 							targetFile.mkdir();
 						} else {

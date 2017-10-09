@@ -33,7 +33,8 @@ public class JavaProjectClassLoader extends URLClassLoader {
 		this.binDir = binDir;
 		
 		// Initialize ProtectionDomain.
-		java.security.CodeSource codeSource = new java.security.CodeSource(null, (java.security.cert.Certificate[]) null);
+		java.security.CodeSource codeSource =
+				new java.security.CodeSource(null, (java.security.cert.Certificate[]) null);
 		java.security.Permissions permissions = new java.security.Permissions();
 		permissions.add(new java.security.AllPermission());
 		this.protectionDomain = new java.security.ProtectionDomain(codeSource, permissions);
@@ -75,7 +76,8 @@ public class JavaProjectClassLoader extends URLClassLoader {
 		}
 		
 		// Initialize ProtectionDomain.
-		java.security.CodeSource codeSource = new java.security.CodeSource(null, (java.security.cert.Certificate[]) null);
+		java.security.CodeSource codeSource =
+				new java.security.CodeSource(null, (java.security.cert.Certificate[]) null);
 		java.security.Permissions permissions = new java.security.Permissions();
 		permissions.add(new java.security.AllPermission());
 		this.protectionDomain = new java.security.ProtectionDomain(codeSource, permissions);
@@ -116,7 +118,8 @@ public class JavaProjectClassLoader extends URLClassLoader {
 				this.classMap.put(name, definedClass);
 				return definedClass;
 			} catch(IOException e) {
-				throw new ClassNotFoundException("An IOException occured while reading existing class file: " + classFile.getAbsolutePath());
+				throw new ClassNotFoundException(
+						"An IOException occured while reading existing class file: " + classFile.getAbsolutePath());
 			}
 		}
 		
@@ -148,7 +151,8 @@ public class JavaProjectClassLoader extends URLClassLoader {
 	 * addCustomClass method.
 	 * Puts the given class in this classloaders cache if no class with the same name and package already exists.
 	 * @param clazz - The class.
-	 * @return True if the class was put in the cache, false if a class with the same name and package was already cached.
+	 * @return True if the class was put in the cache, false if a class with the same name and package was already
+	 *  cached.
 	 */
 	public boolean addCustomClass(Class<?> clazz) {
 		if(!this.classMap.containsKey(clazz.getName())) {

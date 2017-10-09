@@ -25,8 +25,10 @@ public class JavaLoaderStandalone {
 	// Variables & Constants.
 	private HashMap<String, JavaProject> projects = null;
 	private static final String VERSION;
-	private static final String PREFIX_INFO = AnsiColor.YELLOW + "[" + AnsiColor.CYAN + "JavaLoader" + AnsiColor.YELLOW + "]" + AnsiColor.GREEN + " ";
-	private static final String PREFIX_ERROR = AnsiColor.YELLOW + "[" + AnsiColor.CYAN + "JavaLoader" + AnsiColor.YELLOW + "]" + AnsiColor.RED + " ";
+	private static final String PREFIX_INFO =
+			AnsiColor.YELLOW + "[" + AnsiColor.CYAN + "JavaLoader" + AnsiColor.YELLOW + "]" + AnsiColor.GREEN + " ";
+	private static final String PREFIX_ERROR =
+			AnsiColor.YELLOW + "[" + AnsiColor.CYAN + "JavaLoader" + AnsiColor.YELLOW + "]" + AnsiColor.RED + " ";
 	private final File projectsDir = new File(new File("").getAbsolutePath() + "/JavaProjects");
 	private ProjectStateListener projectStateListener;
 	
@@ -35,7 +37,8 @@ public class JavaLoaderStandalone {
 	public static void main(String[] args) {
 		final JavaLoaderStandalone javaLoaderStandalone = new JavaLoaderStandalone();
 		
-		// Add a shutdown hook to unload projects before the JVM is being terminated. This does not always run on shutdown.
+		// Add a shutdown hook to unload projects before the JVM is being terminated.
+		// This does not always run on shutdown.
 		Runtime.getRuntime().addShutdownHook(new Thread() {
 			@Override
 			public void run() {
@@ -96,7 +99,8 @@ public class JavaLoaderStandalone {
 		if(projectDirs != null) {
 			for(File projectDir : projectDirs) {
 				if(projectDir.isDirectory() && !projectDir.getName().endsWith(".disabled")) {
-					this.projects.put(projectDir.getName(), new JavaProject(projectDir.getName(), projectDir, this.projectStateListener));
+					this.projects.put(projectDir.getName(),
+							new JavaProject(projectDir.getName(), projectDir, this.projectStateListener));
 				}
 			}
 		}
@@ -191,7 +195,8 @@ public class JavaLoaderStandalone {
 			
 			// "help [command]".
 			if(args.length == 0) {
-				printFeedback(PREFIX_INFO + colorize("&aJavaLoader - Version: &8" + VERSION + "&a. Author:&8 Pieter12345/woesh0007&a."
+				printFeedback(PREFIX_INFO + colorize("&aJavaLoader - Version: &8" + VERSION + "&a."
+						+ " Author:&8 Pieter12345/woesh0007&a."
 						+ "\n&6  - help [subcommand]"
 						+ "\n&3	  Displays this page or information about the subcommand."
 						+ "\n&6  - recompile [project]"
@@ -214,11 +219,13 @@ public class JavaLoaderStandalone {
 				case "load":
 					printFeedback(PREFIX_INFO + colorize("&6load [project] &8-&3 Loads the given"
 							+ " project or all projects when no project is given. To load a project, only the .class"
-							+ " files in the project folder have to be valid. This will also load newly added projects."));
+							+ " files in the project folder have to be valid."
+							+ " This will also load newly added projects."));
 					return;
 				case "unload":
 					printFeedback(PREFIX_INFO + colorize("&6unload [project] &8-&3 Unloads the given"
-							+ " project or all projects when no project is given. Projects that no longer exist will be removed."));
+							+ " project or all projects when no project is given."
+							+ " Projects that no longer exist will be removed."));
 					return;
 				default:
 					printFeedback(PREFIX_ERROR + "Unknown command: " + args[0]);
@@ -312,14 +319,16 @@ public class JavaLoaderStandalone {
 					
 					// Replace the current "bin" directory with "bin_new" and remove "bin_new".
 					if(!Utils.removeFile(project.getBinDir())) {
-						printFeedback(PREFIX_ERROR + "Failed to rename \"bin_new\" to \"bin\" because the \"bin\" directory could not be removed"
-								+ " for project \"" + project.getName() + "\". This can be fixed manually or by attempting another recompile."
-								+ " The project has already been disabled and some files of the \"bin\" directory might be removed.");
+						printFeedback(PREFIX_ERROR + "Failed to rename \"bin_new\" to \"bin\" because the \"bin\""
+								+ " directory could not be removed for project \"" + project.getName() + "\"."
+								+ " This can be fixed manually or by attempting another recompile. The project has"
+								+ " already been disabled and some files of the \"bin\" directory might be removed.");
 						errorProjects.add(project);
 						continue;
 					}
 					if(!newBinDir.renameTo(project.getBinDir())) {
-						printFeedback(PREFIX_ERROR + "Failed to rename \"bin_new\" to \"bin\" for project \"" + project.getName() + "\"."
+						printFeedback(PREFIX_ERROR
+								+ "Failed to rename \"bin_new\" to \"bin\" for project \"" + project.getName() + "\"."
 								+ " This can be fixed manually or by attempting another recompile."
 								+ " The project has already been disabled and the \"bin\" directory has been removed.");
 						errorProjects.add(project);
@@ -352,26 +361,29 @@ public class JavaLoaderStandalone {
 				int count = this.projects.size();
 				int errorCount = errorProjects.size();
 				if(errorCount == 0) {
-					printFeedback(PREFIX_INFO + "Successfully compiled and loaded " + count + (count == 1 ? " project" : " projects") + ".");
+					printFeedback(PREFIX_INFO + "Successfully compiled and loaded "
+				+ count + (count == 1 ? " project" : " projects") + ".");
 				} else {
-					printFeedback(PREFIX_INFO + "Compiled and loaded " + count + (count == 1 ? " project" : " projects")
-							+ " of which " + errorCount + " failed.");
+					printFeedback(PREFIX_INFO + "Compiled and loaded " + count
+							+ (count == 1 ? " project" : " projects") + " of which " + errorCount + " failed.");
 				}
 				
 			}
-			// "/javaloader recompile <projectName>".
+			// "recompile <projectName>".
 			else if(args.length == 1) {
 				String projectName = args[0];
 				JavaProject project = this.projects.get(projectName);
 				
-				// Check if the given project exists. Add it from the filesystem if it was added and remove it if it's not on the filesystem anymore.
+				// Check if the given project exists.
+				// Add it from the filesystem if it was added and remove it if it's not on the filesystem anymore.
 				if(project == null) {
 					
 					// Check if the project directory was added.
 					File[] projectDirs = this.projectsDir.listFiles();
 					if(projectDirs != null) {
 						for(File projectDir : projectDirs) {
-							if(projectDir.getName().equals(projectName) && projectDir.isDirectory() && !projectDir.getName().endsWith(".disabled")) {
+							if(projectDir.getName().equals(projectName)
+									&& projectDir.isDirectory() && !projectDir.getName().endsWith(".disabled")) {
 								project = new JavaProject(projectDir.getName(), projectDir, this.projectStateListener);
 								this.projects.put(project.getName(), project);
 							}
@@ -394,8 +406,8 @@ public class JavaLoaderStandalone {
 							}
 						}
 						this.projects.remove(projectName);
-						printFeedback(PREFIX_INFO + "Project unloaded and removed because the project directory no longer exists: "
-								+ projectName);
+						printFeedback(PREFIX_INFO + "Project unloaded and removed because the project directory"
+								+ " no longer exists: " + projectName);
 						return;
 					}
 				}
@@ -446,13 +458,15 @@ public class JavaLoaderStandalone {
 				
 				// Replace the current "bin" directory with "bin_new" and remove "bin_new".
 				if(!Utils.removeFile(project.getBinDir())) {
-					printFeedback(PREFIX_ERROR + "Failed to rename \"bin_new\" to \"bin\" because the \"bin\" directory could not be removed"
-							+ " for project \"" + project.getName() + "\". This can be fixed manually or by attempting another recompile."
-							+ " The project has already been disabled and some files of the \"bin\" directory might be removed.");
+					printFeedback(PREFIX_ERROR + "Failed to rename \"bin_new\" to \"bin\" because the \"bin\""
+							+ " directory could not be removed for project \"" + project.getName() + "\"."
+							+ " This can be fixed manually or by attempting another recompile. The project has"
+							+ " already been disabled and some files of the \"bin\" directory might be removed.");
 					return;
 				}
 				if(!newBinDir.renameTo(project.getBinDir())) {
-					printFeedback(PREFIX_ERROR + "Failed to rename \"bin_new\" to \"bin\" for project \"" + project.getName() + "\"."
+					printFeedback(PREFIX_ERROR
+							+ "Failed to rename \"bin_new\" to \"bin\" for project \"" + project.getName() + "\"."
 							+ " This can be fixed manually or by attempting another recompile."
 							+ " The project has already been disabled and the \"bin\" directory has been removed.");
 					return;
@@ -506,7 +520,8 @@ public class JavaLoaderStandalone {
 					}
 					
 				}
-				printFeedback(PREFIX_INFO + "Unloaded " + unloadCount + " project" + (unloadCount == 1 ? "" : "s") + ".");
+				printFeedback(PREFIX_INFO
+						+ "Unloaded " + unloadCount + " project" + (unloadCount == 1 ? "" : "s") + ".");
 			}
 			// "unload <projectName>".
 			else if(args.length == 1) {
@@ -575,7 +590,8 @@ public class JavaLoaderStandalone {
 					File[] projectDirs = this.projectsDir.listFiles();
 					if(projectDirs != null) {
 						for(File projectDir : projectDirs) {
-							if(projectDir.getName().equals(projectName) && projectDir.isDirectory() && !projectDir.getName().endsWith(".disabled")) {
+							if(projectDir.getName().equals(projectName)
+									&& projectDir.isDirectory() && !projectDir.getName().endsWith(".disabled")) {
 								project = new JavaProject(projectDir.getName(), projectDir, this.projectStateListener);
 								this.projects.put(project.getName(), project);
 							}
@@ -621,8 +637,10 @@ public class JavaLoaderStandalone {
 		File[] projectDirs = this.projectsDir.listFiles();
 		if(projectDirs != null) {
 			for(File projectDir : projectDirs) {
-				if(projectDir.isDirectory() && !projectDir.getName().endsWith(".disabled") && !this.projects.containsKey(projectDir.getName())) {
-					this.projects.put(projectDir.getName(), new JavaProject(projectDir.getName(), projectDir, this.projectStateListener));
+				if(projectDir.isDirectory() && !projectDir.getName().endsWith(".disabled")
+						&& !this.projects.containsKey(projectDir.getName())) {
+					this.projects.put(projectDir.getName(),
+							new JavaProject(projectDir.getName(), projectDir, this.projectStateListener));
 				}
 			}
 		}
@@ -663,7 +681,8 @@ public class JavaLoaderStandalone {
 				while((zipEntry = inStream.getNextEntry()) != null) {
 					String name = zipEntry.getName();
 					if(name.startsWith("exampleprojects/standalone/")) {
-						File targetFile = new File(this.projectsDir + "/" + name.substring("exampleprojects/standalone/".length()));
+						File targetFile = new File(this.projectsDir
+								+ "/" + name.substring("exampleprojects/standalone/".length()));
 						if(name.endsWith("/")) {
 							targetFile.mkdir();
 						} else {

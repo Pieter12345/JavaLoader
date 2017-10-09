@@ -62,12 +62,14 @@ public class BukkitPluginLoader implements PluginLoader {
 	// Method code copied from Bukkit's JavaPluginLoader. Returns a map with events and their corresponding listeners,
 	// generated from the given Listener.
 	@Override
-	public Map<Class<? extends Event>, Set<RegisteredListener>> createRegisteredListeners(Listener listener, final Plugin plugin) {
+	public Map<Class<? extends Event>, Set<RegisteredListener>>
+			createRegisteredListeners(Listener listener, final Plugin plugin) {
 		Validate.notNull(plugin, "Plugin can not be null");
 		Validate.notNull(listener, "Listener can not be null");
 		
 		boolean useTimings = server.getPluginManager().useTimings();
-		Map<Class<? extends Event>, Set<RegisteredListener>> ret = new HashMap<Class<? extends Event>, Set<RegisteredListener>>();
+		Map<Class<? extends Event>, Set<RegisteredListener>> ret =
+				new HashMap<Class<? extends Event>, Set<RegisteredListener>>();
 		Set<Method> methods;
 		try {
 			Method[] publicMethods = listener.getClass().getMethods();
@@ -80,7 +82,8 @@ public class BukkitPluginLoader implements PluginLoader {
 				methods.add(method);
 			}
 		} catch (NoClassDefFoundError e) {
-			plugin.getLogger().severe("Plugin " + plugin.getDescription().getFullName() + " has failed to register events for " + listener.getClass() + " because " + e.getMessage() + " does not exist.");
+			plugin.getLogger().severe("Plugin " + plugin.getDescription().getFullName() + " has failed to register"
+					+ " events for " + listener.getClass() + " because " + e.getMessage() + " does not exist.");
 			return ret;
 		}
 		
@@ -92,8 +95,11 @@ public class BukkitPluginLoader implements PluginLoader {
 				continue;
 			}
 			final Class<?> checkClass;
-			if (method.getParameterTypes().length != 1 || !Event.class.isAssignableFrom(checkClass = method.getParameterTypes()[0])) {
-				plugin.getLogger().severe(plugin.getDescription().getFullName() + " attempted to register an invalid EventHandler method signature \"" + method.toGenericString() + "\" in " + listener.getClass());
+			if (method.getParameterTypes().length != 1
+					|| !Event.class.isAssignableFrom(checkClass = method.getParameterTypes()[0])) {
+				plugin.getLogger().severe(plugin.getDescription().getFullName() + " attempted to register an invalid"
+						+ " EventHandler method signature \""
+						+ method.toGenericString() + "\" in " + listener.getClass());
 				continue;
 			}
 			final Class<? extends Event> eventClass = checkClass.asSubclass(Event.class);
@@ -115,12 +121,13 @@ public class BukkitPluginLoader implements PluginLoader {
 					plugin.getLogger().log(
 							Level.WARNING,
 							String.format(
-									"\"%s\" has registered a listener for %s on method \"%s\", but the event is Deprecated." +
-									" \"%s\"; please notify the authors %s.",
+									"\"%s\" has registered a listener for %s on method \"%s\","
+									+ " but the event is Deprecated. \"%s\"; please notify the authors %s.",
 									plugin.getDescription().getFullName(),
 									clazz.getName(),
 									method.toGenericString(),
-									(warning != null && warning.reason().length() != 0) ? warning.reason() : "Server performance will be affected",
+									(warning != null && warning.reason().length() != 0) ?
+											warning.reason() : "Server performance will be affected",
 									Arrays.toString(plugin.getDescription().getAuthors().toArray())),
 							warningState == WarningState.ON ? new AuthorNagException(null) : null);
 					break;
@@ -143,7 +150,8 @@ public class BukkitPluginLoader implements PluginLoader {
 				}
 			};
 			if (useTimings) {
-				eventSet.add(new TimedRegisteredListener(listener, executor, eh.priority(), plugin, eh.ignoreCancelled()));
+				eventSet.add(
+						new TimedRegisteredListener(listener, executor, eh.priority(), plugin, eh.ignoreCancelled()));
 			} else {
 				eventSet.add(new RegisteredListener(listener, executor, eh.priority(), plugin, eh.ignoreCancelled()));
 			}

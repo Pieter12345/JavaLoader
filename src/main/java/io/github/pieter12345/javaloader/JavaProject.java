@@ -120,10 +120,12 @@ public class JavaProject {
 				throw new CompileException("Unable to create bin directory at: " + this.binDir.getAbsolutePath());
 			}
 			
-			// Get the name of the .jar file of this plugin (Using the JavaLoaderProject class because that one is required for all projects).
+			// Get the name of the .jar file of this plugin
+			// (Using the JavaLoaderProject class because that one is required for all projects).
 			java.security.CodeSource codeSource = JavaLoaderProject.class.getProtectionDomain().getCodeSource();
 			if(codeSource == null || codeSource.getLocation().getFile().isEmpty()) {
-				throw new CompileException("Unable to include this plugins .jar file to the classpath because the CodeSource returned null.");
+				throw new CompileException("Unable to include this"
+						+ " plugins .jar file to the classpath because the CodeSource returned null.");
 			}
 			String pluginJarFilePath = codeSource.getLocation().toURI().getPath();
 			
@@ -146,8 +148,10 @@ public class JavaProject {
 			if(compiler == null) {
 				throw new CompileException("No java compiler available. This plugin requires a JDK to run on.");
 			}
-			StandardJavaFileManager fileManager = compiler.getStandardFileManager(null, Locale.US, StandardCharsets.UTF_8);
-			CompilationTask compileTask = compiler.getTask(feedbackWriter, fileManager, null, options, null, fileManager.getJavaFileObjects(files.toArray(new File[0])));
+			StandardJavaFileManager fileManager =
+					compiler.getStandardFileManager(null, Locale.US, StandardCharsets.UTF_8);
+			CompilationTask compileTask = compiler.getTask(feedbackWriter, fileManager,
+					null, options, null, fileManager.getJavaFileObjects(files.toArray(new File[0])));
 			try { fileManager.close(); } catch (IOException e) { e.printStackTrace(); } // Never happens.
 			boolean success = compileTask.call();
 			if(!success) {
@@ -159,7 +163,6 @@ public class JavaProject {
 				throw (CompileException) e;
 			}
 			throw new CompileException(e);
-//			throw new CompileException("An Exception occured while compiling project: " + this.projectDir.getName() + ". Message: " + e.getMessage());
 		}
 	}
 
@@ -185,7 +188,7 @@ public class JavaProject {
 		} catch (FileNotFoundException e) {
 			throw new LoadException(e);
 		} catch (IOException e) {
-			throw new LoadException("An IOException occured while getting dependencies.", e);
+			throw new LoadException("An IOException occurred while getting dependencies.", e);
 		}
 		
 		// Define the classloader.
@@ -210,7 +213,8 @@ public class JavaProject {
 						dirStack.push(localFile);
 						packetStack.push(packetStr + localFile.getName() + ".");
 					} else if(localFile.getName().endsWith(".class")) {
-						String className = packetStr + localFile.getName().substring(0, localFile.getName().length() - 6);
+						String className =
+								packetStr + localFile.getName().substring(0, localFile.getName().length() - 6);
 						try {
 							Class<?> clazz = this.classLoader.loadClass(className);
 							if(JavaLoaderProject.class.isAssignableFrom(clazz)) {
@@ -223,7 +227,6 @@ public class JavaProject {
 //								}
 //							}
 						} catch (ClassNotFoundException e) {
-//							System.out.println("[DEBUG] Unable to load class: " + className + ". Skipping class.");
 							throw new LoadException("Unable to load class while it is certainly"
 									+ " in the bin directory (ClassNotFoundException): " + className);
 						} catch (NoClassDefFoundError e) {
@@ -235,10 +238,12 @@ public class JavaProject {
 			}
 		}
 		if(mainClasses.size() == 0) {
-			throw new LoadException("No main class found (one class has to extend from " + JavaLoaderProject.class.getName() + ").");
+			throw new LoadException(
+					"No main class found (one class has to extend from " + JavaLoaderProject.class.getName() + ").");
 		}
 		if(mainClasses.size() > 1) {
-			throw new LoadException("Multiple main classes found (only one class may extend from " + JavaLoaderProject.class.getName() + ").");
+			throw new LoadException("Multiple main classes found"
+					+ " (only one class may extend from " + JavaLoaderProject.class.getName() + ").");
 		}
 		Class<?> mainClass = mainClasses.get(0);
 		
@@ -247,7 +252,8 @@ public class JavaProject {
 			this.projectInstance = (JavaLoaderProject) mainClass.newInstance();
 		} catch (InstantiationException e) {
 			throw new LoadException("The main class (" + mainClass.getName() + ") could not be instantiated."
-					+ " This could be caused by the absence of a nullary constructor in the class or because the class is not an implemented class.");
+					+ " This could be caused by the absence of a"
+					+ " nullary constructor in the class or because the class is not an implemented class.");
 		} catch (IllegalAccessException e) {
 			throw new LoadException("The main class (" + mainClass.getName() + ") could not be accessed."
 					+ " Make sure the default constructor is public or no constructors are defined.");
@@ -255,14 +261,14 @@ public class JavaProject {
 			throw new LoadException("The main class (" + mainClass.getName() + ") could not be instanciated because a"
 					+ " class (or library) it depends on is missing (NoClassDefFoundError). If you have removed a class"
 					+ " after the last recompile,"
-					+ " re-executing the recompile will succeed since the project has been unloaded at this point.", e);
+					+ " executing a recompile will fix this since the project has been unloaded at this point.", e);
 		}
 		
 		// Get the project version (This has to happen before calling the onLoad(...) method on the stateListener).
 		try {
 			this.version = this.projectInstance.getVersion();
 		} catch (Exception e) {
-			throw new LoadException("An Exception occured in " + this.projectDir.getName() + "'s "
+			throw new LoadException("An Exception occurred in " + this.projectDir.getName() + "'s "
 					+ this.projectInstance.getClass().getName() + ".getVersion(). Is the project up to date?"
 					+ " Stacktrace:\n" + Utils.getStacktrace(e), e);
 		}
@@ -272,7 +278,8 @@ public class JavaProject {
 			try {
 				this.stateListener.onLoad(this);
 			} catch (Exception e) {
-				throw new LoadException("An unexpected Exception occurred in StateListener's onLoad() method. This is likely a bug.", e);
+				throw new LoadException("An unexpected Exception occurred in StateListener's onLoad() method."
+						+ " This is likely a bug.", e);
 			}
 		}
 		
@@ -281,7 +288,7 @@ public class JavaProject {
 			this.projectInstance.onLoad();
 			this.enabled = true;
 		} catch (Exception e) {
-			throw new LoadException("An Exception occured in " + this.projectDir.getName() + "'s "
+			throw new LoadException("An Exception occurred in " + this.projectDir.getName() + "'s "
 					+ this.projectInstance.getClass().getName() + ".onLoad(). Is the project up to date?"
 					+ " Stacktrace:\n" + Utils.getStacktrace(e), e);
 		} catch (NoClassDefFoundError e) {
@@ -308,7 +315,8 @@ public class JavaProject {
 				this.stateListener.onUnload(this);
 			} catch (Exception e) {
 				// This should never happen.
-				throw new UnloadException("An unexpected Exception occurred in StateListener's onUnload() method. This is likely a bug.", e);
+				throw new UnloadException("An unexpected Exception occurred in StateListener's onUnload() method."
+						+ " This is likely a bug.", e);
 			}
 		}
 		
@@ -318,7 +326,7 @@ public class JavaProject {
 			this.enabled = false;
 			this.version = null;
 		} catch (Exception e) {
-			throw new UnloadException("An Exception occured in " + this.projectDir.getName() + "'s "
+			throw new UnloadException("An Exception occurred in " + this.projectDir.getName() + "'s "
 					+ this.projectInstance.getClass().getName() + ".onUnload(). Is the project up to date?"
 					+ " Stacktrace:\n" + Utils.getStacktrace(e), e);
 		}
@@ -362,7 +370,8 @@ public class JavaProject {
 	 *  This directory is in the project directory.
 	 */
 	public void setBinDirName(String binDirName) {
-		this.binDir = new File(this.projectDir.getAbsolutePath() + "/" + binDirName.replaceAll("(\\.\\.|\\\\|\\/)", " "));
+		this.binDir = 
+				new File(this.projectDir.getAbsolutePath() + "/" + binDirName.replaceAll("(\\.\\.|\\\\|\\/)", " "));
 	}
 	
 	/**
@@ -423,14 +432,16 @@ public class JavaProject {
 			// Change "project ProjectName" to the bin directory of that project.
 			if(dependencies[i].toLowerCase().startsWith("project ")) {
 				String projectName = dependencies[i].substring("project ".length()).trim();
-				// TODO - Match the project with all known projects and get their bin directory through them (without depending on the Bukkit package).
+				// TODO - Match the project with all known projects and get their bin directory through them
+				// (without depending on the Bukkit package).
 				// TODO - Also check for circular dependencies.
 				// TODO - Base compile order on project dependencies.
 				dependencies[i] = this.projectDir.getParentFile().getAbsolutePath() + "/" + projectName + "/bin";
 			}
 			
 			// Make relative paths relative to the project directory.
-			if(dependencies[i].startsWith(".") && (dependencies[i].length() == 1 || dependencies[i].charAt(1) == '/' || dependencies[i].charAt(1) == '\\')) {
+			if(dependencies[i].startsWith(".") && (dependencies[i].length() == 1
+					|| dependencies[i].charAt(1) == '/' || dependencies[i].charAt(1) == '\\')) {
 				dependencies[i] = this.projectDir.getAbsolutePath() + dependencies[i].substring(1);
 			}
 			

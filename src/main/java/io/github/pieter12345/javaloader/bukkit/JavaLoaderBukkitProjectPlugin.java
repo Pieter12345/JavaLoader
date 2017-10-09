@@ -57,7 +57,8 @@ public class JavaLoaderBukkitProjectPlugin extends PluginBase {
 			throw new NullPointerException("Project instance is null.");
 		}
 		if(!(project.getInstance() instanceof JavaLoaderBukkitProject)) {
-			throw new IllegalStateException("JavaLoaderProjectBukkitPlugin requires " + JavaLoaderBukkitProject.class.getName()
+			throw new IllegalStateException(
+					"JavaLoaderProjectBukkitPlugin requires " + JavaLoaderBukkitProject.class.getName()
 					+ ", but " + project.getInstance().getClass().getName() + " was found.");
 		}
 		this.projectInstance = (JavaLoaderBukkitProject) project.getInstance();
@@ -75,7 +76,8 @@ public class JavaLoaderBukkitProjectPlugin extends PluginBase {
 //		((PluginClassLoader) classLoader).initialize(this);
 //	}
 	
-//	protected JavaLoaderProjectPlugin(final JavaPluginLoader loader, final PluginDescriptionFile description, final File dataFolder, final File file) {
+//	protected JavaLoaderProjectPlugin(final JavaPluginLoader loader,
+//			final PluginDescriptionFile description, final File dataFolder, final File file) {
 //		final ClassLoader classLoader = this.getClass().getClassLoader();
 //		if (classLoader instanceof PluginClassLoader) {
 //			throw new IllegalStateException("Cannot use initialization constructor at runtime");
@@ -177,7 +179,8 @@ public class JavaLoaderBukkitProjectPlugin extends PluginBase {
 			return;
 		}
 
-		newConfig.setDefaults(YamlConfiguration.loadConfiguration(new InputStreamReader(defConfigStream, Charsets.UTF_8)));
+		newConfig.setDefaults(
+				YamlConfiguration.loadConfiguration(new InputStreamReader(defConfigStream, Charsets.UTF_8)));
 	}
 	
 	@Override
@@ -205,7 +208,8 @@ public class JavaLoaderBukkitProjectPlugin extends PluginBase {
 		resourcePath = resourcePath.replace('\\', '/');
 		InputStream in = getResource(resourcePath);
 		if (in == null) {
-			throw new IllegalArgumentException("The embedded resource '" + resourcePath + "' cannot be found in " + file);
+			throw new IllegalArgumentException(
+					"The embedded resource '" + resourcePath + "' cannot be found in " + file);
 		}
 		
 		File outFile = new File(dataFolder, resourcePath);
@@ -227,7 +231,8 @@ public class JavaLoaderBukkitProjectPlugin extends PluginBase {
 				out.close();
 				in.close();
 			} else {
-				logger.log(Level.WARNING, "Could not save " + outFile.getName() + " to " + outFile + " because " + outFile.getName() + " already exists.");
+				logger.log(Level.WARNING, "Could not save " + outFile.getName()
+						+ " to " + outFile + " because " + outFile.getName() + " already exists.");
 			}
 		} catch (IOException ex) {
 			logger.log(Level.SEVERE, "Could not save " + outFile.getName() + " to " + outFile, ex);
@@ -282,7 +287,8 @@ public class JavaLoaderBukkitProjectPlugin extends PluginBase {
 	}
 	
 	
-	final void init(PluginLoader loader, Server server, PluginDescriptionFile description, File dataFolder, File file, ClassLoader classLoader) {
+	final void init(PluginLoader loader, Server server,
+			PluginDescriptionFile description, File dataFolder, File file, ClassLoader classLoader) {
 		this.loader = loader;
 		this.server = server;
 		this.file = file;
@@ -324,7 +330,8 @@ public class JavaLoaderBukkitProjectPlugin extends PluginBase {
 		PluginCommand command = getServer().getPluginCommand(alias);
 		
 		if (command == null || command.getPlugin() != this) {
-			command = getServer().getPluginCommand(description.getName().toLowerCase(java.util.Locale.ENGLISH) + ":" + alias);
+			command = getServer().getPluginCommand(
+					description.getName().toLowerCase(java.util.Locale.ENGLISH) + ":" + alias);
 		}
 		
 		if (command != null && command.getPlugin() == this) {
