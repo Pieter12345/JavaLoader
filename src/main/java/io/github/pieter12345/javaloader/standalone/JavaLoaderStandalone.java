@@ -17,6 +17,9 @@ import javax.tools.ToolProvider;
 
 import io.github.pieter12345.javaloader.JavaProject;
 import io.github.pieter12345.javaloader.ProjectStateListener;
+import io.github.pieter12345.javaloader.JavaProject.CompileException;
+import io.github.pieter12345.javaloader.JavaProject.LoadException;
+import io.github.pieter12345.javaloader.JavaProject.UnloadException;
 import io.github.pieter12345.javaloader.utils.AnsiColor;
 import io.github.pieter12345.javaloader.utils.Utils;
 
@@ -127,14 +130,15 @@ public class JavaLoaderStandalone {
 						@Override
 						public void close() throws IOException { }
 					});
-				} catch (Exception e) {
+				} catch (CompileException e) {
 					
 					// Remove the newly created bin directory.
 					Utils.removeFile(project.getBinDir());
 					
 					// Send feedback.
-					printFeedback(PREFIX_ERROR + "An Exception occured while compiling java project: \"" + project.getName() + "\":"
-							+ "\n" + Utils.getStacktrace(e));
+					printFeedback(PREFIX_ERROR + "A CompileException occurred while compiling"
+							+ " java project \"" + project.getName() + "\":"
+							+ (e.getCause() == null ? " " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
 					continue;
 				}
 			}
@@ -142,9 +146,10 @@ public class JavaLoaderStandalone {
 			// Load the project.
 			try {
 				project.load();
-			} catch (Exception e) {
-				printFeedback(PREFIX_ERROR + "An Exception occured while loading java project \"" + project.getName() + "\":"
-						+ "\n" + Utils.getStacktrace(e));
+			} catch (LoadException e) {
+				printFeedback(PREFIX_ERROR + "A LoadException occurred while loading"
+						+ " java project \"" + project.getName() + "\":"
+						+ (e.getCause() == null ? " " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
 			}
 		}
 		
@@ -178,10 +183,10 @@ public class JavaLoaderStandalone {
 				if(project.isEnabled()) {
 					try {
 						project.unload();
-					} catch (Exception e) {
-						printFeedback(PREFIX_ERROR
-								+ "An Exception occured while unloading java project \"" + project.getName() + "\":"
-								+ "\n" + Utils.getStacktrace(e));
+					} catch (UnloadException e) {
+						printFeedback(PREFIX_ERROR + "An UnloadException occurred while unloading"
+								+ " java project \"" + project.getName() + "\":"
+								+ (e.getCause() == null ? " " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
 					}
 				}
 			}
@@ -270,15 +275,16 @@ public class JavaLoaderStandalone {
 							@Override
 							public void close() throws IOException { }
 						});
-					} catch (Exception e) {
+					} catch (CompileException e) {
 						
 						// Remove the newly created bin directory and set the old one.
 						Utils.removeFile(project.getBinDir());
 						project.setBinDirName("bin");
 						
 						// Send feedback.
-						printFeedback(PREFIX_ERROR + "An Exception occured while compiling java project: \"" + project.getName() + "\":"
-								+ "\n" + Utils.getStacktrace(e));
+						printFeedback(PREFIX_ERROR + "A CompileException occurred while compiling"
+								+ " java project \"" + project.getName() + "\":"
+								+ (e.getCause() == null ? " " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
 						errorProjects.add(project);
 						continue;
 					}
@@ -297,9 +303,10 @@ public class JavaLoaderStandalone {
 						
 						try {
 							project.unload();
-						} catch (Exception e) {
-							printFeedback(PREFIX_ERROR + "An Exception occured while unloading java project \"" + project.getName() + "\":"
-									+ "\n" + Utils.getStacktrace(e));
+						} catch (UnloadException e) {
+							printFeedback(PREFIX_ERROR + "An UnloadException occurred while unloading"
+									+ " java project \"" + project.getName() + "\":"
+									+ (e.getCause() == null ? " " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
 						}
 					}
 				}
@@ -346,9 +353,10 @@ public class JavaLoaderStandalone {
 					
 					try {
 						project.load();
-					} catch (Exception e) {
-						printFeedback(PREFIX_ERROR + "An Exception occured while loading java project \"" + project.getName() + "\":"
-								+ "\n" + Utils.getStacktrace(e));
+					} catch (LoadException e) {
+						printFeedback(PREFIX_ERROR + "A LoadException occurred while loading"
+								+ " java project \"" + project.getName() + "\":"
+								+ (e.getCause() == null ? " " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
 						errorProjects.add(project);
 					}
 				}
@@ -396,9 +404,11 @@ public class JavaLoaderStandalone {
 						if(project.isEnabled()) {
 							try {
 								project.unload();
-							} catch (Exception e) {
-								printFeedback(PREFIX_ERROR + "An Exception occured while unloading REMOVED java project \"" + projectName + "\":"
-										+ "\n" + Utils.getStacktrace(e));
+							} catch (UnloadException e) {
+								printFeedback(PREFIX_ERROR + "An UnloadException occurred while unloading REMOVED"
+										+ " java project \"" + project.getName() + "\":"
+										+ (e.getCause() == null ?
+												" " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
 							}
 						}
 						this.projects.remove(projectName);
@@ -427,15 +437,16 @@ public class JavaLoaderStandalone {
 						@Override
 						public void close() throws IOException { }
 					});
-				} catch (Exception e) {
+				} catch (CompileException e) {
 					
 					// Remove the newly created bin directory and set the old one.
 					Utils.removeFile(project.getBinDir());
 					project.setBinDirName("bin");
 					
 					// Send feedback and return.
-					printFeedback(PREFIX_ERROR + "An Exception occured while compiling java project: \"" + project.getName() + "\":"
-							+ "\n" + Utils.getStacktrace(e));
+					printFeedback(PREFIX_ERROR + "A CompileException occurred while compiling"
+							+ " java project \"" + project.getName() + "\":"
+							+ (e.getCause() == null ? " " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
 					return;
 				}
 				File newBinDir = project.getBinDir();
@@ -446,9 +457,10 @@ public class JavaLoaderStandalone {
 				if(project.isEnabled()) {
 					try {
 						project.unload();
-					} catch (Exception e) {
-						printFeedback(PREFIX_ERROR + "An Exception occured while unloading java project \"" + project.getName() + "\":"
-								+ "\n" + Utils.getStacktrace(e));
+					} catch (UnloadException e) {
+						printFeedback(PREFIX_ERROR + "An UnloadException occurred while unloading"
+								+ " java project \"" + project.getName() + "\":"
+								+ (e.getCause() == null ? " " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
 					}
 				}
 				
@@ -471,9 +483,10 @@ public class JavaLoaderStandalone {
 				// Load the project.
 				try {
 					project.load();
-				} catch (Exception e) {
-					printFeedback(PREFIX_ERROR + "An Exception occured while loading java project \"" + project.getName() + "\":"
-							+ "\n" + Utils.getStacktrace(e));
+				} catch (LoadException e) {
+					printFeedback(PREFIX_ERROR + "A LoadException occurred while loading"
+							+ " java project \"" + project.getName() + "\":"
+							+ (e.getCause() == null ? " " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
 					return;
 				}
 				
@@ -499,9 +512,10 @@ public class JavaLoaderStandalone {
 						try {
 							project.unload();
 							unloadCount++;
-						} catch (Exception e) {
-							printFeedback(PREFIX_ERROR + "An Exception occured while unloading java project \"" + project.getName() + "\":"
-									+ "\n" + Utils.getStacktrace(e));
+						} catch (UnloadException e) {
+							printFeedback(PREFIX_ERROR + "An UnloadException occurred while unloading"
+									+ " java project \"" + project.getName() + "\":"
+									+ (e.getCause() == null ? " " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
 							continue;
 						}
 					}
@@ -531,9 +545,10 @@ public class JavaLoaderStandalone {
 					try {
 						project.unload();
 						printFeedback(PREFIX_INFO + "Project unloaded: " + projectName);
-					} catch (Exception e) {
-						printFeedback(PREFIX_ERROR + "An Exception occured while unloading java project \"" + projectName + "\":"
-								+ "\n" + Utils.getStacktrace(e));
+					} catch (UnloadException e) {
+						printFeedback(PREFIX_ERROR + "An UnloadException occurred while unloading"
+								+ " java project \"" + project.getName() + "\":"
+								+ (e.getCause() == null ? " " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
 					}
 				} else {
 					printFeedback(PREFIX_ERROR + "Project was not enabled: " + projectName);
@@ -562,9 +577,10 @@ public class JavaLoaderStandalone {
 						try {
 							project.load();
 							loadCount++;
-						} catch (Exception e) {
-							printFeedback(PREFIX_ERROR + "An Exception occured while loading java project \"" + project.getName() + "\":"
-									+ "\n" + Utils.getStacktrace(e));
+						} catch (LoadException e) {
+							printFeedback(PREFIX_ERROR + "A LoadException occurred while loading"
+									+ " java project \"" + project.getName() + "\":"
+									+ (e.getCause() == null ? " " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
 						}
 					}
 				}
@@ -601,9 +617,10 @@ public class JavaLoaderStandalone {
 					try {
 						project.load();
 						printFeedback(PREFIX_INFO + "Project loaded: " + projectName);
-					} catch (Exception e) {
-						printFeedback(PREFIX_ERROR + "An Exception occured while loading java project \"" + projectName + "\":"
-								+ "\n" + Utils.getStacktrace(e));
+					} catch (LoadException e) {
+						printFeedback(PREFIX_ERROR + "A LoadException occurred while loading"
+								+ " java project \"" + project.getName() + "\":"
+								+ (e.getCause() == null ? " " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
 					}
 				} else {
 					printFeedback(PREFIX_ERROR + "Project already loaded: " + projectName);
@@ -646,9 +663,10 @@ public class JavaLoaderStandalone {
 				if(project.isEnabled()) {
 					try {
 						project.unload();
-					} catch (Exception e) {
-						printFeedback(PREFIX_ERROR + "An Exception occured while unloading REMOVED java project \"" + project.getName() + "\":"
-								+ "\n" + Utils.getStacktrace(e));
+					} catch (UnloadException e) {
+						printFeedback(PREFIX_ERROR + "An UnloadException occurred while unloading REMOVED"
+								+ " java project \"" + project.getName() + "\":"
+								+ (e.getCause() == null ? " " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
 					}
 				}
 				iterator.remove();

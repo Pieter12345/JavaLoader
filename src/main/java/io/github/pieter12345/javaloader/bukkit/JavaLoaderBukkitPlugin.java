@@ -31,6 +31,9 @@ import org.bukkit.plugin.SimplePluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import io.github.pieter12345.javaloader.JavaProject;
+import io.github.pieter12345.javaloader.JavaProject.CompileException;
+import io.github.pieter12345.javaloader.JavaProject.LoadException;
+import io.github.pieter12345.javaloader.JavaProject.UnloadException;
 import io.github.pieter12345.javaloader.ProjectStateListener;
 import io.github.pieter12345.javaloader.utils.Utils;
 
@@ -263,14 +266,15 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 						@Override
 						public void close() throws IOException { }
 					});
-				} catch (Exception e) {
+				} catch (CompileException e) {
 					
 					// Remove the newly created bin directory.
 					Utils.removeFile(project.getBinDir());
 					
 					// Send feedback.
-					Bukkit.getConsoleSender().sendMessage(PREFIX_ERROR + "An Exception occured while compiling java project: \"" + project.getName() + "\":"
-							+ "\n" + Utils.getStacktrace(e));
+					Bukkit.getConsoleSender().sendMessage(PREFIX_ERROR + "A CompileException occurred while compiling"
+							+ " java project \"" + project.getName() + "\":"
+							+ (e.getCause() == null ? " " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
 					continue;
 				}
 			}
@@ -278,9 +282,10 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 			// Load the project.
 			try {
 				project.load();
-			} catch (Exception e) {
-				Bukkit.getConsoleSender().sendMessage(PREFIX_ERROR + "An Exception occured while loading java project \"" + project.getName() + "\":"
-						+ "\n" + Utils.getStacktrace(e));
+			} catch (LoadException e) {
+				Bukkit.getConsoleSender().sendMessage(PREFIX_ERROR + "A LoadException occurred while loading"
+						+ " java project \"" + project.getName() + "\":"
+						+ (e.getCause() == null ? " " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
 			}
 		}
 		
@@ -299,10 +304,10 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 				if(project.isEnabled()) {
 					try {
 						project.unload();
-					} catch (Exception e) {
-						Bukkit.getConsoleSender().sendMessage(PREFIX_ERROR
-								+ "An Exception occured while unloading java project \"" + project.getName() + "\":"
-								+ "\n" + Utils.getStacktrace(e));
+					} catch (UnloadException e) {
+						Bukkit.getConsoleSender().sendMessage(PREFIX_ERROR + "An UnloadException occurred while"
+								+ " unloading java project \"" + project.getName() + "\":"
+								+ (e.getCause() == null ? " " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
 					}
 				}
 			}
@@ -405,15 +410,16 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 							@Override
 							public void close() throws IOException { }
 						});
-					} catch (Exception e) {
+					} catch (CompileException e) {
 						
 						// Remove the newly created bin directory and set the old one.
 						Utils.removeFile(project.getBinDir());
 						project.setBinDirName("bin");
 						
 						// Send feedback.
-						sender.sendMessage(PREFIX_ERROR + "An Exception occured while compiling java project: \"" + project.getName() + "\":"
-								+ "\n" + Utils.getStacktrace(e));
+						sender.sendMessage(PREFIX_ERROR + "A CompileException occurred while compiling"
+								+ " java project \"" + project.getName() + "\":"
+								+ (e.getCause() == null ? " " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
 						errorProjects.add(project);
 						continue;
 					}
@@ -432,9 +438,10 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 						
 						try {
 							project.unload();
-						} catch (Exception e) {
-							sender.sendMessage(PREFIX_ERROR + "An Exception occured while unloading java project \"" + project.getName() + "\":"
-									+ "\n" + Utils.getStacktrace(e));
+						} catch (UnloadException e) {
+							sender.sendMessage(PREFIX_ERROR + "An UnloadException occurred while unloading"
+									+ " java project \"" + project.getName() + "\":"
+									+ (e.getCause() == null ? " " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
 						}
 					}
 				}
@@ -481,9 +488,10 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 					
 					try {
 						project.load();
-					} catch (Exception e) {
-						sender.sendMessage(PREFIX_ERROR + "An Exception occured while loading java project \"" + project.getName() + "\":"
-								+ "\n" + Utils.getStacktrace(e));
+					} catch (LoadException e) {
+						sender.sendMessage(PREFIX_ERROR + "A LoadException occurred while loading"
+								+ " java project \"" + project.getName() + "\":"
+								+ (e.getCause() == null ? " " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
 						errorProjects.add(project);
 					}
 				}
@@ -531,9 +539,11 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 						if(project.isEnabled()) {
 							try {
 								project.unload();
-							} catch (Exception e) {
-								sender.sendMessage(PREFIX_ERROR + "An Exception occured while unloading REMOVED java project \"" + projectName + "\":"
-										+ "\n" + Utils.getStacktrace(e));
+							} catch (UnloadException e) {
+								sender.sendMessage(PREFIX_ERROR + "An UnloadException occurred while unloading REMOVED"
+										+ " java project \"" + project.getName() + "\":"
+										+ (e.getCause() == null ?
+												" " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
 							}
 						}
 						this.projects.remove(projectName);
@@ -562,15 +572,16 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 						@Override
 						public void close() throws IOException { }
 					});
-				} catch (Exception e) {
+				} catch (CompileException e) {
 					
 					// Remove the newly created bin directory and set the old one.
 					Utils.removeFile(project.getBinDir());
 					project.setBinDirName("bin");
 					
 					// Send feedback and return.
-					sender.sendMessage(PREFIX_ERROR + "An Exception occured while compiling java project: \"" + project.getName() + "\":"
-							+ "\n" + Utils.getStacktrace(e));
+					sender.sendMessage(PREFIX_ERROR + "A CompileException occurred while compiling"
+							+ " java project \"" + project.getName() + "\":"
+							+ (e.getCause() == null ? " " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
 					return true;
 				}
 				File newBinDir = project.getBinDir();
@@ -581,9 +592,10 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 				if(project.isEnabled()) {
 					try {
 						project.unload();
-					} catch (Exception e) {
-						sender.sendMessage(PREFIX_ERROR + "An Exception occured while unloading java project \"" + project.getName() + "\":"
-								+ "\n" + Utils.getStacktrace(e));
+					} catch (UnloadException e) {
+						sender.sendMessage(PREFIX_ERROR + "An UnloadException occurred while unloading"
+								+ " java project \"" + project.getName() + "\":"
+								+ (e.getCause() == null ? " " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
 					}
 				}
 				
@@ -606,9 +618,10 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 				// Load the project.
 				try {
 					project.load();
-				} catch (Exception e) {
-					sender.sendMessage(PREFIX_ERROR + "An Exception occured while loading java project \"" + project.getName() + "\":"
-							+ "\n" + Utils.getStacktrace(e));
+				} catch (LoadException e) {
+					sender.sendMessage(PREFIX_ERROR + "A LoadException occurred while loading"
+							+ " java project \"" + project.getName() + "\":"
+							+ (e.getCause() == null ? " " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
 					return true;
 				}
 				
@@ -635,9 +648,10 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 						try {
 							project.unload();
 							unloadCount++;
-						} catch (Exception e) {
-							sender.sendMessage(PREFIX_ERROR + "An Exception occured while unloading java project \"" + project.getName() + "\":"
-									+ "\n" + Utils.getStacktrace(e));
+						} catch (UnloadException e) {
+							sender.sendMessage(PREFIX_ERROR + "An UnloadException occurred while unloading"
+									+ " java project \"" + project.getName() + "\":"
+									+ (e.getCause() == null ? " " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
 							continue;
 						}
 					}
@@ -667,9 +681,10 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 					try {
 						project.unload();
 						sender.sendMessage(PREFIX_INFO + "Project unloaded: " + projectName);
-					} catch (Exception e) {
-						sender.sendMessage(PREFIX_ERROR + "An Exception occured while unloading java project \"" + projectName + "\":"
-								+ "\n" + Utils.getStacktrace(e));
+					} catch (UnloadException e) {
+						sender.sendMessage(PREFIX_ERROR + "An UnloadException occurred while unloading"
+								+ " java project \"" + project.getName() + "\":"
+								+ (e.getCause() == null ? " " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
 					}
 				} else {
 					sender.sendMessage(PREFIX_ERROR + "Project was not enabled: " + projectName);
@@ -698,9 +713,10 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 						try {
 							project.load();
 							loadCount++;
-						} catch (Exception e) {
-							sender.sendMessage(PREFIX_ERROR + "An Exception occured while loading java project \"" + project.getName() + "\":"
-									+ "\n" + Utils.getStacktrace(e));
+						} catch (LoadException e) {
+							sender.sendMessage(PREFIX_ERROR + "A LoadException occurred while loading"
+									+ " java project \"" + project.getName() + "\":"
+									+ (e.getCause() == null ? " " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
 						}
 					}
 				}
@@ -738,9 +754,10 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 					try {
 						project.load();
 						sender.sendMessage(PREFIX_INFO + "Project loaded: " + projectName);
-					} catch (Exception e) {
-						sender.sendMessage(PREFIX_ERROR + "An Exception occured while loading java project \"" + projectName + "\":"
-								+ "\n" + Utils.getStacktrace(e));
+					} catch (LoadException e) {
+						sender.sendMessage(PREFIX_ERROR + "A LoadException occurred while loading"
+								+ " java project \"" + project.getName() + "\":"
+								+ (e.getCause() == null ? " " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
 					}
 				} else {
 					sender.sendMessage(PREFIX_ERROR + "Project already loaded: " + projectName);
@@ -810,9 +827,10 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 				if(project.isEnabled()) {
 					try {
 						project.unload();
-					} catch (Exception e) {
-						feedbackSender.sendMessage(PREFIX_ERROR + "An Exception occured while unloading REMOVED java project \"" + project.getName() + "\":"
-								+ "\n" + Utils.getStacktrace(e));
+					} catch (UnloadException e) {
+						feedbackSender.sendMessage(PREFIX_ERROR + "An UnloadException occurred while unloading REMOVED"
+								+ " java project \"" + project.getName() + "\":"
+								+ (e.getCause() == null ? " " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
 					}
 				}
 				iterator.remove();

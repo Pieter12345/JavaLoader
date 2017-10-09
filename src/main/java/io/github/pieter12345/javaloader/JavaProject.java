@@ -186,7 +186,7 @@ public class JavaProject {
 				dependencies[i] = new File(dependencyStrs[i]);
 			}
 		} catch (FileNotFoundException e) {
-			throw new LoadException(e);
+			throw new LoadException(e.getMessage()); // Dependency file does not exist.
 		} catch (IOException e) {
 			throw new LoadException("An IOException occurred while getting dependencies.", e);
 		}
@@ -195,7 +195,7 @@ public class JavaProject {
 		try {
 			this.classLoader = new JavaProjectClassLoader(this.binDir, dependencies);
 		} catch (FileNotFoundException e) {
-			throw new LoadException(e);
+			throw new LoadException(e.getMessage()); // Dependency file does not exist.
 		}
 		
 		// Load all .class files in the bin directory and get the "main" class.
@@ -230,8 +230,8 @@ public class JavaProject {
 							throw new LoadException("Unable to load class while it is certainly"
 									+ " in the bin directory (ClassNotFoundException): " + className);
 						} catch (NoClassDefFoundError e) {
-							throw new LoadException("Unable to load class "
-									+ "(NoClassDefFoundError, class contains a reference to an undefined class): " + className, e);
+							throw new LoadException("Unable to load class (NoClassDefFoundError,"
+									+ " class contains a reference to an undefined class): " + className);
 						}
 					}
 				}
@@ -270,7 +270,7 @@ public class JavaProject {
 		} catch (Exception e) {
 			throw new LoadException("An Exception occurred in " + this.projectDir.getName() + "'s "
 					+ this.projectInstance.getClass().getName() + ".getVersion(). Is the project up to date?"
-					+ " Stacktrace:\n" + Utils.getStacktrace(e), e);
+					+ " Stacktrace:\n" + Utils.getStacktrace(e));
 		}
 		
 		// Notify the listener if it's set.
@@ -290,11 +290,11 @@ public class JavaProject {
 		} catch (Exception e) {
 			throw new LoadException("An Exception occurred in " + this.projectDir.getName() + "'s "
 					+ this.projectInstance.getClass().getName() + ".onLoad(). Is the project up to date?"
-					+ " Stacktrace:\n" + Utils.getStacktrace(e), e);
+					+ " Stacktrace:\n" + Utils.getStacktrace(e));
 		} catch (NoClassDefFoundError e) {
-			throw new LoadException("A NoClassDefFoundError occured in " + this.projectDir.getName() + "'s "
-					+ this.projectInstance.getClass().getName() + ".onLoad(). Is the compiled project missing a dependency?"
-					+ " Stacktrace:\n" + Utils.getStacktrace(e), e);
+			throw new LoadException("A NoClassDefFoundError occurred in " + this.projectDir.getName() + "'s "
+					+ this.projectInstance.getClass().getName() + ".onLoad()."
+					+ " Is the compiled project missing a dependency? Stacktrace:\n" + Utils.getStacktrace(e));
 		}
 		
 	}
@@ -328,7 +328,7 @@ public class JavaProject {
 		} catch (Exception e) {
 			throw new UnloadException("An Exception occurred in " + this.projectDir.getName() + "'s "
 					+ this.projectInstance.getClass().getName() + ".onUnload(). Is the project up to date?"
-					+ " Stacktrace:\n" + Utils.getStacktrace(e), e);
+					+ " Stacktrace:\n" + Utils.getStacktrace(e));
 		}
 	}
 	
