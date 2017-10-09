@@ -334,10 +334,6 @@ public class JavaLoaderStandalone {
 						errorProjects.add(project);
 						continue;
 					}
-					if(!Utils.removeFile(newBinDir)) {
-						printFeedback(PREFIX_ERROR + "Failed to remove the temporary \"bin_new\" directory for project \"" + project.getName()
-							+ "\". This does not affect the recompile.");
-					}
 				}
 				
 				// Load all projects.
@@ -470,10 +466,6 @@ public class JavaLoaderStandalone {
 							+ " This can be fixed manually or by attempting another recompile."
 							+ " The project has already been disabled and the \"bin\" directory has been removed.");
 					return;
-				}
-				if(!Utils.removeFile(newBinDir)) {
-					printFeedback(PREFIX_ERROR + "Failed to remove the temporary \"bin_new\" directory for project \"" + project.getName()
-					+ "\". This does not affect the recompile.");
 				}
 				
 				// Load the project.
