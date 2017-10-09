@@ -114,22 +114,7 @@ public class JavaLoaderStandalone {
 			// Compile the project if it has no "bin" directory.
 			if(!project.getBinDir().exists()) {
 				try {
-					project.compile(new Writer() {
-						@Override
-						public void write(char[] cbuf, int off, int len) throws IOException {
-							char[] toWrite = new char[len];
-							System.arraycopy(cbuf, off, toWrite, 0, len);
-							String message = new String(toWrite);
-							message = message.replace("\r", "");
-							if(!message.equals("\n")) {
-								printFeedback(AnsiColor.YELLOW + message + AnsiColor.RESET);
-							}
-						}
-						@Override
-						public void flush() throws IOException { }
-						@Override
-						public void close() throws IOException { }
-					});
+					compile(project, 5);
 				} catch (CompileException e) {
 					
 					// Remove the newly created bin directory.
@@ -259,22 +244,7 @@ public class JavaLoaderStandalone {
 				for(JavaProject project : this.projects.values()) {
 					project.setBinDirName("bin_new");
 					try {
-						project.compile(new Writer() {
-							@Override
-							public void write(char[] cbuf, int off, int len) throws IOException {
-								char[] toWrite = new char[len];
-								System.arraycopy(cbuf, off, toWrite, 0, len);
-								String message = new String(toWrite);
-								message = message.replace("\r", "");
-								if(!message.equals("\n")) {
-									printFeedback(AnsiColor.YELLOW + message + AnsiColor.RESET);
-								}
-							}
-							@Override
-							public void flush() throws IOException { }
-							@Override
-							public void close() throws IOException { }
-						});
+						compile(project, 5);
 					} catch (CompileException e) {
 						
 						// Remove the newly created bin directory and set the old one.
@@ -421,22 +391,7 @@ public class JavaLoaderStandalone {
 				// Recompile the project to a "bin_new" directory.
 				project.setBinDirName("bin_new");
 				try {
-					project.compile(new Writer() {
-						@Override
-						public void write(char[] cbuf, int off, int len) throws IOException {
-							char[] toWrite = new char[len];
-							System.arraycopy(cbuf, off, toWrite, 0, len);
-							String message = new String(toWrite);
-							message = message.replace("\r", "");
-							if(!message.equals("\n")) {
-								printFeedback(AnsiColor.YELLOW + message + AnsiColor.RESET);
-							}
-						}
-						@Override
-						public void flush() throws IOException { }
-						@Override
-						public void close() throws IOException { }
-					});
+					compile(project, 5);
 				} catch (CompileException e) {
 					
 					// Remove the newly created bin directory and set the old one.
@@ -715,6 +670,74 @@ public class JavaLoaderStandalone {
 			printFeedback(PREFIX_ERROR + "Failed to create example projects."
 					+ " Here's the stacktrace:\n" + Utils.getStacktrace(e));
 			return;
+		}
+	}
+	
+	private static void compile(JavaProject project, int feedbackLimit) throws CompileException {
+		final ArrayList<String> messages = new ArrayList<String>();
+		Writer writer = new Writer() {
+			private String buff = "";
+			@Override
+			public void write(char[] cbuf, int off, int len) throws IOException {
+				
+				// Get the message.
+				char[] toWrite = new char[len];
+				System.arraycopy(cbuf, off, toWrite, 0, len);
+				String message = new String(toWrite);
+				message = message.replace("\r", "");
+				
+				// Divide the message in parts and add them as seperate warnings/errors.
+				// The compiler sends entire lines and seperate newlines.
+				if(message.equals("\n") || message.startsWith("\t") || message.startsWith(" ")) {
+					this.buff += message;
+				} else {
+					if(!this.buff.isEmpty()) {
+						messages.add(this.buff);
+					}
+					this.buff = message;
+				}
+			}
+			@Override
+			public void flush() throws IOException { }
+			@Override
+			public void close() throws IOException {
+				if(!this.buff.isEmpty()) {
+					messages.add(this.buff);
+				}
+			}
+		};
+		CompileException ex = null;
+		try {
+			project.compile(writer);
+		} catch (CompileException e) {
+			ex = e;
+		}
+		try {
+			writer.close();
+		} catch (IOException e) {
+			// Never happens.
+		}
+		
+		// Print the feedback.
+		if(!messages.isEmpty() && feedbackLimit > 0) {
+			String feedback = "";
+			for(int i = 0; i < messages.size() - 1; i++) {
+				if(i >= feedbackLimit && i != messages.size() - 1) {
+					feedback += (feedback.endsWith("\n") ? "" : "\n") + "... " + (messages.size() - i - 1) + " more\n"
+							+ messages.get(messages.size() - 1);
+					break;
+				}
+				feedback += messages.get(i);
+			}
+			if(feedback.endsWith("\n")) {
+				feedback = feedback.substring(0, feedback.length() - 1);
+			}
+			printFeedback(PREFIX_ERROR + "Compiler feedback:\n" + AnsiColor.YELLOW + feedback + AnsiColor.RESET);
+		}
+		
+		// Rethrow if compilation caused an Exception.
+		if(ex != null) {
+			throw ex;
 		}
 	}
 	

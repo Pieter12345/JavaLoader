@@ -10,3 +10,7 @@ JavaLoader-0.0.1-SNAPSHOT build 2:
   classpath entry to be invalid.
 - Select the java classpath seperator based on the OS (';' on windows and ':' on other OSes), so that the plugin
   will also work on other OSes.
+
+JavaLoader-0.0.1-SNAPSHOT build 3:
+- Limited java compiler feedback to 5 messages.
+- BugFix: Fixed feedback where 2 stacktraces were printed instead of one.
