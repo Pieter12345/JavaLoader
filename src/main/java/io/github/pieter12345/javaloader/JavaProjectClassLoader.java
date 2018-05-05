@@ -19,7 +19,7 @@ import java.util.HashMap;
 public class JavaProjectClassLoader extends URLClassLoader {
 	
 	// Variables & Constants.
-	private final HashMap<String, Class<?>> classMap = new HashMap<String, Class<?>>();
+	private HashMap<String, Class<?>> classMap = new HashMap<String, Class<?>>();
 	private final File binDir;
 	private final ProtectionDomain protectionDomain;
 	
@@ -51,7 +51,7 @@ public class JavaProjectClassLoader extends URLClassLoader {
 		super(new java.net.URL[] {
 				new Object() {
 					java.net.URL url() {
-						try{
+						try {
 							return binDir.toURI().toURL();
 						} catch(Exception e) {
 							return null;
@@ -95,6 +95,11 @@ public class JavaProjectClassLoader extends URLClassLoader {
 	 */
 	@Override
 	public Class<?> loadClass(String name) throws ClassNotFoundException {
+		
+		// Throw an Exception when the ClassLoader was already closed.
+		if(this.classMap == null) {
+			throw new ClassNotFoundException("This classloader has been closed.");
+		}
 		
 		// Return classes from the classMap if they have already been loaded.
 		if(this.classMap.containsKey(name)) {
@@ -153,12 +158,25 @@ public class JavaProjectClassLoader extends URLClassLoader {
 	 * @param clazz - The class.
 	 * @return True if the class was put in the cache, false if a class with the same name and package was already
 	 *  cached.
+	 *  @throws RuntimeException If this method is called after the close() method is called.
 	 */
 	public boolean addCustomClass(Class<?> clazz) {
+		if(this.classMap == null) {
+			throw new RuntimeException("This classloader has been closed.");
+		}
 		if(!this.classMap.containsKey(clazz.getName())) {
 			this.classMap.put(clazz.getName(), clazz);
 			return true;
 		}
 		return false;
+	}
+	
+	@Override
+	public void close() throws IOException {
+		super.close();
+		if(this.classMap != null) {
+			this.classMap.clear();
+			this.classMap = null;
+		}
 	}
 }

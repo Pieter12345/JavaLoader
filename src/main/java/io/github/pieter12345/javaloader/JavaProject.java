@@ -321,15 +321,25 @@ public class JavaProject {
 		}
 		
 		// Unload the project.
-		try {
-			this.projectInstance.onUnload();
-			this.enabled = false;
-			this.version = null;
-		} catch (Exception e) {
-			throw new UnloadException("An Exception occurred in " + this.projectDir.getName() + "'s "
-					+ this.projectInstance.getClass().getName() + ".onUnload(). Is the project up to date?"
-					+ " Stacktrace:\n" + Utils.getStacktrace(e));
+		if(this.projectInstance != null) { // Can be null when closing the classloader threw an Exception.
+			try {
+				this.projectInstance.onUnload();
+				this.projectInstance = null;
+			} catch (Exception e) {
+				throw new UnloadException("An Exception occurred in " + this.projectDir.getName() + "'s "
+						+ this.projectInstance.getClass().getName() + ".onUnload(). Is the project up to date?"
+						+ " Stacktrace:\n" + Utils.getStacktrace(e));
+			}
 		}
+		try {
+			this.classLoader.close();
+			this.classLoader = null;
+		} catch (IOException e) {
+			throw new UnloadException("An IOException occurred in JavaLoader while closing"
+					+ " the classloader for project: \"" + this.projectDir.getName() + "\".", e);
+		}
+		this.enabled = false;
+		this.version = null;
 	}
 	
 	/**
@@ -384,7 +394,7 @@ public class JavaProject {
 	
 	/**
 	 * getInstance method.
-	 * @return The project main class instance or null when the project has not been loaded.
+	 * @return The project main class instance or null when the project is not enabled.
 	 */
 	public JavaLoaderProject getInstance() {
 		return this.projectInstance;
