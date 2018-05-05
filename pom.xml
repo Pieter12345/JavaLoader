@@ -5,6 +5,19 @@
 	<version>0.0.1-SNAPSHOT</version>
 	<name>JavaLoader</name>
 	<description>A plugin for CraftBukkit based MineCraft servers that allows you to compile, enable, disable and hotswap java projects in runtime.</description>
+	<developers>
+		<developer>
+			<id>Pieter12345</id>
+			<name>P.J.S. Kools</name>
+			<url>http://pieter12345.github.io</url>
+			<roles>
+				<role>project manager</role>
+				<role>developer</role>
+				<role>tester</role>
+			</roles>
+			<timezone>GMT+1</timezone>
+		</developer>
+	</developers>
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>
