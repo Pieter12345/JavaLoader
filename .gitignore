@@ -1,0 +1,11 @@
+# Generated files (maven).
+target/
+
+# Eclipse setup.
+.classpath
+.project
+.settings/
+
+# Intellij setup.
+.idea/
+*.iml
