@@ -1,8 +1,10 @@
-package io.github.pieter12345.javaloader;
+package io.github.pieter12345.javaloader.dependency;
 
 import java.io.File;
 import java.net.URL;
 
+import io.github.pieter12345.javaloader.JavaProject;
+import io.github.pieter12345.javaloader.ProjectManager;
 import io.github.pieter12345.javaloader.utils.Utils;
 
 /**

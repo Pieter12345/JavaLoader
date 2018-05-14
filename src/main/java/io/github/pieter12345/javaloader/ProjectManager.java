@@ -19,6 +19,8 @@ import io.github.pieter12345.javaloader.JavaProject.DependencyException;
 import io.github.pieter12345.javaloader.JavaProject.JavaProjectException;
 import io.github.pieter12345.javaloader.JavaProject.LoadException;
 import io.github.pieter12345.javaloader.JavaProject.UnloadException;
+import io.github.pieter12345.javaloader.dependency.Dependency;
+import io.github.pieter12345.javaloader.dependency.ProjectDependency;
 import io.github.pieter12345.javaloader.utils.Utils;
 
 public class ProjectManager {

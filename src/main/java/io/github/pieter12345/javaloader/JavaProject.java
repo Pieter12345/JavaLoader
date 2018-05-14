@@ -15,6 +15,11 @@ import javax.tools.JavaCompiler;
 import javax.tools.StandardJavaFileManager;
 import javax.tools.ToolProvider;
 
+import io.github.pieter12345.javaloader.dependency.Dependency;
+import io.github.pieter12345.javaloader.dependency.DependencyScope;
+import io.github.pieter12345.javaloader.dependency.FileDependency;
+import io.github.pieter12345.javaloader.dependency.JarDependency;
+import io.github.pieter12345.javaloader.dependency.ProjectDependency;
 import io.github.pieter12345.javaloader.utils.Utils;
 
 import javax.tools.JavaCompiler.CompilationTask;

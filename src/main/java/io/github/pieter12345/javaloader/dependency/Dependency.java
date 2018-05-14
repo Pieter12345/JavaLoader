@@ -1,4 +1,4 @@
-package io.github.pieter12345.javaloader;
+package io.github.pieter12345.javaloader.dependency;
 
 import java.net.URL;
 
