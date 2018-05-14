@@ -5,10 +5,12 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.net.URLClassLoader;
 import java.security.ProtectionDomain;
 import java.util.HashMap;
+import java.util.List;
+
+import io.github.pieter12345.javaloader.utils.Utils;
 
 /**
  * JavaProjectClassLoader class.
@@ -48,17 +50,7 @@ public class JavaProjectClassLoader extends URLClassLoader {
 	 * @throws FileNotFoundException If a dependency file does not exist.
 	 */
 	public JavaProjectClassLoader(File binDir, File[] dependencies) throws FileNotFoundException {
-		super(new java.net.URL[] {
-				new Object() {
-					java.net.URL url() {
-						try {
-							return binDir.toURI().toURL();
-						} catch(Exception e) {
-							return null;
-						}
-					}
-				}.url()
-			});
+		super(new java.net.URL[] {Utils.fileToURL(binDir)});
 		this.binDir = binDir;
 		
 		// Add dependencies.
@@ -67,11 +59,7 @@ public class JavaProjectClassLoader extends URLClassLoader {
 				if(!dependency.exists()) {
 					throw new FileNotFoundException("Dependency file not found: " + dependency.getAbsolutePath());
 				}
-				try {
-					this.addURL(dependency.toURI().toURL());
-				} catch (MalformedURLException e) {
-					e.printStackTrace();
-				}
+				this.addURL(Utils.fileToURL(dependency));
 			}
 		}
 		
@@ -84,11 +72,22 @@ public class JavaProjectClassLoader extends URLClassLoader {
 	}
 	
 	/**
+	 * Constructor.
+	 * Creates a new JavaProjectClassLoader with the given bin directory and dependency files.
+	 * @param binDir - The directory containing the package directories and .class files.
+	 * @param dependencies - A list of bin directories, .class files or .jar files.
+	 * @throws FileNotFoundException If a dependency file does not exist.
+	 */
+	public JavaProjectClassLoader(File binDir, List<File> dependencies) throws FileNotFoundException {
+		this(binDir, dependencies.toArray(new File[dependencies.size()]));
+	}
+	
+	/**
 	 * loadClass method.
 	 * Loads the class with given name. If a class exists in multiple places, it is loaded in this order:
 	 *  <br>1. The bin directory of the project.
-	 *  <br>2. The ClassLoader used to load this ClassLoader.
-	 *  <br>3. The projects dependencies.
+	 *  <br>2. The passed projects dependencies (should only be INCLUDE dependencies).
+	 *  <br>3. The ClassLoader used to load this ClassLoader.
 	 * @param name - The binary name of the class (Example: "my.package.MyClass").
 	 * @return The resulting Class object.
 	 * @throws ClassNotFoundException If the class was not found.
@@ -128,20 +127,19 @@ public class JavaProjectClassLoader extends URLClassLoader {
 			}
 		}
 		
-		// Check if the class can be loaded using the ClassLoader that loaded this class.
-		// Do this before loading from dependencies to prevent loading multiple versions of the same class.
+		// Attempt to load the class using the default loadClass from the parent (URLClassLoader).
+		// This loads classes from dependency directories, .class files and .jar files.
 		try {
-			Class<?> definedClass = JavaProject.class.getClassLoader().loadClass(name);
+			Class<?> definedClass = super.loadClass(name);
 			this.classMap.put(name, definedClass);
 			return definedClass;
 		} catch(ClassNotFoundException e) {
 			// Ignore.
 		}
 		
-		// Attempt to load the class using the default loadClass from the parent (URLClassLoader).
-		// This loads classes from dependency directories, .class files and .jar files.
+		// Check if the class can be loaded using the ClassLoader that loaded this class.
 		try {
-			Class<?> definedClass = super.loadClass(name);
+			Class<?> definedClass = JavaProject.class.getClassLoader().loadClass(name);
 			this.classMap.put(name, definedClass);
 			return definedClass;
 		} catch(ClassNotFoundException e) {
@@ -173,10 +171,10 @@ public class JavaProjectClassLoader extends URLClassLoader {
 	
 	@Override
 	public void close() throws IOException {
-		super.close();
 		if(this.classMap != null) {
 			this.classMap.clear();
 			this.classMap = null;
 		}
+		super.close();
 	}
 }

@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.Stack;
 
@@ -17,6 +18,8 @@ import javax.tools.ToolProvider;
 import io.github.pieter12345.javaloader.utils.Utils;
 
 import javax.tools.JavaCompiler.CompilationTask;
+
+import com.google.common.io.Files;
 
 /**
  * JavaProject class.
@@ -32,9 +35,11 @@ public class JavaProject {
 	private File srcDir;
 	private JavaProjectClassLoader classLoader = null;
 	private JavaLoaderProject projectInstance = null;
+	private Dependency[] dependencies = null;
 	private boolean enabled = false;
 	private String version = null;
-	private ProjectStateListener stateListener;
+	private final ProjectStateListener stateListener;
+	private final ProjectManager manager;
 	
 	private static final char CLASSPATH_SEPERATOR;
 	
@@ -52,29 +57,31 @@ public class JavaProject {
 	}
 	
 	/**
-	 * Constructor.
-	 * Creates a new JavaProject with the given parameters.
+	 * Creates a new JavaProject with the given parameters and loads its compiled dependencies if available.
 	 * @param projectName - The name of the project.
 	 * @param projectDir - The project directory (containing the src directory).
+	 * @param manager - The project manager used to resolve project dependencies.
 	 * @param stateListener - The ProjectStateListener which will be called on load/unload. This can be used to
 	 * execute Minecraft server implementation dependent code such as injecting and removing commands and listeners.
 	 */
-	public JavaProject(String projectName, File projectDir, ProjectStateListener stateListener) {
+	public JavaProject(String projectName, File projectDir,
+			ProjectManager manager, ProjectStateListener stateListener) {
 		this.projectName = projectName;
 		this.projectDir = projectDir;
 		this.binDir = new File(this.projectDir.getAbsolutePath() + "/bin");
 		this.srcDir = new File(this.projectDir.getAbsolutePath() + "/src");
 		this.stateListener = stateListener;
+		this.manager = manager;
 	}
 	
 	/**
-	 * Constructor.
-	 * Creates a new JavaProject with the given parameters.
+	 * Creates a new JavaProject with the given parameters and loads its compiled dependencies if available.
 	 * @param projectName - The name of the project.
 	 * @param projectDir - The project directory (containing the src directory).
+	 * @param manager - The project manager used to resolve project dependencies.
 	 */
-	public JavaProject(String projectName, File projectDir) {
-		this(projectName, projectDir, null);
+	public JavaProject(String projectName, File projectDir, ProjectManager manager) {
+		this(projectName, projectDir, manager, null);
 	}
 	
 	/**
@@ -87,8 +94,51 @@ public class JavaProject {
 	public void compile(Writer feedbackWriter) throws CompileException {
 		try {
 			
-			// Get the dependencies.
-			String[] dependencies = this.getDependencies();
+			// Get the dependencies and validate their existence.
+			// For JavaLoader projects, also validate that the project exists in the project manger.
+			final File dependenciesFile = new File(this.projectDir.getAbsolutePath() + "/dependencies.txt");
+			Dependency[] dependencies = this.readDependencies(dependenciesFile);
+			List<File> dependencyFiles = new ArrayList<File>();
+			for(Dependency dependency : dependencies) {
+				
+				// Handle project dependencies.
+				if(dependency instanceof ProjectDependency) {
+					ProjectDependency projectDependency = (ProjectDependency) dependency;
+					File file = projectDependency.getFile();
+					
+					// Validate that the project exists in the project manager.
+					if(file == null) {
+						throw new CompileException(this,
+								"Dependency project not found: " + projectDependency.getProjectName());
+					}
+					
+					// Validate that the projects binary directory (containing the actual dependency files) exists.
+					if(!file.exists()) {
+						throw new CompileException(this, "Dependency project exists, but has not been compiled: "
+								+ projectDependency.getProjectName());
+					}
+					
+					// Add the projects binary directory to the list.
+					dependencyFiles.add(file);
+					
+					continue;
+				}
+				
+				// Handle file dependencies.
+				if(dependency instanceof FileDependency) {
+					FileDependency fileDependency = (FileDependency) dependency;
+					File file = fileDependency.getFile();
+					if(!file.exists()) {
+						throw new CompileException(this, "Dependency file does not exist: " + file.getAbsolutePath());
+					}
+					dependencyFiles.add(file);
+					continue;
+				}
+				
+				// Handle unsupported dependencies.
+				throw new CompileException(this,
+						"Unsupported dependency implementation: " + dependency.getClass().getName());
+			}
 			
 			// List all .java files in the source directory.
 			ArrayList<File> files = new ArrayList<File>();
@@ -107,32 +157,32 @@ public class JavaProject {
 				}
 			}
 			if(files.size() == 0) {
-				throw new CompileException("No sourcefiles found.");
+				throw new CompileException(this, "No sourcefiles found.");
 			}
 			
 			// Remove the bin directory.
 			if(this.binDir.exists() && !Utils.removeFile(this.binDir)) {
-				throw new CompileException("Unable to remove bin directory at: " + this.binDir.getAbsolutePath());
+				throw new CompileException(this, "Unable to remove bin directory at: " + this.binDir.getAbsolutePath());
 			}
 			
 			// Create the new bin directory.
 			if(!this.binDir.mkdir()) {
-				throw new CompileException("Unable to create bin directory at: " + this.binDir.getAbsolutePath());
+				throw new CompileException(this, "Unable to create bin directory at: " + this.binDir.getAbsolutePath());
 			}
 			
 			// Get the name of the .jar file of this plugin
 			// (Using the JavaLoaderProject class because that one is required for all projects).
 			java.security.CodeSource codeSource = JavaLoaderProject.class.getProtectionDomain().getCodeSource();
 			if(codeSource == null || codeSource.getLocation().getFile().isEmpty()) {
-				throw new CompileException("Unable to include this"
+				throw new CompileException(this, "Unable to include this"
 						+ " plugins .jar file to the classpath because the CodeSource returned null.");
 			}
 			String pluginJarFilePath = codeSource.getLocation().toURI().getPath();
 			
 			// Get the complete classpath (including the binDir and passed classpath entries such as jar file paths).
 			String classpath = System.getProperty("java.class.path") + CLASSPATH_SEPERATOR + pluginJarFilePath;
-			for(String dependency : dependencies) {
-				classpath = classpath + ";" + dependency;
+			for(File dependencyFile : dependencyFiles) {
+				classpath = classpath + ";" + dependencyFile.getAbsolutePath();
 			}
 			
 			// Create the compiler options array.
@@ -146,7 +196,7 @@ public class JavaProject {
 			// Compile the files.
 			JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
 			if(compiler == null) {
-				throw new CompileException("No java compiler available. This plugin requires a JDK to run on.");
+				throw new CompileException(this, "No java compiler available. This plugin requires a JDK to run on.");
 			}
 			StandardJavaFileManager fileManager =
 					compiler.getStandardFileManager(null, Locale.US, StandardCharsets.UTF_8);
@@ -155,15 +205,87 @@ public class JavaProject {
 			try { fileManager.close(); } catch (IOException e) { e.printStackTrace(); } // Never happens.
 			boolean success = compileTask.call();
 			if(!success) {
-				throw new CompileException("Javac compile unsuccessfull.");
+				throw new CompileException(this, "Javac compile unsuccessfull.");
+			}
+			
+			// Compilation succeeded, so store the dependencies and copy them into the bin directory.
+			this.dependencies = dependencies;
+			if(dependenciesFile.exists()) {
+				Files.copy(dependenciesFile, new File(this.binDir.getAbsolutePath() + "/dependencies.txt"));
 			}
 			
 		} catch (Exception e) {
 			if(e instanceof CompileException) {
 				throw (CompileException) e;
 			}
-			throw new CompileException(e);
+			throw new CompileException(this, e);
 		}
+	}
+	
+	/**
+	 * compile method.
+	 * Compiles the JavaProject.
+	 * @param feedbackHandler - A feedback handler to send all compile errors/warnings from the java compiler to.
+	 * @throws CompileException If an Exception occurs while compiling the project.
+	 */
+	public void compile(CompilerFeedbackHandler feedbackHandler) throws CompileException {
+		
+		// Create a writer that divides compiler feedback into a list of warnings/errors.
+		final Writer writer = new Writer() {
+			private String buff = "";
+			@Override
+			public void write(char[] cbuf, int off, int len) throws IOException {
+				
+				// Get the message.
+				char[] toWrite = new char[len];
+				System.arraycopy(cbuf, off, toWrite, 0, len);
+				String message = new String(toWrite).replace("\r", "");
+				
+				// Divide the message in parts and add them as seperate warnings/errors.
+				// The compiler sends entire lines and seperate newlines.
+				if(message.equals("\n") || message.startsWith("\t") || message.startsWith(" ")) {
+					this.buff += message;
+				} else {
+					if(!this.buff.isEmpty()) {
+						feedbackHandler.compilerFeedback(this.buff);
+					}
+					this.buff = message;
+				}
+			}
+			@Override
+			public void flush() { }
+			@Override
+			public void close() {
+				if(!this.buff.isEmpty()) {
+					feedbackHandler.compilerFeedback(this.buff);
+					this.buff = null;
+				}
+			}
+		};
+		
+		// Perform the compile.
+		CompileException ex = null;
+		try {
+			this.compile(writer);
+		} catch (CompileException e) {
+			ex = e;
+		}
+		
+		// Close the writer.
+		try {
+			writer.close(); // Potentially sends the last compiler feedback.
+		} catch (IOException e) {
+			// Never happens.
+		}
+		
+		// Rethrow if an exception has occurred.
+		if(ex != null) {
+			throw ex;
+		}
+	}
+	
+	public static interface CompilerFeedbackHandler {
+		void compilerFeedback(String feedback);
 	}
 
 	
@@ -177,25 +299,58 @@ public class JavaProject {
 			return;
 		}
 		
-		// Get the dependencies.
-		File[] dependencies;
-		try {
-			String[] dependencyStrs = this.getDependencies();
-			dependencies = new File[dependencyStrs.length];
-			for(int i = 0; i < dependencyStrs.length; i++) {
-				dependencies[i] = new File(dependencyStrs[i]);
+		// Validate that at least the binary directory exists.
+		if(!this.binDir.exists()) {
+			throw new LoadException(this, "Project has not been compiled.");
+		}
+		
+		// Load dependencies if they have not been initialized yet.
+		if(this.dependencies == null) {
+			try {
+				this.initDependencies();
+			} catch (IOException | DependencyException e) {
+				throw new LoadException(this, e.getMessage());
 			}
-		} catch (FileNotFoundException e) {
-			throw new LoadException(e.getMessage()); // Dependency file does not exist.
-		} catch (IOException e) {
-			throw new LoadException("An IOException occurred while getting dependencies.", e);
+		}
+		
+		// Get the INCLUDE dependency files for the classloader. Existence of files will be checked by the classloader,
+		// but we will validate that JavaProject dependencies that are marked as PROVIDED are loaded here.
+		List<File>dependencyFiles = new ArrayList<File>();
+		if(this.dependencies != null) {
+			for(int i = 0; i < this.dependencies.length; i++) {
+				Dependency dependency = this.dependencies[i];
+				if(dependency instanceof ProjectDependency) {
+					
+					// Validate that JavaProject dependencies that are marked as PROVIDED are loaded.
+					ProjectDependency projectDependency = (ProjectDependency) dependency;
+					if(projectDependency.getScope() == DependencyScope.PROVIDED
+							&& !projectDependency.getProject().isEnabled()) {
+						throw new LoadException(this,
+								"Dependency project not loaded: " + projectDependency.getProject().getName());
+					}
+					
+				} else if(dependency instanceof FileDependency) {
+					
+					// Add file dependencies marked as INCLUDE.
+					if(dependency.getScope() == DependencyScope.INCLUDE) {
+						FileDependency fileDependency = (FileDependency) dependency;
+						dependencyFiles.add(fileDependency.getFile());
+					}
+					
+				} else {
+					// Even though dependencies marked as PROVIDED could be ignored, this will force us to review
+					// this part of the code when adding a new dependency implementation.
+					throw new LoadException(this,
+							"Unsupported dependency implementation: " + dependency.getClass().getName());
+				}
+			}
 		}
 		
 		// Define the classloader.
 		try {
-			this.classLoader = new JavaProjectClassLoader(this.binDir, dependencies);
+			this.classLoader = new JavaProjectClassLoader(this.binDir, dependencyFiles);
 		} catch (FileNotFoundException e) {
-			throw new LoadException(e.getMessage()); // Dependency file does not exist.
+			throw new LoadException(this, e.getMessage()); // Dependency file does not exist.
 		}
 		
 		// Load all .class files in the bin directory and get the "main" class.
@@ -227,10 +382,10 @@ public class JavaProject {
 //								}
 //							}
 						} catch (ClassNotFoundException e) {
-							throw new LoadException("Unable to load class while it is certainly"
+							throw new LoadException(this, "Unable to load class while it is certainly"
 									+ " in the bin directory (ClassNotFoundException): " + className);
 						} catch (NoClassDefFoundError e) {
-							throw new LoadException("Unable to load class (NoClassDefFoundError,"
+							throw new LoadException(this, "Unable to load class (NoClassDefFoundError,"
 									+ " class contains a reference to an undefined class): " + className);
 						}
 					}
@@ -238,11 +393,11 @@ public class JavaProject {
 			}
 		}
 		if(mainClasses.size() == 0) {
-			throw new LoadException(
+			throw new LoadException(this,
 					"No main class found (one class has to extend from " + JavaLoaderProject.class.getName() + ").");
 		}
 		if(mainClasses.size() > 1) {
-			throw new LoadException("Multiple main classes found"
+			throw new LoadException(this, "Multiple main classes found"
 					+ " (only one class may extend from " + JavaLoaderProject.class.getName() + ").");
 		}
 		Class<?> mainClass = mainClasses.get(0);
@@ -251,16 +406,16 @@ public class JavaProject {
 		try {
 			this.projectInstance = (JavaLoaderProject) mainClass.newInstance();
 		} catch (InstantiationException e) {
-			throw new LoadException("The main class (" + mainClass.getName() + ") could not be instantiated."
+			throw new LoadException(this, "The main class (" + mainClass.getName() + ") could not be instantiated."
 					+ " This could be caused by the absence of a"
 					+ " nullary constructor in the class or because the class is not an implemented class.");
 		} catch (IllegalAccessException e) {
-			throw new LoadException("The main class (" + mainClass.getName() + ") could not be accessed."
+			throw new LoadException(this, "The main class (" + mainClass.getName() + ") could not be accessed."
 					+ " Make sure the default constructor is public or no constructors are defined.");
 		} catch (NoClassDefFoundError e) {
-			throw new LoadException("The main class (" + mainClass.getName() + ") could not be instanciated because a"
-					+ " class (or library) it depends on is missing (NoClassDefFoundError). If you have removed a class"
-					+ " after the last recompile,"
+			throw new LoadException(this, "The main class (" + mainClass.getName() + ") could not be instanciated"
+					+ " because a class (or library) it depends on is missing (NoClassDefFoundError). If you have"
+					+ " removed a class after the last recompile,"
 					+ " executing a recompile will fix this since the project has been unloaded at this point.", e);
 		}
 		
@@ -268,7 +423,7 @@ public class JavaProject {
 		try {
 			this.version = this.projectInstance.getVersion();
 		} catch (Exception e) {
-			throw new LoadException("An Exception occurred in " + this.projectDir.getName() + "'s "
+			throw new LoadException(this, "An Exception occurred in " + this.projectDir.getName() + "'s "
 					+ this.projectInstance.getClass().getName() + ".getVersion(). Is the project up to date?"
 					+ " Stacktrace:\n" + Utils.getStacktrace(e));
 		}
@@ -278,7 +433,7 @@ public class JavaProject {
 			try {
 				this.stateListener.onLoad(this);
 			} catch (Exception e) {
-				throw new LoadException("An unexpected Exception occurred in StateListener's onLoad() method."
+				throw new LoadException(this, "An unexpected Exception occurred in StateListener's onLoad() method."
 						+ " This is likely a bug.", e);
 			}
 		}
@@ -288,11 +443,11 @@ public class JavaProject {
 			this.projectInstance.onLoad();
 			this.enabled = true;
 		} catch (Exception e) {
-			throw new LoadException("An Exception occurred in " + this.projectDir.getName() + "'s "
+			throw new LoadException(this, "An Exception occurred in " + this.projectDir.getName() + "'s "
 					+ this.projectInstance.getClass().getName() + ".onLoad(). Is the project up to date?"
 					+ " Stacktrace:\n" + Utils.getStacktrace(e));
 		} catch (NoClassDefFoundError e) {
-			throw new LoadException("A NoClassDefFoundError occurred in " + this.projectDir.getName() + "'s "
+			throw new LoadException(this, "A NoClassDefFoundError occurred in " + this.projectDir.getName() + "'s "
 					+ this.projectInstance.getClass().getName() + ".onLoad()."
 					+ " Is the compiled project missing a dependency? Stacktrace:\n" + Utils.getStacktrace(e));
 		}
@@ -309,37 +464,68 @@ public class JavaProject {
 			return;
 		}
 		
+		/* TODO - Prevent unloading a project when projects that depend on this project are still loaded. To do this,
+		 * add a field containing depending projects to this class. Make setters for this 'private' and use the
+		 * project manager instance to set that value on load() to the other JavaProject.
+		 * Another option is to add a FORCE boolean argument, which selects whether it prefers an exception or
+		 * unload all necessary projects.
+		 */
+		
 		// Notify the listener if it's set.
+		UnloadException stateListenerEx = null;
 		if(this.stateListener != null) {
 			try {
 				this.stateListener.onUnload(this);
 			} catch (Exception e) {
 				// This should never happen.
-				throw new UnloadException("An unexpected Exception occurred in StateListener's onUnload() method."
-						+ " This is likely a bug.", e);
+				stateListenerEx = new UnloadException(this, "An unexpected Exception occurred in StateListener's onUnload() method."
+						+ " This is a bug in the platform-dependent implementation of project generation of"
+						+ " JavaLoader.", e);
 			}
 		}
 		
 		// Unload the project.
+		UnloadException unloadEx = null;
 		if(this.projectInstance != null) { // Can be null when closing the classloader threw an Exception.
 			try {
 				this.projectInstance.onUnload();
 				this.projectInstance = null;
 			} catch (Exception e) {
-				throw new UnloadException("An Exception occurred in " + this.projectDir.getName() + "'s "
+				unloadEx = new UnloadException(this, "An Exception occurred in " + this.projectDir.getName() + "'s "
 						+ this.projectInstance.getClass().getName() + ".onUnload(). Is the project up to date?"
 						+ " Stacktrace:\n" + Utils.getStacktrace(e));
 			}
 		}
+		
+		// Close the classloader.
+		UnloadException classLoaderCloseEx = null;
 		try {
 			this.classLoader.close();
 			this.classLoader = null;
 		} catch (IOException e) {
-			throw new UnloadException("An IOException occurred in JavaLoader while closing"
+			classLoaderCloseEx = new UnloadException(this, "An IOException occurred in JavaLoader while closing"
 					+ " the classloader for project: \"" + this.projectDir.getName() + "\".", e);
 		}
+		
+		// Mark the project as disabled.
 		this.enabled = false;
 		this.version = null;
+		this.dependencies = null; // The user could swap binaries and load again, so reset them.
+		
+		/* Throw the most important exception if any occurred.
+		 * - stateListenerEx: There's a bug in JavaLoader or someone is accessing the project in a custom way.
+		 * - unloadEx: There's a bug in the onUnload() method of the users project.
+		 * - classLoaderCloseEx: An IOException occurred while closing a resource. There's nothing we can do.
+		 */
+		if(stateListenerEx != null) {
+			throw stateListenerEx;
+		}
+		if(unloadEx != null) {
+			throw unloadEx;
+		}
+		if(classLoaderCloseEx != null) {
+			throw classLoaderCloseEx;
+		}
 	}
 	
 	/**
@@ -408,108 +594,275 @@ public class JavaProject {
 		return this.version;
 	}
 	
-	private String[] getDependencies() throws IOException, FileNotFoundException {
-		File dependencyFile = new File(this.projectDir.getAbsolutePath() + "/dependencies.txt");
+	/**
+	 * Gets the ProjectManager containing this project.
+	 * @return The ProjectManager containing this project.
+	 */
+	public ProjectManager getProjectManager() {
+		return this.manager;
+	}
+	
+	/**
+	 * Gets te dependencies that will be used to load this JavaProject. To get the dependencies that will be used for
+	 * the next compile, use the {@link #getSourceDependencies()} method.
+	 * @return The dependencies or null if no dependencies were defined.
+	 */
+	public Dependency[] getDependencies() {
+		return (this.dependencies == null ? null : this.dependencies.clone());
+	}
+	
+	/**
+	 * Gets te dependencies that will be used to compile this JavaProject. To get the dependencies that will be used for
+	 * loading, use the {@link #getDependencies()} method.
+	 * This method reads the dependencies again for every call, since the user might change them between calls.
+	 * @return The dependencies or null if no dependencies were defined.
+	 * @throws DependencyException If a dependency description in the depencendies file is in an invalid format.
+	 * @throws IOException If an I/O error occurred while reading the dependencies file.
+	 */
+	public Dependency[] getSourceDependencies() throws IOException, DependencyException {
+		return this.readDependencies(new File(this.projectDir.getAbsolutePath() + "/dependencies.txt"));
+	}
+	
+	/**
+	 * Initializes the {@link #dependencies} field using the dependencies file in the binary directory.
+	 * Once initialized, calls to this method will be ignored.
+	 * If the user would swap the project's binary files between a call to {@link #initDependencies()} and
+	 * {@link JavaProject#load()}, the used dependencies will be out of sync with the new binary files. 
+	 * @throws IOException When an I/O error occurs while reading the dependencies descriptor file.
+	 * @throws DependencyException When the dependencies file contains an invalid descriptor.
+	 */
+	public void initDependencies() throws IOException, DependencyException {
+		/* Load dependencies from the bin directory if they are not yet loaded.
+		 * When the project has not been compiled or does not have dependencies, this simply initializes an empty
+		 * Dependency array.
+		 */
+		if(this.dependencies == null) {
+			File dependenciesFile = new File(this.binDir.getAbsolutePath() + "/dependencies.txt");
+			try {
+				this.dependencies = this.readDependencies(dependenciesFile);
+			} catch (IOException e) {
+				throw new IOException("An I/O error occurred while reading the dependency descriptor file at: "
+						+ dependenciesFile.getAbsolutePath());
+			} catch (DependencyException e) {
+				throw new DependencyException("Invalid dependency descriptor in compiled code."
+						+ " Recompile the project to resolve this issue. Exception message: " + e.getMessage());
+			}
+		}
+	}
+	
+	/**
+	 * Reads all dependencies from the given dependencies file.
+	 * @param dependencyFile - The file containing the dependency descriptions.
+	 * @return An array of dependencies.
+	 * If the dependency file does not exist, an empty dependencies array is returned.
+	 * @throws DependencyException If a dependency description is in an invalid format.
+	 * @throws IOException If an I/O error occurred while reading the dependencyFile.
+	 */
+	private Dependency[] readDependencies(File dependencyFile) throws IOException, DependencyException {
 		if(!dependencyFile.isFile()) {
-			return new String[0]; // No dependencies available.
+			return new Dependency[0]; // No dependencies available.
 		}
 		byte[] fileBytes = new byte[(int) dependencyFile.length()];
 		FileInputStream inStream = new FileInputStream(dependencyFile);
 		inStream.read(fileBytes);
 		inStream.close();
-		String fileStr = new String(fileBytes, StandardCharsets.UTF_8);
-
-		// Remove cariage returns and tabs.
-		fileStr = fileStr.replaceAll("[\r\t]", "");
+		String dependencyFileContents = new String(fileBytes, StandardCharsets.UTF_8);
+		return this.parseDependencies(dependencyFileContents);
+	}
+	
+	/**
+	 * Parses the given dependencies string and returns the resulting Dependency objects.
+	 * @param dependencyFileContents - The dependencies file contents to parse.
+	 * @return An array of dependencies.
+	 * @throws DependencyException If a dependency description is in an invalid format.
+	 */
+	private Dependency[] parseDependencies(String dependencyFileContents) throws DependencyException {
+		
+		// Replace cariage returns and tabs with whitespaces.
+		dependencyFileContents = dependencyFileContents.replaceAll("[\r\t]", " ");
 		
 		// Remove leading and trailing whitespaces.
-		fileStr = fileStr.replaceAll("(?<=(^|\n))[ ]+(?! )", "");
-		fileStr = fileStr.replaceAll("(?<! )[ ]+(?=(\n|$))", "");
+		dependencyFileContents = dependencyFileContents.replaceAll("(?<=(^|\n))[ ]+(?! )", "");
+		dependencyFileContents = dependencyFileContents.replaceAll("(?<! )[ ]+(?=(\n|$))", "");
 		
 		// Remove comments starting with "//" or "#".
-		fileStr = fileStr.replaceAll("(\\/\\/|\\#)[^$\n]*(?=(\n|$))", "");
+		dependencyFileContents = dependencyFileContents.replaceAll("(\\/\\/|\\#)[^$\n]*(?=(\n|$))", "");
 		
 		// Remove empty lines.
-		fileStr = fileStr.replaceAll("(?<=(^|\n))[\n]+(?!$)", "");
+		dependencyFileContents = dependencyFileContents.replaceAll("(?<=(^|\n))[\n]+(?!$)", "");
 		
-		// Split and verify the dependencies.
-		if(fileStr.isEmpty()) {
-			return new String[0];
+		// Split and add the dependencies.
+		if(dependencyFileContents.isEmpty()) {
+			return new Dependency[0];
 		}
-		String[] dependencies = fileStr.split("\n");
-		for(int i = 0; i < dependencies.length; i++) {
+		String[] dependencyStrs = dependencyFileContents.split("\n");
+		Dependency[] dependencies = new Dependency[dependencyStrs.length];
+		for(int i = 0; i < dependencyStrs.length; i++) {
 			
-			// Change "project ProjectName" to the bin directory of that project.
-			if(dependencies[i].toLowerCase().startsWith("project ")) {
-				String projectName = dependencies[i].substring("project ".length()).trim();
-				// TODO - Match the project with all known projects and get their bin directory through them
-				// (without depending on the Bukkit package).
-				// TODO - Also check for circular dependencies.
-				// TODO - Base compile order on project dependencies.
-				dependencies[i] = this.projectDir.getParentFile().getAbsolutePath() + "/" + projectName + "/bin";
+			// Handle JavaProject dependencies ("project projectName").
+			if(dependencyStrs[i].toLowerCase().startsWith("project ")) {
+				String projectName = dependencyStrs[i].substring("project ".length()).trim();
+				dependencies[i] = new ProjectDependency(projectName, this.manager);
+				continue;
 			}
 			
-			// Make relative paths relative to the project directory.
-			if(dependencies[i].startsWith(".") && (dependencies[i].length() == 1
-					|| dependencies[i].charAt(1) == '/' || dependencies[i].charAt(1) == '\\')) {
-				dependencies[i] = this.projectDir.getAbsolutePath() + dependencies[i].substring(1);
+			// Handle .jar file dependencies ("jar -provided ./rel/path/to/dep.jar" or "jar C:/path/to/dep.jar").
+			if(dependencyStrs[i].toLowerCase().startsWith("jar ")) {
+				String dependency = dependencyStrs[i].substring("jar ".length()).trim();
+				
+				// Validate the .jar prefix.
+				if(!dependency.toLowerCase().endsWith(".jar")) {
+					throw new DependencyException("Dependency format invalid."
+							+ " Jar dependency does not have a .jar extension: " + dependencyStrs[i]);
+				}
+				
+				// Get the dependency scope (include or provided).
+				DependencyScope scope;
+				if(dependency.startsWith("-")) {
+					int ind = dependency.indexOf(' ');
+					String arg = (ind == -1 ? dependency.substring(1) : dependency.substring(1, ind));
+					if(ind + 1 < dependency.length()) {
+						dependency = dependency.substring(ind + 1);
+					}
+					dependency = dependency.substring(ind + 1);
+					switch(arg.toLowerCase()) {
+						case "include": {
+							scope = DependencyScope.INCLUDE;
+							break;
+						}
+						case "provided": {
+							scope = DependencyScope.PROVIDED;
+							break;
+						}
+						default: {
+							throw new DependencyException("Dependency format invalid."
+									+ " Expected option \"INCLUDE\" or \"PROVIDED\" in syntax:"
+									+ " \"jar -option pathToJar\",  but received option: \"" + arg + "\".");
+						}
+					}
+				} else {
+					scope = DependencyScope.INCLUDE;
+				}
+				
+				// Get the dependency's file object, supporting relative paths.
+				// Relative paths start with a '.' and are relative to the project's directory.
+				if(dependency.startsWith(".") && (dependency.length() == 1
+						|| dependency.charAt(1) == '/' || dependency.charAt(1) == '\\')) {
+					dependency = this.projectDir.getAbsolutePath() + dependency.substring(1);
+				}
+				File file = new File(dependency);
+				
+				// Add the dependency to the array.
+				dependencies[i] = new JarDependency(file, scope);
+				continue;
 			}
 			
-			// Verify that the dependencies exist.
-			File depFile = new File(dependencies[i]);
-			if(!depFile.exists()) {
-				throw new FileNotFoundException("Dependency file not found: " + dependencies[i]);
-			}
+			// Dependency format not recognised.
+			throw new DependencyException("Dependency format invalid: " + dependencyStrs[i]);
 		}
 		
 		// Return the dependencies.
 		return dependencies;
 	}
 	
+//	@Override
+//	public boolean equals(Object obj) {
+//		if(obj instanceof JavaProject) {
+//			JavaProject other = (JavaProject) obj;
+//			return this.projectName.equals(other.projectName)
+//					&& this.projectDir.equals(other.projectDir) && this.manager == other.manager;
+//		}
+//		return false;
+//	}
+	
+	// TODO - Move exceptions to seperate files.
 	@SuppressWarnings("serial")
-	public static class CompileException extends Exception {
-		public CompileException() {
+	public static class JavaProjectException extends Exception {
+		
+		private final JavaProject project;
+		
+		public JavaProjectException(JavaProject project) {
 			super();
+			this.project = project;
 		}
-		public CompileException(String message) {
+		public JavaProjectException(JavaProject project, String message) {
 			super(message);
+			this.project = project;
 		}
-		public CompileException(String message, Throwable cause) {
+		public JavaProjectException(JavaProject project, String message, Throwable cause) {
 			super(message, cause);
+			this.project = project;
 		}
-		public CompileException(Throwable cause) {
+		public JavaProjectException(JavaProject project, Throwable cause) {
 			super(cause);
+			this.project = project;
+		}
+		
+		public JavaProject getProject() {
+			return this.project;
 		}
 	}
 	
 	@SuppressWarnings("serial")
-	public static class LoadException extends Exception {
-		public LoadException() {
-			super();
+	public static class CompileException extends JavaProjectException {
+		public CompileException(JavaProject project) {
+			super(project);
 		}
-		public LoadException(String message) {
-			super(message);
+		public CompileException(JavaProject project, String message) {
+			super(project, message);
 		}
-		public LoadException(String message, Throwable cause) {
-			super(message, cause);
+		public CompileException(JavaProject project, String message, Throwable cause) {
+			super(project, message, cause);
 		}
-		public LoadException(Throwable cause) {
-			super(cause);
+		public CompileException(JavaProject project, Throwable cause) {
+			super(project, cause);
 		}
 	}
 	
 	@SuppressWarnings("serial")
-	public static class UnloadException extends Exception {
-		public UnloadException() {
+	public static class LoadException extends JavaProjectException {
+		public LoadException(JavaProject project) {
+			super(project);
+		}
+		public LoadException(JavaProject project, String message) {
+			super(project, message);
+		}
+		public LoadException(JavaProject project, String message, Throwable cause) {
+			super(project, message, cause);
+		}
+		public LoadException(JavaProject project, Throwable cause) {
+			super(project, cause);
+		}
+	}
+	
+	@SuppressWarnings("serial")
+	public static class UnloadException extends JavaProjectException {
+		public UnloadException(JavaProject project) {
+			super(project);
+		}
+		public UnloadException(JavaProject project, String message) {
+			super(project, message);
+		}
+		public UnloadException(JavaProject project, String message, Throwable cause) {
+			super(project, message, cause);
+		}
+		public UnloadException(JavaProject project, Throwable cause) {
+			super(project, cause);
+		}
+	}
+	
+	@SuppressWarnings("serial")
+	public static class DependencyException extends Exception {
+		public DependencyException() {
 			super();
 		}
-		public UnloadException(String message) {
+		public DependencyException(String message) {
 			super(message);
 		}
-		public UnloadException(String message, Throwable cause) {
+		public DependencyException(String message, Throwable cause) {
 			super(message, cause);
 		}
-		public UnloadException(Throwable cause) {
+		public DependencyException(Throwable cause) {
 			super(cause);
 		}
 	}

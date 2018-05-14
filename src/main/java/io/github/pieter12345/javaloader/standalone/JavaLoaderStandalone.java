@@ -2,13 +2,11 @@ package io.github.pieter12345.javaloader.standalone;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.Writer;
 import java.security.CodeSource;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
+import java.util.List;
 import java.util.Scanner;
+import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -16,41 +14,38 @@ import javax.tools.JavaCompiler;
 import javax.tools.ToolProvider;
 
 import io.github.pieter12345.javaloader.JavaProject;
+import io.github.pieter12345.javaloader.ProjectManager;
 import io.github.pieter12345.javaloader.ProjectStateListener;
 import io.github.pieter12345.javaloader.JavaProject.CompileException;
 import io.github.pieter12345.javaloader.JavaProject.LoadException;
 import io.github.pieter12345.javaloader.JavaProject.UnloadException;
+import io.github.pieter12345.javaloader.ProjectManager.RecompileAllResult;
+import io.github.pieter12345.javaloader.ProjectManager.RecompileFeedbackHandler;
+import io.github.pieter12345.javaloader.ProjectManager.RecompileStatus;
 import io.github.pieter12345.javaloader.utils.AnsiColor;
 import io.github.pieter12345.javaloader.utils.Utils;
 
+/**
+ * JavaLoaderStandalone class.
+ * This is the main class for the JavaLoader standalone version.
+ * @author P.J.S. Kools
+ */
 public class JavaLoaderStandalone {
 	
 	// Variables & Constants.
-	private HashMap<String, JavaProject> projects = null;
 	private static final String VERSION;
 	private static final String PREFIX_INFO =
 			AnsiColor.YELLOW + "[" + AnsiColor.CYAN + "JavaLoader" + AnsiColor.YELLOW + "]" + AnsiColor.GREEN + " ";
 	private static final String PREFIX_ERROR =
 			AnsiColor.YELLOW + "[" + AnsiColor.CYAN + "JavaLoader" + AnsiColor.YELLOW + "]" + AnsiColor.RED + " ";
+	
+	private static final int COMPILER_FEEDBACK_LIMIT = 5; // The max amount of warnings/errors to print per recompile.
+	
+	private ProjectManager projectManager;
 	private final File projectsDir = new File(new File("").getAbsolutePath() + "/JavaProjects");
 	private ProjectStateListener projectStateListener;
 	
 	private boolean enabled = true;
-	
-	public static void main(String[] args) {
-		final JavaLoaderStandalone javaLoaderStandalone = new JavaLoaderStandalone();
-		
-		// Add a shutdown hook to unload projects before the JVM is being terminated.
-		// This does not always run on shutdown.
-		Runtime.getRuntime().addShutdownHook(new Thread() {
-			@Override
-			public void run() {
-				printFeedback("The JVM is being terminated. Unloading all projects.");
-				javaLoaderStandalone.unloadAllProjects();
-				printFeedback("Projects unloaded.");
-			}
-		});
-	}
 	
 	static {
 		// Get the version from the manifest.
@@ -67,6 +62,27 @@ public class JavaLoaderStandalone {
 		}
 	}
 	
+	public static void main(String[] args) {
+		final JavaLoaderStandalone javaLoaderStandalone = new JavaLoaderStandalone();
+		
+		// Add a shutdown hook to unload projects before the JVM is being terminated.
+		// This does not always run on shutdown.
+		Runtime.getRuntime().addShutdownHook(new Thread() {
+			@Override
+			public void run() {
+				printFeedback("The JVM is being terminated. Unloading all projects.");
+				if(javaLoaderStandalone.projectManager != null) {
+					javaLoaderStandalone.projectManager.unloadAllProjects((UnloadException ex) -> {
+						printFeedback(PREFIX_ERROR + "An UnloadException occurred while unloading"
+								+ " java project \"" + ex.getProject().getName() + "\":"
+								+ (ex.getCause() == null ? " " + ex.getMessage() : "\n" + Utils.getStacktrace(ex)));
+					});
+				}
+				printFeedback("Projects unloaded.");
+			}
+		});
+	}
+	
 	public JavaLoaderStandalone() {
 		
 		// Check if a JDK is available, otherwise disable the plugin.
@@ -80,6 +96,9 @@ public class JavaLoaderStandalone {
 			this.projectsDir.mkdir();
 			this.createExampleProject();
 		}
+		
+		// Create the project manager.
+		this.projectManager = new ProjectManager(this.projectsDir);
 		
 		// Initialize project state listener.
 		this.projectStateListener = new ProjectStateListener() {
@@ -97,49 +116,19 @@ public class JavaLoaderStandalone {
 		};
 		
 		// Loop over all project directories and add them as a JavaProject.
-		this.projects = new HashMap<String, JavaProject>();
-		File[] projectDirs = this.projectsDir.listFiles();
-		if(projectDirs != null) {
-			for(File projectDir : projectDirs) {
-				if(projectDir.isDirectory() && !projectDir.getName().endsWith(".disabled")) {
-					this.projects.put(projectDir.getName(),
-							new JavaProject(projectDir.getName(), projectDir, this.projectStateListener));
-				}
-			}
-		}
+		this.projectManager.addProjectsFromProjectDirectory(this.projectStateListener);
 		
-		// Load all projects (do not compile them unless they don't have a "bin" directory).
-		for(JavaProject project : this.projects.values()) {
-			
-			// Compile the project if it has no "bin" directory.
-			if(!project.getBinDir().exists()) {
-				try {
-					compile(project, 5);
-				} catch (CompileException e) {
-					
-					// Remove the newly created bin directory.
-					Utils.removeFile(project.getBinDir());
-					
-					// Send feedback.
-					printFeedback(PREFIX_ERROR + "A CompileException occurred while compiling"
-							+ " java project \"" + project.getName() + "\":"
-							+ (e.getCause() == null ? " " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
-					continue;
-				}
-			}
-			
-			// Load the project.
-			try {
-				project.load();
-			} catch (LoadException e) {
-				printFeedback(PREFIX_ERROR + "A LoadException occurred while loading"
-						+ " java project \"" + project.getName() + "\":"
-						+ (e.getCause() == null ? " " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
-			}
-		}
+		// Load all projects.
+		Set<JavaProject> loadedProjects = this.projectManager.loadAllProjects((LoadException ex) -> {
+			printFeedback(PREFIX_ERROR + "A LoadException occurred while loading"
+					+ " java project \"" + ex.getProject().getName() + "\":"
+					+ (ex.getCause() == null ? " " + ex.getMessage() : "\n" + Utils.getStacktrace(ex)));
+		});
 		
 		// Print feedback.
-		printFeedback("JavaLoader " + VERSION + " started.");
+		JavaProject[] projects = this.projectManager.getProjects();
+		printFeedback("JavaLoader " + VERSION + " started. " + loadedProjects.size() + "/"
+				+ projects.length + " projects loaded.");
 		
 		// Start the input reader.
 		Scanner scanner = new Scanner(System.in);
@@ -158,24 +147,6 @@ public class JavaLoaderStandalone {
 		}
 		scanner.close();
 		
-	}
-	
-	public void unloadAllProjects() {
-		
-		// Unload all loaded projects.
-		if(this.projects != null) {
-			for(JavaProject project : this.projects.values()) {
-				if(project.isEnabled()) {
-					try {
-						project.unload();
-					} catch (UnloadException e) {
-						printFeedback(PREFIX_ERROR + "An UnloadException occurred while unloading"
-								+ " java project \"" + project.getName() + "\":"
-								+ (e.getCause() == null ? " " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
-					}
-				}
-			}
-		}
 	}
 	
 	public void processCommand(String command, String[] args) {
@@ -231,222 +202,163 @@ public class JavaLoaderStandalone {
 			// "/recompile".
 			if(args.length == 0) {
 				
-				// Remove unexisting projects (happens when a project directory is removed).
-				removeRemovedProjects();
-				
-				// Add new projects (happens when a new project directory is created).
-				checkAndAddNewProjects();
-				
-				// Store all projects that gave an error so they can be excluded from next steps.
-				ArrayList<JavaProject> errorProjects = new ArrayList<JavaProject>();
-				
-				// Recompile everything to a "bin_new" directory.
-				for(JavaProject project : this.projects.values()) {
-					project.setBinDirName("bin_new");
-					try {
-						compile(project, 5);
-					} catch (CompileException e) {
-						
-						// Remove the newly created bin directory and set the old one.
-						Utils.removeFile(project.getBinDir());
-						project.setBinDirName("bin");
-						
-						// Send feedback.
-						printFeedback(PREFIX_ERROR + "A CompileException occurred while compiling"
-								+ " java project \"" + project.getName() + "\":"
+				// Recompile all projects.
+				final List<String> messages = new ArrayList<String>();
+				RecompileAllResult result = this.projectManager.recompileAllProjects(new RecompileFeedbackHandler() {
+					@Override
+					public void handleUnloadException(UnloadException e) {
+						printFeedback(PREFIX_ERROR + "An UnloadException occurred while unloading"
+								+ " java project \"" + e.getProject().getName() + "\":"
 								+ (e.getCause() == null ? " " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
-						errorProjects.add(project);
-						continue;
 					}
-					project.setBinDirName("bin");
-				}
-				
-				
-				// Unload all loaded projects.
-				for(JavaProject project : this.projects.values()) {
-					if(project.isEnabled()) {
-						
-						// Exclude projects with an error.
-						if(errorProjects.contains(project)) {
-							continue;
-						}
-						
-						try {
-							project.unload();
-						} catch (UnloadException e) {
-							printFeedback(PREFIX_ERROR + "An UnloadException occurred while unloading"
-									+ " java project \"" + project.getName() + "\":"
-									+ (e.getCause() == null ? " " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
-						}
-					}
-				}
-				
-				// Replace all current "bin" directories with the "bin_new" directories.
-				for(JavaProject project : this.projects.values()) {
-					
-					// Exclude projects with an error.
-					if(errorProjects.contains(project)) {
-						continue;
-					}
-					
-					// Get the "bin_new" directory.
-					project.setBinDirName("bin_new");
-					File newBinDir = project.getBinDir();
-					project.setBinDirName("bin");
-					
-					// Replace the current "bin" directory with "bin_new" and remove "bin_new".
-					if(project.getBinDir().exists() && !Utils.removeFile(project.getBinDir())) {
-						printFeedback(PREFIX_ERROR + "Failed to rename \"bin_new\" to \"bin\" because the \"bin\""
-								+ " directory could not be removed for project \"" + project.getName() + "\"."
-								+ " This can be fixed manually or by attempting another recompile. The project has"
-								+ " already been disabled and some files of the \"bin\" directory might be removed.");
-						errorProjects.add(project);
-						continue;
-					}
-					if(!newBinDir.renameTo(project.getBinDir())) {
-						printFeedback(PREFIX_ERROR
-								+ "Failed to rename \"bin_new\" to \"bin\" for project \"" + project.getName() + "\"."
-								+ " This can be fixed manually or by attempting another recompile."
-								+ " The project has already been disabled and the \"bin\" directory has been removed.");
-						errorProjects.add(project);
-						continue;
-					}
-				}
-				
-				// Load all projects.
-				for(JavaProject project : this.projects.values()) {
-					
-					// Exclude projects with an error.
-					if(errorProjects.contains(project)) {
-						continue;
-					}
-					
-					try {
-						project.load();
-					} catch (LoadException e) {
+					@Override
+					public void handleLoadException(LoadException e) {
 						printFeedback(PREFIX_ERROR + "A LoadException occurred while loading"
-								+ " java project \"" + project.getName() + "\":"
+								+ " java project \"" + e.getProject().getName() + "\":"
 								+ (e.getCause() == null ? " " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
-						errorProjects.add(project);
 					}
+					@Override
+					public void handleCompileException(CompileException e) {
+						printFeedback(PREFIX_ERROR + "A CompileException occurred while compiling"
+								+ " java project \"" + e.getProject().getName() + "\":"
+								+ (e.getCause() == null ? " " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
+					}
+					@Override
+					public void actionPerformed(RecompileStatus status) {
+						// Not used in compile all. TODO - Perhaps use or remove this method?
+					}
+					@Override
+					public void compilerFeedback(String feedback) {
+						messages.add(feedback);
+					}
+				}, this.projectStateListener);
+				
+				// Give compiler feedback.
+				if(!messages.isEmpty() && COMPILER_FEEDBACK_LIMIT > 0) {
+					String feedback = "";
+					
+					// Add at max all but one feedback string.
+					for(int i = 0; i < messages.size() - 1; i++) {
+						if(i >= COMPILER_FEEDBACK_LIMIT) {
+							feedback += (feedback.endsWith("\n") ? "" : "\n") + "... "
+									+ (messages.size() - i - 1) + " more";
+							break;
+						}
+						feedback += messages.get(i);
+					}
+					
+					// Add the last feedback string. This is always "x errors".
+					feedback += (feedback.endsWith("\n") ? "" : "\n") + messages.get(messages.size() - 1);
+					
+					if(feedback.endsWith("\n")) {
+						feedback = feedback.substring(0, feedback.length() - 1);
+					}
+					feedback = feedback.replace("\t", "    "); // Minecraft cannot display tab characters.
+					printFeedback(PREFIX_ERROR + "Compiler feedback:\n"
+							+ AnsiColor.YELLOW + feedback + AnsiColor.RESET);
 				}
 				
-				// Send feedback.
-				int count = this.projects.size();
-				int errorCount = errorProjects.size();
-				if(errorCount == 0) {
-					printFeedback(PREFIX_INFO + "Successfully compiled and loaded "
-				+ count + (count == 1 ? " project" : " projects") + ".");
-				} else {
-					printFeedback(PREFIX_INFO + "Compiled and loaded " + count
-							+ (count == 1 ? " project" : " projects") + " of which " + errorCount + " failed.");
-				}
+				// Give feedback.
+				printFeedback(PREFIX_INFO + "Recompile complete."
+						+ "\n    Projects added: " + result.addedProjects.size()
+						+ "\n    Projects removed: " + result.removedProjects.size()
+						+ "\n    Projects compiled: " + result.compiledProjects.size()
+						+ "\n    Projects unloaded: " + result.unloadedProjects.size()
+						+ "\n    Projects loaded: " + result.loadedProjects.size()
+						+ "\n    Projects with errors: " + result.errorProjects.size());
 				
 			}
 			// "recompile <projectName>".
 			else if(args.length == 1) {
 				String projectName = args[0];
-				JavaProject project = this.projects.get(projectName);
-				
-				// Check if the given project exists.
-				// Add it from the filesystem if it was added and remove it if it's not on the filesystem anymore.
-				if(project == null) {
-					
-					// Check if the project directory was added.
-					File[] projectDirs = this.projectsDir.listFiles();
-					if(projectDirs != null) {
-						for(File projectDir : projectDirs) {
-							if(projectDir.getName().equals(projectName)
-									&& projectDir.isDirectory() && !projectDir.getName().endsWith(".disabled")) {
-								project = new JavaProject(projectDir.getName(), projectDir, this.projectStateListener);
-								this.projects.put(project.getName(), project);
-							}
-						}
-					}
-					if(project == null) {
-						printFeedback(PREFIX_ERROR + "Project does not exist: " + args[0]);
-						return;
-					}
-				} else {
-					
-					// Check if the project directory was removed.
-					if(!project.getProjectDir().isDirectory()) {
-						if(project.isEnabled()) {
-							try {
-								project.unload();
-							} catch (UnloadException e) {
-								printFeedback(PREFIX_ERROR + "An UnloadException occurred while unloading REMOVED"
-										+ " java project \"" + project.getName() + "\":"
-										+ (e.getCause() == null ?
-												" " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
-							}
-						}
-						this.projects.remove(projectName);
-						printFeedback(PREFIX_INFO + "Project unloaded and removed because the project directory"
-								+ " no longer exists: " + projectName);
-						return;
-					}
-				}
-				
-				// Recompile the project to a "bin_new" directory.
-				project.setBinDirName("bin_new");
+				List<String> messages = new ArrayList<String>();
 				try {
-					compile(project, 5);
+					this.projectManager.recompile(projectName, new RecompileFeedbackHandler() {
+						@Override
+						public void handleUnloadException(UnloadException e) {
+							printFeedback(PREFIX_ERROR + "An UnloadException occurred while unloading"
+									+ " java project \"" + projectName + "\":"
+									+ (e.getCause() == null ? " " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
+						}
+						@Override
+						public void handleLoadException(LoadException e) {
+							printFeedback(PREFIX_ERROR + "A LoadException occurred while loading"
+									+ " java project \"" + projectName + "\":"
+									+ (e.getCause() == null ? " " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
+						}
+						@Override
+						public void handleCompileException(CompileException e) {
+							printFeedback(PREFIX_ERROR + "A CompileException occurred while compiling"
+									+ " java project \"" + projectName + "\":"
+									+ (e.getCause() == null ? " " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
+						}
+						@Override
+						public void actionPerformed(RecompileStatus status) {
+							String message = null;
+							switch(status) {
+							case ADDED_FROM_FILE_SYSTEM:
+								message = "Project added from file system: " + projectName + ".";
+								break;
+							case REMOVED:
+								message = "Project removed due to its project directory no longer existing: "
+										+ projectName + ".";
+								break;
+							case SUCCESS:
+								message = "Project successfully compiled and loaded: " + projectName + ".";
+								break;
+							default:
+								return;
+							}
+							if(message != null) {
+								printFeedback(PREFIX_INFO + message);
+							}
+						}
+						@Override
+						public void compilerFeedback(String feedback) {
+							messages.add(feedback);
+						}
+					}, this.projectStateListener);
+				} catch (UnloadException e) {
+					printFeedback(PREFIX_ERROR + "An UnloadException occurred while unloading java project \""
+							+ projectName + "\":"
+							+ (e.getCause() == null ? " " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
 				} catch (CompileException e) {
-					
-					// Remove the newly created bin directory and set the old one.
-					Utils.removeFile(project.getBinDir());
-					project.setBinDirName("bin");
-					
-					// Send feedback and return.
-					printFeedback(PREFIX_ERROR + "A CompileException occurred while compiling"
-							+ " java project \"" + project.getName() + "\":"
+					printFeedback(PREFIX_ERROR + "A CompileException occurred while compiling java project \""
+							+ projectName + "\":"
 							+ (e.getCause() == null ? " " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
-					return;
-				}
-				File newBinDir = project.getBinDir();
-				project.setBinDirName("bin");
-				
-				
-				// Unload the project if it was loaded.
-				if(project.isEnabled()) {
-					try {
-						project.unload();
-					} catch (UnloadException e) {
-						printFeedback(PREFIX_ERROR + "An UnloadException occurred while unloading"
-								+ " java project \"" + project.getName() + "\":"
-								+ (e.getCause() == null ? " " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
-					}
-				}
-				
-				// Replace the current "bin" directory with "bin_new" and remove "bin_new".
-				if(project.getBinDir().exists() && !Utils.removeFile(project.getBinDir())) {
-					printFeedback(PREFIX_ERROR + "Failed to rename \"bin_new\" to \"bin\" because the \"bin\""
-							+ " directory could not be removed for project \"" + project.getName() + "\"."
-							+ " This can be fixed manually or by attempting another recompile. The project has"
-							+ " already been disabled and some files of the \"bin\" directory might be removed.");
-					return;
-				}
-				if(!newBinDir.renameTo(project.getBinDir())) {
-					printFeedback(PREFIX_ERROR
-							+ "Failed to rename \"bin_new\" to \"bin\" for project \"" + project.getName() + "\"."
-							+ " This can be fixed manually or by attempting another recompile."
-							+ " The project has already been disabled and the \"bin\" directory has been removed.");
-					return;
-				}
-				
-				// Load the project.
-				try {
-					project.load();
 				} catch (LoadException e) {
-					printFeedback(PREFIX_ERROR + "A LoadException occurred while loading"
-							+ " java project \"" + project.getName() + "\":"
+					printFeedback(PREFIX_ERROR + "A LoadException occurred while loading java project \""
+							+ projectName + "\":"
 							+ (e.getCause() == null ? " " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
-					return;
+				}
+				
+				// Give compiler feedback.
+				if(!messages.isEmpty() && COMPILER_FEEDBACK_LIMIT > 0) {
+					String feedback = "";
+					
+					// Add at max all but one feedback string.
+					for(int i = 0; i < messages.size() - 1; i++) {
+						if(i >= COMPILER_FEEDBACK_LIMIT) {
+							feedback += (feedback.endsWith("\n") ? "" : "\n") + "... "
+									+ (messages.size() - i - 1) + " more";
+							break;
+						}
+						feedback += messages.get(i);
+					}
+					
+					// Add the last feedback string. This is always "x errors".
+					feedback += (feedback.endsWith("\n") ? "" : "\n") + messages.get(messages.size() - 1);
+					
+					if(feedback.endsWith("\n")) {
+						feedback = feedback.substring(0, feedback.length() - 1);
+					}
+					feedback = feedback.replace("\t", "    ");
+					printFeedback(PREFIX_ERROR + "Compiler feedback:\n"
+							+ AnsiColor.YELLOW + feedback + AnsiColor.RESET);
 				}
 				
 				// Send feedback.
-				printFeedback(PREFIX_INFO + "Successfully compiled and loaded project: " + project.getName() + ".");
+				printFeedback(PREFIX_INFO + "Recompile complete.");
 				
 			} else {
 				printFeedback(PREFIX_ERROR + "Too many arguments.");
@@ -457,37 +369,29 @@ public class JavaLoaderStandalone {
 			// "unload".
 			if(args.length == 0) {
 				
-				// Unload all loaded projects and remove unexisting unloaded projects.
-				int unloadCount = 0;
-				for(Iterator<JavaProject> iterator = this.projects.values().iterator(); iterator.hasNext();) {
-					JavaProject project = iterator.next();
-					
-					// Unload the project.
-					if(project.isEnabled()) {
-						try {
-							project.unload();
-							unloadCount++;
-						} catch (UnloadException e) {
-							printFeedback(PREFIX_ERROR + "An UnloadException occurred while unloading"
-									+ " java project \"" + project.getName() + "\":"
-									+ (e.getCause() == null ? " " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
-							continue;
-						}
-					}
-					
-					// Remove the project if it no longer exists.
-					if(!project.getProjectDir().exists()) {
-						iterator.remove();
-					}
-					
+				// Unload all projects.
+				Set<JavaProject> unloadedProjects = this.projectManager.unloadAllProjects((UnloadException ex) -> {
+					printFeedback(PREFIX_ERROR + "An UnloadException occurred while unloading"
+							+ " java project \"" + ex.getProject().getName() + "\":"
+							+ (ex.getCause() == null ? " " + ex.getMessage() : "\n" + Utils.getStacktrace(ex)));
+				});
+				
+				// Remove no longer existing projects from the project manager.
+				Set<JavaProject> removedProjects = this.projectManager.removeDeletedProjects();
+				
+				// Send feedback.
+				printFeedback(PREFIX_INFO + "Unloaded " + unloadedProjects.size()
+						+ " project" + (unloadedProjects.size() == 1 ? "" : "s") + ".");
+				if(removedProjects.size() != 0) {
+					printFeedback(PREFIX_INFO + "Removed " + removedProjects.size()
+							+ " project" + (removedProjects.size() == 1 ? "" : "s")
+							+ " due to their project directory no longer existing.");
 				}
-				printFeedback(PREFIX_INFO
-						+ "Unloaded " + unloadCount + " project" + (unloadCount == 1 ? "" : "s") + ".");
 			}
 			// "unload <projectName>".
 			else if(args.length == 1) {
 				String projectName = args[0];
-				JavaProject project = this.projects.get(projectName);
+				JavaProject project = this.projectManager.getProject(projectName);
 				
 				// Check if the project exists.
 				if(project == null) {
@@ -510,8 +414,10 @@ public class JavaLoaderStandalone {
 				}
 				
 				// Remove the project if it was successfully disabled and does not exist anymore.
-				if(!project.isEnabled() && !project.getProjectDir().exists()) {
-					this.projects.remove(project);
+				JavaProject removedProject = this.projectManager.removeDeletedProject(projectName);
+				if(removedProject != null) {
+					printFeedback(PREFIX_INFO
+							+ "Removed project due to its project directory no longer existing: " + projectName);
 				}
 				
 			} else {
@@ -523,48 +429,37 @@ public class JavaLoaderStandalone {
 			if(args.length == 0) {
 				
 				// Add new projects (happens when a new project directory is created).
-				checkAndAddNewProjects();
+				this.projectManager.addProjectsFromProjectDirectory(this.projectStateListener);
 				
-				// Load all unloaded projects.
-				int loadCount = 0;
-				for(JavaProject project : this.projects.values()) {
-					if(!project.isEnabled()) {
-						try {
-							project.load();
-							loadCount++;
-						} catch (LoadException e) {
-							printFeedback(PREFIX_ERROR + "A LoadException occurred while loading"
-									+ " java project \"" + project.getName() + "\":"
-									+ (e.getCause() == null ? " " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
-						}
-					}
-				}
-				printFeedback(PREFIX_INFO + "Loaded " + loadCount + " project" + (loadCount == 1 ? "" : "s") + ".");
+				// Load all projects.
+				Set<JavaProject> loadedProjects = this.projectManager.loadAllProjects((LoadException ex) -> {
+					printFeedback(PREFIX_ERROR + "A LoadException occurred while loading"
+							+ " java project \"" + ex.getProject().getName() + "\":"
+							+ (ex.getCause() == null ? " " + ex.getMessage() : "\n" + Utils.getStacktrace(ex)));
+				});
+				
+				// Send feedback.
+				printFeedback(PREFIX_INFO + "Loaded " + loadedProjects.size()
+						+ " project" + (loadedProjects.size() == 1 ? "" : "s") + ".");
 			}
 			// "load <projectName>".
 			else if(args.length == 1) {
 				String projectName = args[0];
-				JavaProject project = this.projects.get(projectName);
+JavaProject project = this.projectManager.getProject(projectName);
 				
 				// Check if the project exists. Add the project from the filesystem if it was added.
 				if(project == null) {
 					
-					// Check if the project directory was added.
-					File[] projectDirs = this.projectsDir.listFiles();
-					if(projectDirs != null) {
-						for(File projectDir : projectDirs) {
-							if(projectDir.getName().equals(projectName)
-									&& projectDir.isDirectory() && !projectDir.getName().endsWith(".disabled")) {
-								project = new JavaProject(projectDir.getName(), projectDir, this.projectStateListener);
-								this.projects.put(project.getName(), project);
-							}
-						}
-					}
+					// Attempt to load the project from file. This works if it has been added during runtime.
+					project = this.projectManager.addProjectFromProjectDirectory(
+							projectName, this.projectStateListener);
 					
+					// Print an error if the project does not exist.
 					if(project == null) {
 						printFeedback(PREFIX_ERROR + "Project does not exist: " + projectName);
 						return;
 					}
+					
 				}
 				
 				// Load the project if it wasn't loaded.
@@ -586,46 +481,17 @@ public class JavaLoaderStandalone {
 			}
 			return;
 		case "exit":
-			this.unloadAllProjects();
+			this.projectManager.unloadAllProjects((UnloadException ex) -> {
+				printFeedback(PREFIX_ERROR + "An UnloadException occurred while unloading"
+						+ " java project \"" + ex.getProject().getName() + "\":"
+						+ (ex.getCause() == null ? " " + ex.getMessage() : "\n" + Utils.getStacktrace(ex)));
+			});
 			this.enabled = false;
 			printFeedback("Stopping JavaLoader.");
 			return;
 		default:
 			printFeedback(PREFIX_ERROR + "Unknown command: " + command);
 			return;
-		}
-	}
-
-	private void checkAndAddNewProjects() {
-		// Add new projects (happens when a new project directory is created).
-		File[] projectDirs = this.projectsDir.listFiles();
-		if(projectDirs != null) {
-			for(File projectDir : projectDirs) {
-				if(projectDir.isDirectory() && !projectDir.getName().endsWith(".disabled")
-						&& !this.projects.containsKey(projectDir.getName())) {
-					this.projects.put(projectDir.getName(),
-							new JavaProject(projectDir.getName(), projectDir, this.projectStateListener));
-				}
-			}
-		}
-	}
-	
-	private void removeRemovedProjects() {
-		// Remove unexisting projects (happens when a project directory is removed).
-		for(Iterator<JavaProject> iterator = this.projects.values().iterator(); iterator.hasNext();) {
-			JavaProject project = iterator.next();
-			if(!project.getProjectDir().exists()) {
-				if(project.isEnabled()) {
-					try {
-						project.unload();
-					} catch (UnloadException e) {
-						printFeedback(PREFIX_ERROR + "An UnloadException occurred while unloading REMOVED"
-								+ " java project \"" + project.getName() + "\":"
-								+ (e.getCause() == null ? " " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
-					}
-				}
-				iterator.remove();
-			}
 		}
 	}
 	
@@ -673,100 +539,36 @@ public class JavaLoaderStandalone {
 		}
 	}
 	
-	private static void compile(JavaProject project, int feedbackLimit) throws CompileException {
-		final ArrayList<String> messages = new ArrayList<String>();
-		Writer writer = new Writer() {
-			private String buff = "";
-			@Override
-			public void write(char[] cbuf, int off, int len) throws IOException {
-				
-				// Get the message.
-				char[] toWrite = new char[len];
-				System.arraycopy(cbuf, off, toWrite, 0, len);
-				String message = new String(toWrite);
-				message = message.replace("\r", "");
-				
-				// Divide the message in parts and add them as seperate warnings/errors.
-				// The compiler sends entire lines and seperate newlines.
-				if(message.equals("\n") || message.startsWith("\t") || message.startsWith(" ")) {
-					this.buff += message;
-				} else {
-					if(!this.buff.isEmpty()) {
-						messages.add(this.buff);
-					}
-					this.buff = message;
-				}
-			}
-			@Override
-			public void flush() throws IOException { }
-			@Override
-			public void close() throws IOException {
-				if(!this.buff.isEmpty()) {
-					messages.add(this.buff);
-				}
-			}
-		};
-		CompileException ex = null;
-		try {
-			project.compile(writer);
-		} catch (CompileException e) {
-			ex = e;
-		}
-		try {
-			writer.close();
-		} catch (IOException e) {
-			// Never happens.
-		}
-		
-		// Print the feedback.
-		if(!messages.isEmpty() && feedbackLimit > 0) {
-			String feedback = "";
-			for(int i = 0; i < messages.size() - 1; i++) {
-				if(i >= feedbackLimit && i != messages.size() - 1) {
-					feedback += (feedback.endsWith("\n") ? "" : "\n") + "... " + (messages.size() - i - 1) + " more\n"
-							+ messages.get(messages.size() - 1);
-					break;
-				}
-				feedback += messages.get(i);
-			}
-			if(feedback.endsWith("\n")) {
-				feedback = feedback.substring(0, feedback.length() - 1);
-			}
-			printFeedback(PREFIX_ERROR + "Compiler feedback:\n" + AnsiColor.YELLOW + feedback + AnsiColor.RESET);
-		}
-		
-		// Rethrow if compilation caused an Exception.
-		if(ex != null) {
-			throw ex;
-		}
-	}
-	
 	private static void printFeedback(String str) {
 		System.out.println(AnsiColor.stripColors(str)); // TODO - Add ANSI color code support (jansi?).
 	}
 	
-	/**
-	 * getProject method.
-	 * @param name - The name of the JavaLoader project.
-	 * @return The JavaProject or null if no project with the given name exists.
-	 */
-	public JavaProject getProject(String name) {
-		return (this.projects == null ? null : this.projects.get(name));
-	}
-	
-	/**
-	 * getProjects method.
-	 * @return An array containing all loaded JavaLoader projects.
-	 */
-	public JavaProject[] getProjects() {
-		return (this.projects == null ? new JavaProject[0] : this.projects.values().toArray(new JavaProject[0]));
-	}
-	
-	/**
-	 * getProjectNames method.
-	 * @return An array containing all loaded JavaLoader project names.
-	 */
-	public String[] getProjectNames() {
-		return (this.projects == null ? new String[0] : this.projects.keySet().toArray(new String[0]));
-	}
+/* TODO - Maybe re-add these for easy access, but preferably just allow access to the ProjectManager to access projects.
+ * Also consider that users should only require access to the JavaLoaderBukkitProjectPlugin, and not to the
+ * ProjectManager.
+ */
+//	/**
+//	 * getProject method.
+//	 * @param name - The name of the JavaLoader project.
+//	 * @return The JavaProject or null if no project with the given name exists.
+//	 */
+//	public JavaProject getProject(String name) {
+//		return (this.projects == null ? null : this.projects.get(name));
+//	}
+//	
+//	/**
+//	 * getProjects method.
+//	 * @return An array containing all loaded JavaLoader projects.
+//	 */
+//	public JavaProject[] getProjects() {
+//		return (this.projects == null ? new JavaProject[0] : this.projects.values().toArray(new JavaProject[0]));
+//	}
+//	
+//	/**
+//	 * getProjectNames method.
+//	 * @return An array containing all loaded JavaLoader project names.
+//	 */
+//	public String[] getProjectNames() {
+//		return (this.projects == null ? new String[0] : this.projects.keySet().toArray(new String[0]));
+//	}
 }

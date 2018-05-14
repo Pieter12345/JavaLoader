@@ -4,7 +4,10 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.Iterator;
 
 /**
  * Utils class.
@@ -51,5 +54,41 @@ public abstract class Utils {
 			e.printStackTrace(); // Never happens.
 		}
 		return new String(outStream.toByteArray(), StandardCharsets.UTF_8);
+	}
+	
+	/**
+	 * Converts a File to an URL. This method can be convenient as alterntive to catching a never-thrown Exception.
+	 * @param file - The file to convert.
+	 * @return The URL of the file, or null if the file was null.
+	 */
+	public static URL fileToURL(File file) {
+		try {
+			return (file == null ? null : file.toURI().toURL());
+		} catch (MalformedURLException e) {
+			throw new RuntimeException("Never happens.");
+		}
+	}
+	
+	/**
+	 * Glues elements in an iterable together into a string with the given glue.
+	 * @param iterable - The iterable containing the elements to generate a string with.
+	 * @param stringifier - Used to convert object T into a string.
+	 * @param glue - The glue used between elements in the iterable.
+	 * @return The glued string(e1+glue+e2+glue+e3 etc) or an empty string if no elements were found.
+	 */
+	public static <T> String glueIterable(Iterable<T> iterable, Stringifier<T> stringifier, String glue) {
+		Iterator<T> it = iterable.iterator();
+		if(!it.hasNext()) {
+			return "";
+		}
+		StringBuilder str = new StringBuilder(stringifier.toString(it.next()));
+		while(it.hasNext()) {
+			str.append(glue).append(stringifier.toString(it.next()));
+		}
+		return str.toString();
+	}
+	
+	public static interface Stringifier<T> {
+		String toString(T object);
 	}
 }
