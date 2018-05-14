@@ -33,28 +33,36 @@ public class ProjectManager {
 		this.projectsDir = projectsDir;
 	}
 	
-// TODO - If this method will be used, make sure it requires the project manager in the project to be equal to this.
-//	/**
-//	 * Adds the given project to this project manager. If a project with an equal name already exists, nothing happens.
-//	 * @param project - The project to add.
-//	 */
-//	public void addProject(JavaProject project) {
-//		if(!this.projects.containsKey(project.getName())) {
-//			this.projects.put(project.getName(), project);
-//		}
-//	}
+	/**
+	 * Adds the given project to this project manager. If a project with an equal name already exists, nothing happens.
+	 * @param project - The project to add.
+	 * @throws IllegalStateException When the given project was initialized with a different project manager.
+	 * This means that {@link JavaProject#getProjectManager()} returned a manager that was not equal to this.
+	 */
+	protected void addProject(JavaProject project) throws IllegalStateException {
+		if(project.getProjectManager() != this) {
+			throw new IllegalStateException("The given project was initialized with a different project manager.");
+		}
+		if(!this.projects.containsKey(project.getName())) {
+			this.projects.put(project.getName(), project);
+		}
+	}
 	
-// TODO - Using this method is tricky because removing a currently loaded project will likely leave it permanently
-// loaded. Unloading this project would be a solution, but all projects that depend on this would need to be unloaded
-// too.
-//	/**
-//	 * Removed the given project from this project manager. If the project did not exist in this project manager,
-//	 * nothing happens.
-//	 * @param project - The project to remove.
-//	 */
-//	public void removeProject(JavaProject project) {
-//		this.projects.remove(project.getName(), project);
-//	}
+	/**
+	 * Removed the given project from this project manager. If the project did not exist in this project manager,
+	 * nothing happens.
+	 * @param project - The project to remove.
+	 * @throws IllegalStateException When the given project is currently enabled according to
+	 * {@link JavaProject#isEnabled()}. This is thrown regardless of whether this project manager contains the project
+	 * or not.
+	 * @return True if the project was removed, false otherwise.
+	 */
+	protected boolean removeProject(JavaProject project) throws IllegalStateException {
+		if(project.isEnabled()) {
+			throw new IllegalStateException("Cannot remove a loaded project.");
+		}
+		return this.projects.remove(project.getName(), project);
+	}
 	
 	/**
 	 * Gets the projects directory.
@@ -659,14 +667,16 @@ public class ProjectManager {
 	 */
 	public Set<JavaProject> addProjectsFromProjectDirectory(ProjectStateListener projectStateListener) {
 		Set<JavaProject> newProjects = new HashSet<JavaProject>();
-		File[] projectDirs = this.projectsDir.listFiles();
-		if(projectDirs != null) {
-			for(File projectDir : projectDirs) {
-				if(projectDir.isDirectory() && !projectDir.getName().toLowerCase().endsWith(".disabled")
-						&& !this.projects.containsKey(projectDir.getName())) {
-					JavaProject project = new JavaProject(projectDir.getName(), projectDir, this, projectStateListener);
-					this.projects.put(project.getName(), project);
-					newProjects.add(project);
+		if(this.projectsDir != null) {
+			File[] projectDirs = this.projectsDir.listFiles();
+			if(projectDirs != null) {
+				for(File projectDir : projectDirs) {
+					if(projectDir.isDirectory() && !projectDir.getName().toLowerCase().endsWith(".disabled")
+							&& !this.projects.containsKey(projectDir.getName())) {
+						JavaProject project = new JavaProject(projectDir.getName(), projectDir, this, projectStateListener);
+						this.projects.put(project.getName(), project);
+						newProjects.add(project);
+					}
 				}
 			}
 		}
@@ -682,6 +692,11 @@ public class ProjectManager {
 	 * or if a project with an equal name was already loaded.
 	 */
 	public JavaProject addProjectFromProjectDirectory(String projectName, ProjectStateListener projectStateListener) {
+		
+		// Get the project directory.
+		if(this.projectsDir != null) {
+			return null; // No projects directory set -> Project not found.
+		}
 		File projectDir = new File(this.projectsDir.getAbsolutePath() + "/" + projectName);
 		
 		// Validate that the projectName did not contain file path modifying characters.
