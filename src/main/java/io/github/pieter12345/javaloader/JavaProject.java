@@ -437,6 +437,8 @@ public class JavaProject {
 		if(this.stateListener != null) {
 			try {
 				this.stateListener.onLoad(this);
+			} catch (LoadException e) {
+				throw e;
 			} catch (Exception e) {
 				throw new LoadException(this, "An unexpected Exception occurred in StateListener's onLoad() method."
 						+ " This is likely a bug.", e);
@@ -481,6 +483,8 @@ public class JavaProject {
 		if(this.stateListener != null) {
 			try {
 				this.stateListener.onUnload(this);
+			} catch (UnloadException e) {
+				stateListenerEx = e;
 			} catch (Exception e) {
 				// This should never happen.
 				stateListenerEx = new UnloadException(this, "An unexpected Exception occurred in StateListener's onUnload() method."

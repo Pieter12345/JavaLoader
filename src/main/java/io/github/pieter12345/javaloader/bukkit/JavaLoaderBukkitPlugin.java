@@ -104,7 +104,7 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 		this.projectStateListener = new ProjectStateListener() {
 			
 			@Override
-			public void onLoad(JavaProject project) {
+			public void onLoad(JavaProject project) throws LoadException {
 				
 				// Initialize the project instance class with the JavaPlugin.
 				// Add a Bukkit Plugin implementation for JavaLoaderBukkitProjects.
@@ -115,7 +115,15 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 					bukkitProjectPlugin.setEnabled(true); // Sync Bukkit Plugin state.
 					
 					// Register commands used by the project.
-					this.injectCommands(bukkitProjectPlugin, bukkitProjectInstance.getCommands());
+					BukkitCommand[] commands;
+					try {
+						commands = bukkitProjectInstance.getCommands();
+					} catch (Exception e) {
+						throw new LoadException(project, "An Exception occurred in " + project.getName() + "'s "
+								+ bukkitProjectInstance.getClass().getName() + ".getCommands()."
+								+ " Is the project up to date?  Stacktrace:\n" + Utils.getStacktrace(e));
+					}
+					this.injectCommands(bukkitProjectPlugin, commands);
 					
 				} else {
 					project.getInstance().initialize(project);
