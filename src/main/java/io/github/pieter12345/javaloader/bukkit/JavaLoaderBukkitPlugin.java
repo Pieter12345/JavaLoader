@@ -27,6 +27,7 @@ import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.SimplePluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import io.github.pieter12345.javaloader.JavaLoaderProject;
 import io.github.pieter12345.javaloader.JavaProject;
 import io.github.pieter12345.javaloader.JavaProject.CompileException;
 import io.github.pieter12345.javaloader.JavaProject.LoadException;
@@ -691,39 +692,35 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 		}
 	}
 	
-/* TODO - Maybe re-add these for easy access, but preferably just allow access to the ProjectManager to access projects.
- * Also consider that users should only require access to the JavaLoaderBukkitProjectPlugin, and not to the
- * ProjectManager.
- */
-//	/**
-//	 * getProject method.
-//	 * @param name - The name of the JavaLoader project.
-//	 * @return The JavaProject or null if no project with the given name exists.
-//	 */
-//	public JavaProject getProject(String name) {
-//		return (this.projects == null ? null : this.projects.get(name));
-//	}
-//	
-//	/**
-//	 * getProjects method.
-//	 * @return An array containing all loaded JavaLoader projects.
-//	 */
-//	public JavaProject[] getProjects() {
-//		return (this.projects == null ? new JavaProject[0] : this.projects.values().toArray(new JavaProject[0]));
-//	}
-//	
-//	/**
-//	 * getProjectNames method.
-//	 * @return An array containing all loaded JavaLoader project names.
-//	 */
-//	public String[] getProjectNames() {
-//		return (this.projects == null ? new String[0] : this.projects.keySet().toArray(new String[0]));
-//	}
+	/**
+	 * getProject method.
+	 * @param name - The name of the JavaLoader project.
+	 * @return The JavaLoaderProject instance or null if no project with the given name exists.
+	 */
+	public JavaLoaderProject getProject(String name) {
+		return this.projectManager.getProjectInstance(name);
+	}
+	
+	/**
+	 * getProjects method.
+	 * @return An array containing all loaded JavaLoader project instances.
+	 */
+	public JavaLoaderProject[] getProjects() {
+		return this.projectManager.getProjectInstances();
+	}
+	
+	/**
+	 * getProjectNames method.
+	 * @return An array containing all loaded JavaLoader project names.
+	 */
+	public String[] getProjectNames() {
+		return this.projectManager.getProjectNames();
+	}
 	
 	/**
 	 * getPlugin method.
 	 * WARNING: Calls to this method from within a static code block or constructor in a JavaLoaderBukkitProject child
-	 *  class might return null. It is advised to only call this method after the onLoad() method had been called.
+	 *  class might return null. It is advised to only call this method after the onLoad() method has been called.
 	 * @param project - The JavaProject to get the Plugin for.
 	 * @return The JavaLoaderBukkitProjectPlugin instance for this JavaLoader project.
 	 */
@@ -737,7 +734,7 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 	/**
 	 * getPlugin method.
 	 * WARNING: Calls to this method from within a static code block or constructor in a JavaLoaderBukkitProject child
-	 *  class might return null. It is advised to only call this method after the onLoad() method had been called.
+	 *  class might return null. It is advised to only call this method after the onLoad() method has been called.
 	 * @param projectName - The name of the JavaLoader project.
 	 * @return The JavaLoaderBukkitProjectPlugin instance for this JavaLoader project.
 	 */

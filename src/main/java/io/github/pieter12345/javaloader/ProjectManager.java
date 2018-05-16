@@ -82,6 +82,31 @@ public class ProjectManager {
 	}
 	
 	/**
+	 * getProjectInstance method.
+	 * @param name - The name of the JavaLoader project.
+	 * @return The JavaLoaderProject instance or null if no project with the given name exists.
+	 */
+	public JavaLoaderProject getProjectInstance(String name) {
+		JavaProject project = this.projects.get(name);
+		return (project == null ? null : project.getInstance());
+	}
+	
+	/**
+	 * getProjectInstances method.
+	 * @return An array containing all loaded JavaLoader project instances.
+	 */
+	public JavaLoaderProject[] getProjectInstances() {
+		ArrayList<JavaLoaderProject> instances = new ArrayList<JavaLoaderProject>(this.projects.size());
+		for(JavaProject project : this.projects.values()) {
+			JavaLoaderProject instance = project.getInstance();
+			if(instance != null) {
+				instances.add(instance);
+			}
+		}
+		return instances.toArray(new JavaLoaderProject[instances.size()]);
+	}
+	
+	/**
 	 * Gets all JavaProject projects in this ProjectManager.
 	 * @return An array containing all loaded JavaLoader projects.
 	 */
