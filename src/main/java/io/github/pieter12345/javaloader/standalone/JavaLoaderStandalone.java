@@ -16,6 +16,7 @@ import javax.tools.ToolProvider;
 
 import io.github.pieter12345.javaloader.exceptions.CompileException;
 import io.github.pieter12345.javaloader.exceptions.LoadException;
+import io.github.pieter12345.javaloader.exceptions.ProjectNotFoundException;
 import io.github.pieter12345.javaloader.exceptions.UnloadException;
 import io.github.pieter12345.javaloader.JavaLoaderProject;
 import io.github.pieter12345.javaloader.JavaProject;
@@ -370,6 +371,8 @@ public class JavaLoaderStandalone {
 					printFeedback(PREFIX_ERROR + "A LoadException occurred while loading java project \""
 							+ projectName + "\":"
 							+ (e.getCause() == null ? " " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
+				} catch (ProjectNotFoundException e) {
+					printFeedback(PREFIX_ERROR + e.getMessage());
 				}
 				
 				// Give compiler feedback.

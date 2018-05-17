@@ -827,14 +827,4 @@ public class JavaProject {
 		return dependencies;
 	}
 	
-//	@Override
-//	public boolean equals(Object obj) {
-//		if(obj instanceof JavaProject) {
-//			JavaProject other = (JavaProject) obj;
-//			return this.projectName.equals(other.projectName)
-//					&& this.projectDir.equals(other.projectDir) && this.manager == other.manager;
-//		}
-//		return false;
-//	}
-	
 }

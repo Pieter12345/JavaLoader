@@ -21,6 +21,7 @@ import io.github.pieter12345.javaloader.exceptions.CompileException;
 import io.github.pieter12345.javaloader.exceptions.DependencyException;
 import io.github.pieter12345.javaloader.exceptions.JavaProjectException;
 import io.github.pieter12345.javaloader.exceptions.LoadException;
+import io.github.pieter12345.javaloader.exceptions.ProjectNotFoundException;
 import io.github.pieter12345.javaloader.exceptions.UnloadException;
 import io.github.pieter12345.javaloader.exceptions.handlers.LoadExceptionHandler;
 import io.github.pieter12345.javaloader.exceptions.handlers.ProjectExceptionHandler;
@@ -388,16 +389,18 @@ public class ProjectManager {
 	 * does not cause the overall process to fail during the recompile.
 	 * @param projectStateListener - The listener that will be set in the new JavaProject if it had not been added to
 	 * this project manager. If the project was already added, this argument is simply ignored.
-	 * @throws CompileException - If an exception occurred during compilation.
+	 * @throws CompileException  If an exception occurred during compilation.
 	 * If this is thrown, the new binaries have not yet been applied and the project is not unloaded.
-	 * @throws UnloadException - If an exception occurred while unloading which prevents the project from unloading.
+	 * @throws UnloadException  If an exception occurred while unloading which prevents the project from unloading.
 	 * If this is thrown, the new binaries have not yet been applied and the project is not unloaded.
-	 * @throws LoadException - If an exception occurred during the loading of the new compiled binaries.
+	 * @throws LoadException  If an exception occurred during the loading of the new compiled binaries.
 	 * If this is thrown, the new binaries have been applied and the project has been unloaded, but not reloaded due
 	 * to the reason given in this exception.
+	 * @throws ProjectNotFoundException When the project does not exist in the project manager and in the file system.
 	 */
 	public void recompile(String projectName, RecompileFeedbackHandler feedbackHandler,
-			ProjectStateListener projectStateListener) throws CompileException, UnloadException, LoadException {
+			ProjectStateListener projectStateListener) throws 
+			CompileException, UnloadException, LoadException, ProjectNotFoundException {
 		
 		// Get the project from this project manager or from the file system.
 		JavaProject project = this.projects.get(projectName);
@@ -408,8 +411,7 @@ public class ProjectManager {
 			if(project != null) {
 				feedbackHandler.actionPerformed(RecompileStatus.ADDED_FROM_FILE_SYSTEM);
 			} else {
-				// TODO - Change this exception type? So far, this is the only null project passed to it.
-				throw new CompileException(null, "Project does not exist: " + projectName);
+				throw new ProjectNotFoundException("Project does not exist: " + projectName);
 			}
 			
 		} else {
