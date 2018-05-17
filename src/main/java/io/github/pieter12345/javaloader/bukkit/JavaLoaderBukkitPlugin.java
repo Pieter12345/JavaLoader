@@ -7,6 +7,8 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.security.CodeSource;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -300,6 +302,8 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 						+ " Author:&8 Pieter12345/woesh0007&a."
 						+ "\n&6  - /javaloader help [subcommand]"
 						+ "\n&3	  Displays this page or information about the subcommand."
+						+ "\n&6  - /javaloader list"
+						+ "\n&3   Displays a list of all projects and their status."
 						+ "\n&6  - /javaloader recompile [project]"
 						+ "\n&3	  Recompiles, unloads and loads the given or all projects."
 						+ "\n&6  - /javaloader unload [project]"
@@ -310,6 +314,10 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 				switch(args[1].toLowerCase()) {
 				case "help":
 					sender.sendMessage(PREFIX_INFO + colorize("&6/javaloader help &8-&3 Displays command help."));
+					return true;
+				case "list":
+					sender.sendMessage(PREFIX_INFO + colorize(
+							"&6/javaloader list &8-&3 Displays a list of all projects and their status."));
 					return true;
 				case "recompile":
 					sender.sendMessage(PREFIX_INFO + colorize("&6/javaloader recompile [project] &8-&3 Recompiles,"
@@ -332,6 +340,37 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 					sender.sendMessage(PREFIX_ERROR + "Unknown subcommand: /javaloader " + args[1]);
 					return true;
 				}
+			} else {
+				sender.sendMessage(PREFIX_ERROR + "Too many arguments.");
+			}
+			return true;
+			
+		case "list":
+			
+			// "/javaloader list".
+			if(args.length == 1) {
+				
+				// TODO - Consider adding new projects from the file system here.
+				
+				// Get all projects and sort them.
+				JavaProject[] projects = this.projectManager.getProjects();
+				List<JavaProject> sortedProjects = Arrays.<JavaProject>asList(projects);
+				sortedProjects.sort((JavaProject p1, JavaProject p2) -> p1.getName().compareTo(p2.getName()));
+				
+				// Give feedback for having no projects available.
+				if(projects.length == 0) {
+					sender.sendMessage(PREFIX_INFO + "There are no projects available.");
+					return true;
+				}
+				
+				// Construct the feedback message for >=1 projects available.
+				String projectsStr = Utils.glueIterable(sortedProjects, (JavaProject project) ->
+						(project.isEnabled() ? ChatColor.DARK_GREEN : ChatColor.RED) + project.getName()
+						, ChatColor.GREEN + ", ");
+				String message = colorize("Projects (&2loaded&a/&cunloaded&a): " + projectsStr + ".");
+				
+				// Send the feedback.
+				sender.sendMessage(PREFIX_INFO + message);
 			} else {
 				sender.sendMessage(PREFIX_ERROR + "Too many arguments.");
 			}
@@ -637,7 +676,7 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 			// TAB-complete "/javaloader <arg>".
 			if(args.length == 1) {
 				List<String> ret = new ArrayList<String>();
-				for(String comp : new String[] {"help", "load", "unload", "recompile"}) {
+				for(String comp : new String[] {"help", "list", "load", "unload", "recompile"}) {
 					if(comp.startsWith(search)) {
 						ret.add(comp);
 					}
@@ -657,6 +696,8 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 				return ret;
 			}
 			
+			// Subcommand without tabcompleter.
+			return Collections.emptyList();
 		}
 		return null;
 	}

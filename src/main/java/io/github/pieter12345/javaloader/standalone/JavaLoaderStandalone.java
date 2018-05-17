@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.security.CodeSource;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
 import java.util.Set;
@@ -161,6 +162,8 @@ public class JavaLoaderStandalone {
 						+ " Author:&8 Pieter12345/woesh0007&a."
 						+ "\n&6  - help [subcommand]"
 						+ "\n&3	  Displays this page or information about the subcommand."
+						+ "\n&6  - list"
+						+ "\n&3   Displays a list of all projects and their status."
 						+ "\n&6  - recompile [project]"
 						+ "\n&3	  Recompiles, unloads and loads the given or all projects."
 						+ "\n&6  - unload [project]"
@@ -171,6 +174,10 @@ public class JavaLoaderStandalone {
 				switch(args[0].toLowerCase()) {
 				case "help":
 					printFeedback(PREFIX_INFO + colorize("&6help &8-&3 Displays command help."));
+					return;
+				case "list":
+					printFeedback(PREFIX_INFO + colorize(
+							"&6list &8-&3 Displays a list of all projects and their status."));
 					return;
 				case "recompile":
 					printFeedback(PREFIX_INFO + colorize("&6recompile [project] &8-&3 Recompiles,"
@@ -198,9 +205,40 @@ public class JavaLoaderStandalone {
 			}
 			return;
 			
+		case "list":
+			
+			// "list".
+			if(args.length == 0) {
+				
+				// TODO - Consider adding new projects from the file system here.
+				
+				// Get all projects and sort them.
+				JavaProject[] projects = this.projectManager.getProjects();
+				List<JavaProject> sortedProjects = Arrays.<JavaProject>asList(projects);
+				sortedProjects.sort((JavaProject p1, JavaProject p2) -> p1.getName().compareTo(p2.getName()));
+				
+				// Give feedback for having no projects available.
+				if(projects.length == 0) {
+					printFeedback(PREFIX_INFO + "There are no projects available.");
+					return;
+				}
+				
+				// Construct the feedback message for >=1 projects available.
+				String projectsStr = Utils.glueIterable(sortedProjects, (JavaProject project) ->
+						(project.isEnabled() ? AnsiColor.GREEN : AnsiColor.RED_BRIGHT) + project.getName()
+						, AnsiColor.GREEN_BRIGHT + ", ");
+				String message = colorize("Projects (&2loaded&a/&cunloaded&a): " + projectsStr + ".");
+				
+				// Send the feedback.
+				printFeedback(PREFIX_INFO + message);
+			} else {
+				printFeedback(PREFIX_ERROR + "Too many arguments.");
+			}
+			return;
+			
 		case "recompile":
 			
-			// "/recompile".
+			// "recompile".
 			if(args.length == 0) {
 				
 				// Recompile all projects.
