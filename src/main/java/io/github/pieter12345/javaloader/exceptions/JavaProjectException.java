@@ -1,0 +1,33 @@
+package io.github.pieter12345.javaloader.exceptions;
+
+import io.github.pieter12345.javaloader.JavaProject;
+
+@SuppressWarnings("serial")
+public class JavaProjectException extends Exception {
+	
+	private final JavaProject project;
+	
+	public JavaProjectException(JavaProject project) {
+		super();
+		this.project = project;
+	}
+	
+	public JavaProjectException(JavaProject project, String message) {
+		super(message);
+		this.project = project;
+	}
+	
+	public JavaProjectException(JavaProject project, String message, Throwable cause) {
+		super(message, cause);
+		this.project = project;
+	}
+	
+	public JavaProjectException(JavaProject project, Throwable cause) {
+		super(cause);
+		this.project = project;
+	}
+	
+	public JavaProject getProject() {
+		return this.project;
+	}
+}

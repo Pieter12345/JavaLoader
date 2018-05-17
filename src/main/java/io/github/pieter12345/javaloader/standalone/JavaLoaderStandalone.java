@@ -14,17 +14,17 @@ import java.util.zip.ZipInputStream;
 import javax.tools.JavaCompiler;
 import javax.tools.ToolProvider;
 
+import io.github.pieter12345.javaloader.exceptions.CompileException;
+import io.github.pieter12345.javaloader.exceptions.LoadException;
+import io.github.pieter12345.javaloader.exceptions.UnloadException;
 import io.github.pieter12345.javaloader.JavaLoaderProject;
 import io.github.pieter12345.javaloader.JavaProject;
-import io.github.pieter12345.javaloader.ProjectManager;
-import io.github.pieter12345.javaloader.ProjectStateListener;
-import io.github.pieter12345.javaloader.JavaProject.CompileException;
-import io.github.pieter12345.javaloader.JavaProject.LoadException;
-import io.github.pieter12345.javaloader.JavaProject.UnloadException;
 import io.github.pieter12345.javaloader.JavaProject.UnloadMethod;
+import io.github.pieter12345.javaloader.ProjectManager;
 import io.github.pieter12345.javaloader.ProjectManager.RecompileAllResult;
 import io.github.pieter12345.javaloader.ProjectManager.RecompileFeedbackHandler;
 import io.github.pieter12345.javaloader.ProjectManager.RecompileStatus;
+import io.github.pieter12345.javaloader.ProjectStateListener;
 import io.github.pieter12345.javaloader.utils.AnsiColor;
 import io.github.pieter12345.javaloader.utils.Utils;
 

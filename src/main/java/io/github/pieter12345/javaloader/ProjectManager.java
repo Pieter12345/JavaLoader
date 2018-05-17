@@ -13,15 +13,18 @@ import java.util.Set;
 import io.github.pieter12345.graph.Graph;
 import io.github.pieter12345.graph.Graph.ChildBeforeParentGraphIterator;
 import io.github.pieter12345.graph.Graph.ParentBeforeChildGraphIterator;
-import io.github.pieter12345.javaloader.JavaProject.CompileException;
 import io.github.pieter12345.javaloader.JavaProject.CompilerFeedbackHandler;
-import io.github.pieter12345.javaloader.JavaProject.DependencyException;
-import io.github.pieter12345.javaloader.JavaProject.JavaProjectException;
-import io.github.pieter12345.javaloader.JavaProject.LoadException;
-import io.github.pieter12345.javaloader.JavaProject.UnloadException;
 import io.github.pieter12345.javaloader.JavaProject.UnloadMethod;
 import io.github.pieter12345.javaloader.dependency.Dependency;
 import io.github.pieter12345.javaloader.dependency.ProjectDependency;
+import io.github.pieter12345.javaloader.exceptions.CompileException;
+import io.github.pieter12345.javaloader.exceptions.DependencyException;
+import io.github.pieter12345.javaloader.exceptions.JavaProjectException;
+import io.github.pieter12345.javaloader.exceptions.LoadException;
+import io.github.pieter12345.javaloader.exceptions.UnloadException;
+import io.github.pieter12345.javaloader.exceptions.handlers.LoadExceptionHandler;
+import io.github.pieter12345.javaloader.exceptions.handlers.ProjectExceptionHandler;
+import io.github.pieter12345.javaloader.exceptions.handlers.UnloadExceptionHandler;
 import io.github.pieter12345.javaloader.utils.Utils;
 
 public class ProjectManager {

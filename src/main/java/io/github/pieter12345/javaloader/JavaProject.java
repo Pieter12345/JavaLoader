@@ -20,6 +20,11 @@ import io.github.pieter12345.javaloader.dependency.DependencyScope;
 import io.github.pieter12345.javaloader.dependency.FileDependency;
 import io.github.pieter12345.javaloader.dependency.JarDependency;
 import io.github.pieter12345.javaloader.dependency.ProjectDependency;
+import io.github.pieter12345.javaloader.exceptions.CompileException;
+import io.github.pieter12345.javaloader.exceptions.DependencyException;
+import io.github.pieter12345.javaloader.exceptions.LoadException;
+import io.github.pieter12345.javaloader.exceptions.UnloadException;
+import io.github.pieter12345.javaloader.exceptions.handlers.UnloadExceptionHandler;
 import io.github.pieter12345.javaloader.utils.Utils;
 
 import javax.tools.JavaCompiler.CompilationTask;
@@ -832,95 +837,4 @@ public class JavaProject {
 //		return false;
 //	}
 	
-	// TODO - Move exceptions to seperate files.
-	@SuppressWarnings("serial")
-	public static class JavaProjectException extends Exception {
-		
-		private final JavaProject project;
-		
-		public JavaProjectException(JavaProject project) {
-			super();
-			this.project = project;
-		}
-		public JavaProjectException(JavaProject project, String message) {
-			super(message);
-			this.project = project;
-		}
-		public JavaProjectException(JavaProject project, String message, Throwable cause) {
-			super(message, cause);
-			this.project = project;
-		}
-		public JavaProjectException(JavaProject project, Throwable cause) {
-			super(cause);
-			this.project = project;
-		}
-		
-		public JavaProject getProject() {
-			return this.project;
-		}
-	}
-	
-	@SuppressWarnings("serial")
-	public static class CompileException extends JavaProjectException {
-		public CompileException(JavaProject project) {
-			super(project);
-		}
-		public CompileException(JavaProject project, String message) {
-			super(project, message);
-		}
-		public CompileException(JavaProject project, String message, Throwable cause) {
-			super(project, message, cause);
-		}
-		public CompileException(JavaProject project, Throwable cause) {
-			super(project, cause);
-		}
-	}
-	
-	@SuppressWarnings("serial")
-	public static class LoadException extends JavaProjectException {
-		public LoadException(JavaProject project) {
-			super(project);
-		}
-		public LoadException(JavaProject project, String message) {
-			super(project, message);
-		}
-		public LoadException(JavaProject project, String message, Throwable cause) {
-			super(project, message, cause);
-		}
-		public LoadException(JavaProject project, Throwable cause) {
-			super(project, cause);
-		}
-	}
-	
-	@SuppressWarnings("serial")
-	public static class UnloadException extends JavaProjectException {
-		public UnloadException(JavaProject project) {
-			super(project);
-		}
-		public UnloadException(JavaProject project, String message) {
-			super(project, message);
-		}
-		public UnloadException(JavaProject project, String message, Throwable cause) {
-			super(project, message, cause);
-		}
-		public UnloadException(JavaProject project, Throwable cause) {
-			super(project, cause);
-		}
-	}
-	
-	@SuppressWarnings("serial")
-	public static class DependencyException extends Exception {
-		public DependencyException() {
-			super();
-		}
-		public DependencyException(String message) {
-			super(message);
-		}
-		public DependencyException(String message, Throwable cause) {
-			super(message, cause);
-		}
-		public DependencyException(Throwable cause) {
-			super(cause);
-		}
-	}
 }

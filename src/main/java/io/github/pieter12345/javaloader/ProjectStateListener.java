@@ -1,7 +1,7 @@
 package io.github.pieter12345.javaloader;
 
-import io.github.pieter12345.javaloader.JavaProject.LoadException;
-import io.github.pieter12345.javaloader.JavaProject.UnloadException;
+import io.github.pieter12345.javaloader.exceptions.LoadException;
+import io.github.pieter12345.javaloader.exceptions.UnloadException;
 
 /**
  * ProjectStateListener interface.

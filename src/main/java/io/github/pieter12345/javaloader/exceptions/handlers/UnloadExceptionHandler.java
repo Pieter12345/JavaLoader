@@ -1,6 +1,6 @@
-package io.github.pieter12345.javaloader;
+package io.github.pieter12345.javaloader.exceptions.handlers;
 
-import io.github.pieter12345.javaloader.JavaProject.UnloadException;
+import io.github.pieter12345.javaloader.exceptions.UnloadException;
 
 /**
  * This interface allows an exception handler to be passed to a method which might throw multiple exceptions due to

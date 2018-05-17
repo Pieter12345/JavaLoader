@@ -8,10 +8,12 @@ import java.io.Writer;
 import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
 
-import io.github.pieter12345.javaloader.JavaProject.JavaProjectException;
-import io.github.pieter12345.javaloader.JavaProject.LoadException;
-import io.github.pieter12345.javaloader.JavaProject.UnloadException;
+import io.github.pieter12345.javaloader.JavaProject.UnloadMethod;
 import io.github.pieter12345.javaloader.dependency.ProjectDependency;
+import io.github.pieter12345.javaloader.exceptions.JavaProjectException;
+import io.github.pieter12345.javaloader.exceptions.LoadException;
+import io.github.pieter12345.javaloader.exceptions.UnloadException;
+import io.github.pieter12345.javaloader.exceptions.handlers.UnloadExceptionHandler;
 
 class ProjectManagerTest {
 	
@@ -139,14 +141,14 @@ class ProjectManagerTest {
 		
 		// Verify the JavaProject.unload() call order.
 		InOrder inOrder = inOrder(projectA, projectB, projectC);
-		inOrder.verify(projectC).unload();
-		inOrder.verify(projectB).unload();
-		inOrder.verify(projectA).unload();
+		inOrder.verify(projectC).unload(any(UnloadMethod.class), any(UnloadExceptionHandler.class));
+		inOrder.verify(projectB).unload(any(UnloadMethod.class), any(UnloadExceptionHandler.class));
+		inOrder.verify(projectA).unload(any(UnloadMethod.class), any(UnloadExceptionHandler.class));
 		
 		// Verify that every project was only loaded once.
-		verify(projectA, times(1)).unload();
-		verify(projectB, times(1)).unload();
-		verify(projectC, times(1)).unload();
+		verify(projectA, times(1)).unload(any(UnloadMethod.class), any(UnloadExceptionHandler.class));
+		verify(projectB, times(1)).unload(any(UnloadMethod.class), any(UnloadExceptionHandler.class));
+		verify(projectC, times(1)).unload(any(UnloadMethod.class), any(UnloadExceptionHandler.class));
 	}
 	
 	/**
@@ -171,17 +173,17 @@ class ProjectManagerTest {
 		
 		// Verify the JavaProject.unload() call order.
 		InOrder inOrder = inOrder(projectA, projectB);
-		inOrder.verify(projectA).unload();
-		inOrder.verify(projectB).unload();
+		inOrder.verify(projectA).unload(any(UnloadMethod.class), any(UnloadExceptionHandler.class));
+		inOrder.verify(projectB).unload(any(UnloadMethod.class), any(UnloadExceptionHandler.class));
 		
 		inOrder = inOrder(projectB, projectC);
-		inOrder.verify(projectC).unload();
-		inOrder.verify(projectB).unload();
+		inOrder.verify(projectC).unload(any(UnloadMethod.class), any(UnloadExceptionHandler.class));
+		inOrder.verify(projectB).unload(any(UnloadMethod.class), any(UnloadExceptionHandler.class));
 		
 		// Verify that every project was only unloaded once.
-		verify(projectA, times(1)).unload();
-		verify(projectB, times(1)).unload();
-		verify(projectC, times(1)).unload();
+		verify(projectA, times(1)).unload(any(UnloadMethod.class), any(UnloadExceptionHandler.class));
+		verify(projectB, times(1)).unload(any(UnloadMethod.class), any(UnloadExceptionHandler.class));
+		verify(projectC, times(1)).unload(any(UnloadMethod.class), any(UnloadExceptionHandler.class));
 	}
 	
 	/**
@@ -206,17 +208,17 @@ class ProjectManagerTest {
 		
 		// Verify the JavaProject.unload() call order.
 		InOrder inOrder = inOrder(projectA, projectB);
-		inOrder.verify(projectB).unload();
-		inOrder.verify(projectA).unload();
+		inOrder.verify(projectB).unload(any(UnloadMethod.class), any(UnloadExceptionHandler.class));
+		inOrder.verify(projectA).unload(any(UnloadMethod.class), any(UnloadExceptionHandler.class));
 		
 		inOrder = inOrder(projectB, projectC);
-		inOrder.verify(projectB).unload();
-		inOrder.verify(projectC).unload();
+		inOrder.verify(projectB).unload(any(UnloadMethod.class), any(UnloadExceptionHandler.class));
+		inOrder.verify(projectC).unload(any(UnloadMethod.class), any(UnloadExceptionHandler.class));
 		
 		// Verify that every project was only unloaded once.
-		verify(projectA, times(1)).unload();
-		verify(projectB, times(1)).unload();
-		verify(projectC, times(1)).unload();
+		verify(projectA, times(1)).unload(any(UnloadMethod.class), any(UnloadExceptionHandler.class));
+		verify(projectB, times(1)).unload(any(UnloadMethod.class), any(UnloadExceptionHandler.class));
+		verify(projectC, times(1)).unload(any(UnloadMethod.class), any(UnloadExceptionHandler.class));
 	}
 	
 	/**
@@ -249,7 +251,7 @@ class ProjectManagerTest {
 		// Prevent load(), unload() and compile() from executing.
 		try {
 			doNothing().when(project).load();
-			doNothing().when(project).unload();
+			doNothing().when(project).unload(any(UnloadMethod.class), any(UnloadExceptionHandler.class));
 			doNothing().when(project).compile(mock(Writer.class));
 		} catch (JavaProjectException e) {
 			// Never happens.

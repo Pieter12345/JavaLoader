@@ -29,11 +29,11 @@ import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.SimplePluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import io.github.pieter12345.javaloader.exceptions.CompileException;
+import io.github.pieter12345.javaloader.exceptions.LoadException;
+import io.github.pieter12345.javaloader.exceptions.UnloadException;
 import io.github.pieter12345.javaloader.JavaLoaderProject;
 import io.github.pieter12345.javaloader.JavaProject;
-import io.github.pieter12345.javaloader.JavaProject.CompileException;
-import io.github.pieter12345.javaloader.JavaProject.LoadException;
-import io.github.pieter12345.javaloader.JavaProject.UnloadException;
 import io.github.pieter12345.javaloader.JavaProject.UnloadMethod;
 import io.github.pieter12345.javaloader.ProjectManager;
 import io.github.pieter12345.javaloader.ProjectManager.RecompileAllResult;
