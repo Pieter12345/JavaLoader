@@ -34,6 +34,7 @@ import io.github.pieter12345.javaloader.JavaProject;
 import io.github.pieter12345.javaloader.JavaProject.CompileException;
 import io.github.pieter12345.javaloader.JavaProject.LoadException;
 import io.github.pieter12345.javaloader.JavaProject.UnloadException;
+import io.github.pieter12345.javaloader.JavaProject.UnloadMethod;
 import io.github.pieter12345.javaloader.ProjectManager;
 import io.github.pieter12345.javaloader.ProjectManager.RecompileAllResult;
 import io.github.pieter12345.javaloader.ProjectManager.RecompileFeedbackHandler;
@@ -583,7 +584,11 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 				// Unload the project if it was loaded.
 				if(project.isEnabled()) {
 					try {
-						project.unload();
+						project.unload(UnloadMethod.EXCEPTION_ON_LOADED_DEPENDENTS, (UnloadException e) -> {
+							sender.sendMessage(PREFIX_ERROR + "An UnloadException occurred while unloading"
+									+ " java project \"" + project.getName() + "\":"
+									+ (e.getCause() == null ? " " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
+						});
 						sender.sendMessage(PREFIX_INFO + "Project unloaded: " + projectName);
 					} catch (UnloadException e) {
 						sender.sendMessage(PREFIX_ERROR + "An UnloadException occurred while unloading"

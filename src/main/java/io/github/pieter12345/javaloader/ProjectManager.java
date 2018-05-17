@@ -19,6 +19,7 @@ import io.github.pieter12345.javaloader.JavaProject.DependencyException;
 import io.github.pieter12345.javaloader.JavaProject.JavaProjectException;
 import io.github.pieter12345.javaloader.JavaProject.LoadException;
 import io.github.pieter12345.javaloader.JavaProject.UnloadException;
+import io.github.pieter12345.javaloader.JavaProject.UnloadMethod;
 import io.github.pieter12345.javaloader.dependency.Dependency;
 import io.github.pieter12345.javaloader.dependency.ProjectDependency;
 import io.github.pieter12345.javaloader.utils.Utils;
@@ -221,10 +222,6 @@ public class ProjectManager {
 		return loadedProjects;
 	}
 	
-	public static interface LoadExceptionHandler {
-		void handleLoadException(LoadException e);
-	}
-	
 	/**
 	 * Unloads all projects in this project manager.
 	 * @param exHandler - An exception handler for unload exceptions that occur during unloading.
@@ -256,21 +253,19 @@ public class ProjectManager {
 		for(ParentBeforeChildGraphIterator<JavaProject> it = graph.iterator(); it.hasNext(); ) {
 			JavaProject project = it.next();
 			
-			// Attempt to unload the project.
+			// Attempt to unload the project. Use IGNORE_DEPENDENTS since we know that the dependents have been handled.
 			try {
-				project.unload();
+				project.unload(UnloadMethod.IGNORE_DEPENDENTS, exHandler);
 				unloadedProjects.add(project);
 			} catch (UnloadException e) {
+				// Never happens due to using the IGNORE_DEPENDENTS method.
+				assert(false);
 				exHandler.handleUnloadException(e);
 			}
 		}
 		
 		// Return the projects that have been unloaded.
 		return unloadedProjects;
-	}
-	
-	public static interface UnloadExceptionHandler {
-		void handleUnloadException(UnloadException e);
 	}
 	
 	/**
@@ -421,12 +416,17 @@ public class ProjectManager {
 				
 				// Attempt to unload the project.
 				try {
-					project.unload();
+					/* TODO - Print feedback about unloaded dependents? This can be done by making unload() return
+					 * a collection of unloaded projects and passing them to a new method in the feedbackHandler.
+					 */
+					project.unload(UnloadMethod.UNLOAD_DEPENDENTS, feedbackHandler);
 					feedbackHandler.actionPerformed(RecompileStatus.UNLOADED);
 				} catch (UnloadException e) {
+					// This exception should never be thrown due to using the UNLOAD_DEPENDENTS unload method.
+					assert(!project.isEnabled());
+					assert(false);
 					if(project.isEnabled()) {
 						// There's nothing we can do at this point. Something is preventing the project from unloading.
-						// TODO - Add a FORCE argument to unload() to unload all projects that depend on it and prevent this case.
 						throw e;
 					}
 					feedbackHandler.handleUnloadException(e);
@@ -436,6 +436,29 @@ public class ProjectManager {
 				this.projects.remove(projectName);
 				feedbackHandler.actionPerformed(RecompileStatus.REMOVED);
 				return;
+			}
+		}
+		
+		// Prevent a recompile if this and at least one of the dependents of this project are loaded.
+		if(project.isEnabled()) {
+			List<JavaProject> dependingProjects = new ArrayList<JavaProject>(0);
+			for(JavaProject p : this.getProjects()) {
+				if(p.isEnabled() && p != project) {
+					for(Dependency dep : p.getDependencies()) {
+						if(dep instanceof ProjectDependency
+								&& ((ProjectDependency) dep).getProject() == project) {
+							dependingProjects.add(p);
+						}
+					}
+				}
+			}
+			if(!dependingProjects.isEmpty()) {
+				
+				// Throw an exception about the dependents being enabled and therefore being unable to recompile.
+				dependingProjects.sort((JavaProject p1, JavaProject p2) -> p1.getName().compareTo(p2.getName()));
+				throw new CompileException(project, "Project cannot be recompiled while there are projects enabled"
+						+ " that depend on it. Depending project" + (dependingProjects.size() == 1 ? "" : "s") + ": "
+						+ Utils.glueIterable(dependingProjects, (JavaProject p) -> p.getName(), ", ") + ".");
 			}
 		}
 		
@@ -458,15 +481,18 @@ public class ProjectManager {
 		File newBinDir = project.getBinDir();
 		project.setBinDirName("bin");
 		
-		// Unload the project if it was loaded.
+		// Unload the project if it was loaded. The IGNORE_DEPENDENTS unload method is used because we already
+		// checked that none of the dependents are enabled.
 		if(project.isEnabled()) {
 			try {
-				project.unload();
+				project.unload(UnloadMethod.IGNORE_DEPENDENTS, feedbackHandler);
 				feedbackHandler.actionPerformed(RecompileStatus.UNLOADED);
 			} catch (UnloadException e) {
+				// This exception should never be thrown due to using the UNLOAD_DEPENDENTS unload method.
+				assert(!project.isEnabled());
+				assert(false);
 				if(project.isEnabled()) {
 					// There's nothing we can do at this point. Something is preventing the project from unloading.
-					// TODO - Add a FORCE argument to unload() to unload all projects that depend on it and prevent this case.
 					Utils.removeFile(newBinDir);
 					throw e;
 				}

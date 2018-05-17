@@ -462,79 +462,127 @@ public class JavaProject {
 	}
 	
 	/**
-	 * unload method.
-	 * Unloads the JavaProject.
-	 * @throws UnloadException If an Exception occurs while unloading the project.
+	 * Unloads the JavaProject. If UnloadExceptions occur during the process, but they do not prevent the project from
+	 * unloading, they are passed to the given exHandler.
+	 * When 'method' is {@link UnloadMethod#UNLOAD_DEPENDENTS}, exceptions from unloading the dependents will also be
+	 * passed to the given exHandler.
+	 * @param method - The unloading method to handle.
+	 * @param exHandler - The exception handler or null if you wish to ignore possible exceptions.
+	 * @throws UnloadException If an Exception occurs that prevents the project from unloading.
+	 * This only happens when 'method' is {@link UnloadMethod#EXCEPTION_ON_LOADED_DEPENDENTS} and one or more
+	 * dependents are enabled.
+	 * @throws NullPointerException If method is null.
 	 */
-	public void unload() throws UnloadException {
+	public void unload(UnloadMethod method,
+			UnloadExceptionHandler exHandler) throws UnloadException, NullPointerException {
 		if(!this.enabled) {
 			return;
 		}
 		
-		/* TODO - Prevent unloading a project when projects that depend on this project are still loaded. To do this,
-		 * add a field containing depending projects to this class. Make setters for this 'private' and use the
-		 * project manager instance to set that value on load() to the other JavaProject.
-		 * Another option is to add a FORCE boolean argument, which selects whether it prefers an exception or
-		 * unload all necessary projects.
-		 */
+		// Handle null method.
+		if(method == null) {
+			throw new NullPointerException("method may not be null.");
+		}
+		
+		// Check if other loaded projects depend on this project.
+		if(method != UnloadMethod.IGNORE_DEPENDENTS) {
+			List<JavaProject> dependingProjects = new ArrayList<JavaProject>(0);
+			for(JavaProject project : this.manager.getProjects()) {
+				if(project.isEnabled() && project != this) {
+					for(Dependency dep : project.getDependencies()) {
+						if(dep instanceof ProjectDependency
+								&& ((ProjectDependency) dep).getProject() == this) {
+							dependingProjects.add(project);
+						}
+					}
+				}
+			}
+			if(!dependingProjects.isEmpty()) {
+				if(method == UnloadMethod.UNLOAD_DEPENDENTS) {
+					
+					// Unload the projects recursively.
+					for(JavaProject project : dependingProjects) {
+						// Will never throw an UnloadException due to the method being 'UNLOAD_DEPENDENTS'.
+						project.unload(UnloadMethod.UNLOAD_DEPENDENTS, exHandler);
+					}
+					
+				} else {
+					assert(method == UnloadMethod.EXCEPTION_ON_LOADED_DEPENDENTS);
+					
+					// Throw an exception about the dependents being enabled and therefore being unable to unload.
+					dependingProjects.sort((JavaProject p1, JavaProject p2) -> p1.getName().compareTo(p2.getName()));
+					throw new UnloadException(this, "Project cannot be unloaded while there are projects enabled that"
+							+ " depend on it. Depending project" + (dependingProjects.size() == 1 ? "" : "s") + ": "
+							+ Utils.glueIterable(dependingProjects, (JavaProject p) -> p.getName(), ", ") + ".");
+				}
+			}
+		}
 		
 		// Notify the listener if it's set.
-		UnloadException stateListenerEx = null;
 		if(this.stateListener != null) {
 			try {
 				this.stateListener.onUnload(this);
 			} catch (UnloadException e) {
-				stateListenerEx = e;
+				exHandler.handleUnloadException(e);
 			} catch (Exception e) {
 				// This should never happen.
-				stateListenerEx = new UnloadException(this, "An unexpected Exception occurred in StateListener's onUnload() method."
-						+ " This is a bug in the platform-dependent implementation of project generation of"
-						+ " JavaLoader.", e);
+				exHandler.handleUnloadException(new UnloadException(this, "An unexpected Exception occurred in StateListener's"
+						+ " onUnload() method. This is a bug in the platform-dependent implementation of project"
+						+ " generation of JavaLoader.", e));
 			}
 		}
 		
 		// Unload the project.
-		UnloadException unloadEx = null;
 		if(this.projectInstance != null) { // Can be null when closing the classloader threw an Exception.
 			try {
 				this.projectInstance.onUnload();
 				this.projectInstance = null;
 			} catch (Exception e) {
-				unloadEx = new UnloadException(this, "An Exception occurred in " + this.projectDir.getName() + "'s "
+				exHandler.handleUnloadException(new UnloadException(this,
+						"An Exception occurred in " + this.projectDir.getName() + "'s "
 						+ this.projectInstance.getClass().getName() + ".onUnload(). Is the project up to date?"
-						+ " Stacktrace:\n" + Utils.getStacktrace(e));
+						+ " Stacktrace:\n" + Utils.getStacktrace(e)));
 			}
 		}
 		
 		// Close the classloader.
-		UnloadException classLoaderCloseEx = null;
 		try {
 			this.classLoader.close();
-			this.classLoader = null;
 		} catch (IOException e) {
-			classLoaderCloseEx = new UnloadException(this, "An IOException occurred in JavaLoader while closing"
-					+ " the classloader for project: \"" + this.projectDir.getName() + "\".", e);
+			exHandler.handleUnloadException(new UnloadException(this, "An IOException occurred in JavaLoader while"
+					+ " closing the classloader for project: \"" + this.projectDir.getName() + "\".", e));
 		}
+		this.classLoader = null;
 		
 		// Mark the project as disabled.
 		this.enabled = false;
 		this.version = null;
 		this.dependencies = null; // The user could swap binaries and load again, so reset them.
+	}
+	
+	/**
+	 * The method to handle when unloading a project.
+	 * @author P.J.S. Kools
+	 */
+	public static enum UnloadMethod {
 		
-		/* Throw the most important exception if any occurred.
-		 * - stateListenerEx: There's a bug in JavaLoader or someone is accessing the project in a custom way.
-		 * - unloadEx: There's a bug in the onUnload() method of the users project.
-		 * - classLoaderCloseEx: An IOException occurred while closing a resource. There's nothing we can do.
+		/**
+		 * If one or multiple projects exist that depend on the project that's being unloaded,
+		 * an exception will be thrown.
 		 */
-		if(stateListenerEx != null) {
-			throw stateListenerEx;
-		}
-		if(unloadEx != null) {
-			throw unloadEx;
-		}
-		if(classLoaderCloseEx != null) {
-			throw classLoaderCloseEx;
-		}
+		EXCEPTION_ON_LOADED_DEPENDENTS,
+		
+		/**
+		 * If one or multiple projects exist that depend on the project that's being unloaded, they are recursively
+		 * being unloaded as well (using the same unload method).
+		 */
+		UNLOAD_DEPENDENTS,
+		
+		/**
+		 * The project will simply be unloaded, ignoring its dependents and violating the proper unload order.
+		 */
+		IGNORE_DEPENDENTS;
+		
 	}
 	
 	/**

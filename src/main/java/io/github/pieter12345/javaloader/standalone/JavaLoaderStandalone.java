@@ -21,6 +21,7 @@ import io.github.pieter12345.javaloader.ProjectStateListener;
 import io.github.pieter12345.javaloader.JavaProject.CompileException;
 import io.github.pieter12345.javaloader.JavaProject.LoadException;
 import io.github.pieter12345.javaloader.JavaProject.UnloadException;
+import io.github.pieter12345.javaloader.JavaProject.UnloadMethod;
 import io.github.pieter12345.javaloader.ProjectManager.RecompileAllResult;
 import io.github.pieter12345.javaloader.ProjectManager.RecompileFeedbackHandler;
 import io.github.pieter12345.javaloader.ProjectManager.RecompileStatus;
@@ -441,7 +442,11 @@ public class JavaLoaderStandalone {
 				// Unload the project if it was loaded.
 				if(project.isEnabled()) {
 					try {
-						project.unload();
+						project.unload(UnloadMethod.EXCEPTION_ON_LOADED_DEPENDENTS, (UnloadException e) -> {
+							printFeedback(PREFIX_ERROR + "An UnloadException occurred while unloading"
+									+ " java project \"" + project.getName() + "\":"
+									+ (e.getCause() == null ? " " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
+						});
 						printFeedback(PREFIX_INFO + "Project unloaded: " + projectName);
 					} catch (UnloadException e) {
 						printFeedback(PREFIX_ERROR + "An UnloadException occurred while unloading"
