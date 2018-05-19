@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import java.io.Writer;
+import java.util.Arrays;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
@@ -251,7 +252,8 @@ class ProjectManagerTest {
 		// Prevent load(), unload() and compile() from executing.
 		try {
 			doNothing().when(project).load();
-			doNothing().when(project).unload(any(UnloadMethod.class), any(UnloadExceptionHandler.class));
+			doReturn(Arrays.asList(project)).when(project).unload(
+					any(UnloadMethod.class), any(UnloadExceptionHandler.class));
 			doNothing().when(project).compile(mock(Writer.class));
 		} catch (JavaProjectException e) {
 			// Never happens.

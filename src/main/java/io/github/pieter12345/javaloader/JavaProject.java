@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Stack;
@@ -350,7 +351,7 @@ public class JavaProject {
 				} else {
 					// Even though dependencies marked as PROVIDED could be ignored, this will force us to review
 					// this part of the code when adding a new dependency implementation.
-					throw new LoadException(this,
+					throw new InternalError(
 							"Unsupported dependency implementation: " + dependency.getClass().getName());
 				}
 			}
@@ -473,15 +474,18 @@ public class JavaProject {
 	 * passed to the given exHandler.
 	 * @param method - The unloading method to handle.
 	 * @param exHandler - The exception handler or null if you wish to ignore possible exceptions.
+	 * @return A list of unloaded projects, in an order such that dependents always have a lower index than their
+	 * dependencies (so this project is always the first element). This list can only contain more than one element if
+	 * the 'method' argument is {@link UnloadMethod#UNLOAD_DEPENDENTS}.
 	 * @throws UnloadException If an Exception occurs that prevents the project from unloading.
 	 * This only happens when 'method' is {@link UnloadMethod#EXCEPTION_ON_LOADED_DEPENDENTS} and one or more
 	 * dependents are enabled.
 	 * @throws NullPointerException If method is null.
 	 */
-	public void unload(UnloadMethod method,
+	public List<JavaProject> unload(UnloadMethod method,
 			UnloadExceptionHandler exHandler) throws UnloadException, NullPointerException {
 		if(!this.enabled) {
-			return;
+			return Collections.emptyList();
 		}
 		
 		// Handle null method.
@@ -490,6 +494,8 @@ public class JavaProject {
 		}
 		
 		// Check if other loaded projects depend on this project.
+		List<JavaProject> unloadedProjects = new ArrayList<JavaProject>(1);
+		unloadedProjects.add(this); // We only return this on success.
 		if(method != UnloadMethod.IGNORE_DEPENDENTS) {
 			List<JavaProject> dependingProjects = new ArrayList<JavaProject>(0);
 			for(JavaProject project : this.manager.getProjects()) {
@@ -508,7 +514,7 @@ public class JavaProject {
 					// Unload the projects recursively.
 					for(JavaProject project : dependingProjects) {
 						// Will never throw an UnloadException due to the method being 'UNLOAD_DEPENDENTS'.
-						project.unload(UnloadMethod.UNLOAD_DEPENDENTS, exHandler);
+						unloadedProjects.addAll(project.unload(UnloadMethod.UNLOAD_DEPENDENTS, exHandler));
 					}
 					
 				} else {
@@ -531,9 +537,9 @@ public class JavaProject {
 				exHandler.handleUnloadException(e);
 			} catch (Exception e) {
 				// This should never happen.
-				exHandler.handleUnloadException(new UnloadException(this, "An unexpected Exception occurred in StateListener's"
-						+ " onUnload() method. This is a bug in the platform-dependent implementation of project"
-						+ " generation of JavaLoader.", e));
+				exHandler.handleUnloadException(new UnloadException(this, "An unexpected Exception occurred in"
+						+ " StateListener's onUnload() method. This is a bug in the platform-dependent implementation"
+						+ " of project generation of JavaLoader.", e));
 			}
 		}
 		
@@ -563,6 +569,9 @@ public class JavaProject {
 		this.enabled = false;
 		this.version = null;
 		this.dependencies = null; // The user could swap binaries and load again, so reset them.
+		
+		// Return the unloaded projects.
+		return unloadedProjects;
 	}
 	
 	/**

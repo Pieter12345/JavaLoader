@@ -30,8 +30,8 @@ import org.bukkit.plugin.SimplePluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import io.github.pieter12345.javaloader.exceptions.CompileException;
+import io.github.pieter12345.javaloader.exceptions.DepOrderViolationException;
 import io.github.pieter12345.javaloader.exceptions.LoadException;
-import io.github.pieter12345.javaloader.exceptions.ProjectNotFoundException;
 import io.github.pieter12345.javaloader.exceptions.UnloadException;
 import io.github.pieter12345.javaloader.JavaLoaderProject;
 import io.github.pieter12345.javaloader.JavaProject;
@@ -39,7 +39,6 @@ import io.github.pieter12345.javaloader.JavaProject.UnloadMethod;
 import io.github.pieter12345.javaloader.ProjectManager;
 import io.github.pieter12345.javaloader.ProjectManager.RecompileAllResult;
 import io.github.pieter12345.javaloader.ProjectManager.RecompileFeedbackHandler;
-import io.github.pieter12345.javaloader.ProjectManager.RecompileStatus;
 import io.github.pieter12345.javaloader.ProjectStateListener;
 import io.github.pieter12345.javaloader.utils.Utils;
 
@@ -405,10 +404,6 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 								+ (e.getCause() == null ? " " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
 					}
 					@Override
-					public void actionPerformed(RecompileStatus status) {
-						// Not used in compile all. TODO - Perhaps use or remove this method?
-					}
-					@Override
 					public void compilerFeedback(String feedback) {
 						messages.add(feedback);
 					}
@@ -454,67 +449,68 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 			// "/javaloader recompile <projectName>".
 			else if(args.length == 2) {
 				final String projectName = args[1];
+				
+				// Get the project. Attempt to add it from the file system if it does not yet exist in the
+				// project manager.
+				JavaProject project = this.projectManager.getProject(projectName);
+				if(project == null) {
+					project = this.projectManager
+							.addProjectFromProjectDirectory(projectName, this.projectStateListener);
+					if(project == null) {
+						sender.sendMessage(PREFIX_ERROR + "Project does not exist: \"" + projectName + "\".");
+						return true;
+					}
+				}
+				
+				// Unload and remove the project if it was deleted from the file system.
+				List<JavaProject> removedProjects = this.projectManager.unloadAndRemoveProjectIfDeleted(
+						projectName, (UnloadException e) -> {
+					sender.sendMessage(PREFIX_ERROR + "An UnloadException occurred in"
+							+ " java project \"" + e.getProject().getName() + "\":"
+							+ (e.getCause() == null ? " " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
+				});
+				if(removedProjects != null) {
+					if(removedProjects.isEmpty()) {
+						sender.sendMessage(PREFIX_INFO + "Removed project because it no longer exists in the file"
+								+ " system: \"" + projectName + "\".");
+					} else {
+						sender.sendMessage(PREFIX_INFO + "Removed and unloaded project because it no longer exists in"
+								+ " the file system: \"" + projectName + "\".");
+						if(removedProjects.size() > 1) {
+							assert(removedProjects.get(0).getName().equals(projectName));
+							removedProjects.remove(0);
+							sender.sendMessage(PREFIX_INFO + "The following " + (removedProjects.size() == 1
+									? "dependent was" : "dependents were") + " unloaded: "
+									+ Utils.glueIterable(removedProjects, (JavaProject p) -> p.getName(), ", ") + ".");
+						}
+					}
+					return true;
+				}
+				
+				// Recompile the project.
+				boolean success = false;
 				final List<String> messages = new ArrayList<String>();
 				try {
-					this.projectManager.recompile(projectName, new RecompileFeedbackHandler() {
-						@Override
-						public void handleUnloadException(UnloadException e) {
-							sender.sendMessage(PREFIX_ERROR + "An UnloadException occurred while unloading"
-									+ " java project \"" + projectName + "\":"
-									+ (e.getCause() == null ? " " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
-						}
-						@Override
-						public void handleLoadException(LoadException e) {
-							sender.sendMessage(PREFIX_ERROR + "A LoadException occurred while loading"
-									+ " java project \"" + projectName + "\":"
-									+ (e.getCause() == null ? " " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
-						}
-						@Override
-						public void handleCompileException(CompileException e) {
-							sender.sendMessage(PREFIX_ERROR + "A CompileException occurred while compiling"
-									+ " java project \"" + projectName + "\":"
-									+ (e.getCause() == null ? " " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
-						}
-						@Override
-						public void actionPerformed(RecompileStatus status) {
-							String message = null;
-							switch(status) {
-							case ADDED_FROM_FILE_SYSTEM:
-								message = "Project added from file system: " + projectName + ".";
-								break;
-							case REMOVED:
-								message = "Project removed due to its project directory no longer existing: "
-										+ projectName + ".";
-								break;
-							case SUCCESS:
-								message = "Project successfully compiled and loaded: " + projectName + ".";
-								break;
-							default:
-								return;
-							}
-							if(message != null) {
-								sender.sendMessage(PREFIX_INFO + message);
-							}
-						}
-						@Override
-						public void compilerFeedback(String feedback) {
-							messages.add(feedback);
-						}
-					}, this.projectStateListener);
-				} catch (UnloadException e) {
-					sender.sendMessage(PREFIX_ERROR + "An UnloadException occurred while unloading java project \""
-							+ projectName + "\":"
-							+ (e.getCause() == null ? " " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
+					this.projectManager.recompile(project,
+							(String compilerFeedback) -> messages.add(compilerFeedback),
+							(UnloadException e) -> sender.sendMessage(PREFIX_ERROR + (e.getCause() == null
+									? "UnloadException: " + e.getMessage() : "An UnloadException occurred in java"
+									+ " project \"" + e.getProject().getName() + "\":\n" + Utils.getStacktrace(e))));
+					success = true;
 				} catch (CompileException e) {
-					sender.sendMessage(PREFIX_ERROR + "A CompileException occurred while compiling java project \""
-							+ projectName + "\":"
-							+ (e.getCause() == null ? " " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
+					sender.sendMessage(PREFIX_ERROR + (e.getCause() == null
+							? "CompileException: " + e.getMessage() : "A CompileException occurred in java"
+							+ " project \"" + e.getProject().getName() + "\":\n" + Utils.getStacktrace(e)));
 				} catch (LoadException e) {
-					sender.sendMessage(PREFIX_ERROR + "A LoadException occurred while loading java project \""
-							+ projectName + "\":"
-							+ (e.getCause() == null ? " " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
-				} catch (ProjectNotFoundException e) {
-					sender.sendMessage(PREFIX_ERROR + e.getMessage());
+					sender.sendMessage(PREFIX_ERROR + (e.getCause() == null
+							? "LoadException: " + e.getMessage() : "A LoadException occurred in java"
+							+ " project \"" + e.getProject().getName() + "\":\n" + Utils.getStacktrace(e)));
+				} catch (DepOrderViolationException e) {
+					sender.sendMessage(PREFIX_ERROR + (e.getCause() == null
+							? "DepOrderViolationException: " + e.getMessage() : "A DepOrderViolationException occurred"
+							+ " in java project \"" + e.getProject().getName() + "\":\n" + Utils.getStacktrace(e)));
+				} catch (IllegalArgumentException e) {
+					throw new InternalError("Project is obtained from this manager, so this should be impossible.", e);
 				}
 				
 				// Give compiler feedback.
@@ -543,7 +539,7 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 				}
 				
 				// Send feedback.
-				sender.sendMessage(PREFIX_INFO + "Recompile complete.");
+				sender.sendMessage(PREFIX_INFO + "Recompile complete" + (success ? "" : " (with errors)") + ".");
 				
 			} else {
 				sender.sendMessage(PREFIX_ERROR + "Too many arguments.");
@@ -562,7 +558,7 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 				});
 				
 				// Remove no longer existing projects from the project manager.
-				Set<JavaProject> removedProjects = this.projectManager.removeDeletedProjects();
+				Set<JavaProject> removedProjects = this.projectManager.removeUnloadedProjectsIfDeleted();
 				
 				// Send feedback.
 				sender.sendMessage(PREFIX_INFO + "Unloaded " + unloadedProjects.size()
@@ -603,7 +599,7 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 				}
 				
 				// Remove the project if it was successfully disabled and does not exist anymore.
-				JavaProject removedProject = this.projectManager.removeDeletedProject(projectName);
+				JavaProject removedProject = this.projectManager.removeUnloadedProjectIfDeleted(projectName);
 				if(removedProject != null) {
 					sender.sendMessage(PREFIX_INFO
 							+ "Removed project due to its project directory no longer existing: " + projectName);

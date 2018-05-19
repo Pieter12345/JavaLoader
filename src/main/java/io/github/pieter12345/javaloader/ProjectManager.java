@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -18,10 +19,10 @@ import io.github.pieter12345.javaloader.JavaProject.UnloadMethod;
 import io.github.pieter12345.javaloader.dependency.Dependency;
 import io.github.pieter12345.javaloader.dependency.ProjectDependency;
 import io.github.pieter12345.javaloader.exceptions.CompileException;
+import io.github.pieter12345.javaloader.exceptions.DepOrderViolationException;
 import io.github.pieter12345.javaloader.exceptions.DependencyException;
 import io.github.pieter12345.javaloader.exceptions.JavaProjectException;
 import io.github.pieter12345.javaloader.exceptions.LoadException;
-import io.github.pieter12345.javaloader.exceptions.ProjectNotFoundException;
 import io.github.pieter12345.javaloader.exceptions.UnloadException;
 import io.github.pieter12345.javaloader.exceptions.handlers.LoadExceptionHandler;
 import io.github.pieter12345.javaloader.exceptions.handlers.ProjectExceptionHandler;
@@ -125,6 +126,15 @@ public class ProjectManager {
 	 */
 	public String[] getProjectNames() {
 		return this.projects.keySet().toArray(new String[0]);
+	}
+	
+	/**
+	 * Checks if a project with the given name is in this ProjectManager.
+	 * @param name - The name of the project to look for.
+	 * @return True if this project manager contains a project matching the given name, false otherwise.
+	 */
+	public boolean hasProject(String name) {
+		return this.projects.containsKey(name);
 	}
 	
 	/**
@@ -381,97 +391,51 @@ public class ProjectManager {
 	/**
 	 * Compiles, unloads (if loaded) and loads the given project. Compilation happens in a temporary directory, so
 	 * if a CompileException occurs, the temporary directory is simply removed and the project will stay loaded if
-	 * it was loaded. If the project directory no longer exists, the project will be unloaded and removed from this
-	 * project manager. If the project does not exist in this project manager, but it does in the file system,
-	 * it will be added to this project manager.
-	 * @param projectName - The name of the project to compile, unload and load.
-	 * @param feedbackHandler - The project feedback handler which will receive all thrown exceptions and feedback that
-	 * does not cause the overall process to fail during the recompile.
-	 * @param projectStateListener - The listener that will be set in the new JavaProject if it had not been added to
-	 * this project manager. If the project was already added, this argument is simply ignored.
-	 * @throws CompileException  If an exception occurred during compilation.
-	 * If this is thrown, the new binaries have not yet been applied and the project is not unloaded.
-	 * @throws UnloadException  If an exception occurred while unloading which prevents the project from unloading.
-	 * If this is thrown, the new binaries have not yet been applied and the project is not unloaded.
-	 * @throws LoadException  If an exception occurred during the loading of the new compiled binaries.
+	 * it was loaded.
+	 * @param project - The project to compile, unload and load.
+	 * @param compilerFeedbackHandler - The compiler feedback handler which will receive all java compiler feedback.
+	 * @param unloadExHandler - If this project was loaded and an unload caused exceptions, they are passed to this
+	 * handler.
+	 * @throws CompileException If an exception occurred during compilation.
+	 * If this is thrown, the new binaries have not yet been applied and the project has not been unloaded.
+	 * @throws LoadException If an exception occurred during the loading of the new compiled binaries.
 	 * If this is thrown, the new binaries have been applied and the project has been unloaded, but not reloaded due
 	 * to the reason given in this exception.
-	 * @throws ProjectNotFoundException When the project does not exist in the project manager and in the file system.
+	 * @throws DepOrderViolationException When the given project is loaded and at least one of its dependents is loaded.
+	 * @throws IllegalArgumentException When {@link project#getProjectManager()} != this or when project is not known
+	 * in this project manager.
 	 */
-	public void recompile(String projectName, RecompileFeedbackHandler feedbackHandler,
-			ProjectStateListener projectStateListener) throws 
-			CompileException, UnloadException, LoadException, ProjectNotFoundException {
+	public void recompile(JavaProject project, CompilerFeedbackHandler compilerFeedbackHandler,
+			UnloadExceptionHandler unloadExHandler) throws
+			CompileException, LoadException, DepOrderViolationException, IllegalArgumentException {
 		
-		// Get the project from this project manager or from the file system.
-		JavaProject project = this.projects.get(projectName);
-		if(project == null) {
-			
-			// Get the project from the file system.
-			project = this.addProjectFromProjectDirectory(projectName, projectStateListener);
-			if(project != null) {
-				feedbackHandler.actionPerformed(RecompileStatus.ADDED_FROM_FILE_SYSTEM);
-			} else {
-				throw new ProjectNotFoundException("Project does not exist: " + projectName);
-			}
-			
-		} else {
-			
-			// Check if the project has been removed.
-			if(!project.getProjectDir().exists()) {
-				
-				// Attempt to unload the project.
-				try {
-					/* TODO - Print feedback about unloaded dependents? This can be done by making unload() return
-					 * a collection of unloaded projects and passing them to a new method in the feedbackHandler.
-					 */
-					project.unload(UnloadMethod.UNLOAD_DEPENDENTS, feedbackHandler);
-					feedbackHandler.actionPerformed(RecompileStatus.UNLOADED);
-				} catch (UnloadException e) {
-					// This exception should never be thrown due to using the UNLOAD_DEPENDENTS unload method.
-					assert(!project.isEnabled());
-					assert(false);
-					if(project.isEnabled()) {
-						// There's nothing we can do at this point. Something is preventing the project from unloading.
-						throw e;
-					}
-					feedbackHandler.handleUnloadException(e);
-				}
-				
-				// Remove the project from the project manager.
-				this.projects.remove(projectName);
-				feedbackHandler.actionPerformed(RecompileStatus.REMOVED);
-				return;
-			}
+		// Validate that the project is part of this project manager.
+		if(project.getProjectManager() != this) {
+			throw new IllegalArgumentException("The given project has a different project manager.");
+		} else if(!this.projects.containsValue(project)) {
+			throw new IllegalArgumentException("The given project has not been added to this project manager.");
 		}
 		
 		// Prevent a recompile if this and at least one of the dependents of this project are loaded.
 		if(project.isEnabled()) {
-			List<JavaProject> dependingProjects = new ArrayList<JavaProject>(0);
-			for(JavaProject p : this.getProjects()) {
-				if(p.isEnabled() && p != project) {
-					for(Dependency dep : p.getDependencies()) {
-						if(dep instanceof ProjectDependency
-								&& ((ProjectDependency) dep).getProject() == project) {
-							dependingProjects.add(p);
-						}
-					}
-				}
-			}
-			if(!dependingProjects.isEmpty()) {
-				
+			Set<JavaProject> loadedDependents = this.getLoadedDependents(project);
+			if(!loadedDependents.isEmpty()) {
+				List<JavaProject> loadedDependentsList = new ArrayList<JavaProject>(loadedDependents.size());
+				loadedDependentsList.addAll(loadedDependents);
 				// Throw an exception about the dependents being enabled and therefore being unable to recompile.
-				dependingProjects.sort((JavaProject p1, JavaProject p2) -> p1.getName().compareTo(p2.getName()));
-				throw new CompileException(project, "Project cannot be recompiled while there are projects enabled"
-						+ " that depend on it. Depending project" + (dependingProjects.size() == 1 ? "" : "s") + ": "
-						+ Utils.glueIterable(dependingProjects, (JavaProject p) -> p.getName(), ", ") + ".");
+				
+				loadedDependentsList.sort((JavaProject p1, JavaProject p2) -> p1.getName().compareTo(p2.getName()));
+				throw new DepOrderViolationException(project,
+						"Project cannot be recompiled while there are projects enabled that depend on it."
+						+ " Depending project" + (loadedDependentsList.size() == 1 ? "" : "s") + ": "
+						+ Utils.glueIterable(loadedDependentsList, (JavaProject p) -> p.getName(), ", ") + ".");
 			}
 		}
 		
 		// Compile the project in the "bin_new" directory.
 		project.setBinDirName("bin_new");
 		try {
-			project.compile(feedbackHandler);
-			feedbackHandler.actionPerformed(RecompileStatus.COMPILED);
+			project.compile(compilerFeedbackHandler);
 		} catch (CompileException e) {
 			
 			// Remove the newly created bin directory and set it back to the old one.
@@ -490,18 +454,11 @@ public class ProjectManager {
 		// checked that none of the dependents are enabled.
 		if(project.isEnabled()) {
 			try {
-				project.unload(UnloadMethod.IGNORE_DEPENDENTS, feedbackHandler);
-				feedbackHandler.actionPerformed(RecompileStatus.UNLOADED);
+				project.unload(UnloadMethod.IGNORE_DEPENDENTS, unloadExHandler);
 			} catch (UnloadException e) {
-				// This exception should never be thrown due to using the UNLOAD_DEPENDENTS unload method.
-				assert(!project.isEnabled());
-				assert(false);
-				if(project.isEnabled()) {
-					// There's nothing we can do at this point. Something is preventing the project from unloading.
-					Utils.removeFile(newBinDir);
-					throw e;
-				}
-				feedbackHandler.handleUnloadException(e);
+				// This exception should never be thrown due to using the IGNORE_DEPENDENTS unload method.
+				Utils.removeFile(newBinDir);
+				throw new InternalError(e);
 			}
 		}
 		
@@ -522,11 +479,21 @@ public class ProjectManager {
 		
 		// Load the project.
 		project.load();
-		feedbackHandler.actionPerformed(RecompileStatus.LOADED);
-		
-		// Send feedback.
-		feedbackHandler.actionPerformed(RecompileStatus.SUCCESS);
-		
+	}
+	
+	private Set<JavaProject> getLoadedDependents(JavaProject project) {
+		Set<JavaProject> dependingProjects = new HashSet<JavaProject>();
+		for(JavaProject p : this.getProjects()) {
+			if(p.isEnabled() && p != project) {
+				for(Dependency dep : p.getDependencies()) {
+					if(dep instanceof ProjectDependency
+							&& ((ProjectDependency) dep).getProject() == project) {
+						dependingProjects.add(p);
+					}
+				}
+			}
+		}
+		return dependingProjects;
 	}
 	
 	/**
@@ -643,7 +610,7 @@ public class ProjectManager {
 				(UnloadException ex) -> feedbackHandler.handleUnloadException(ex));
 		
 		// Remove deleted projects.
-		Set<JavaProject> removedProjects = this.removeDeletedProjects();
+		Set<JavaProject> removedProjects = this.removeUnloadedProjectsIfDeleted();
 		
 		// Replace all binary directories with the new ones for non-error projects.
 		for(JavaProject project : this.projects.values()) {
@@ -688,7 +655,10 @@ public class ProjectManager {
 		
 		// Load all projects. Projects that have caused errors might fail, but might also work using their old binaries.
 		Set<JavaProject> loadedProjects = this.loadAllProjects(
-				(LoadException ex) -> feedbackHandler.handleLoadException(ex));
+				(LoadException ex) -> {
+					errorProjects.add(ex.getProject());
+					feedbackHandler.handleLoadException(ex);
+				});
 		
 		// Return the result.
 		return new RecompileAllResult(addedProjects, removedProjects,
@@ -745,9 +715,14 @@ public class ProjectManager {
 	 * @param projectName - The name of the project to attempt to find and add.
 	 * @param projectStateLister - A listener to add to the newly created project. This may be null.
 	 * @return The added project or null if no project matched the projectName
-	 * or if a project with an equal name was already loaded.
+	 * or if a project with an equal name was already added to the project manager.
 	 */
 	public JavaProject addProjectFromProjectDirectory(String projectName, ProjectStateListener projectStateListener) {
+		
+		// Return null if the project was already added.
+		if(this.projects.containsKey(projectName)) {
+			return null;
+		}
 		
 		// Get the project directory.
 		if(this.projectsDir != null) {
@@ -756,14 +731,14 @@ public class ProjectManager {
 		File projectDir = new File(this.projectsDir.getAbsolutePath() + "/" + projectName);
 		
 		// Validate that the projectName did not contain file path modifying characters.
-		if(!projectDir.getAbsoluteFile().getParent().equals(this.projectsDir.getAbsolutePath())) {
+		if(!projectDir.getAbsoluteFile().getParent().equals(this.projectsDir.getAbsolutePath())
+				|| !projectDir.getName().equals(projectName)) {
 			return null;
 		}
 		
 		// Create the project if it was found.
 		if(projectDir.getName().equals(projectName) && projectDir.isDirectory()
-				&& !projectDir.getName().toLowerCase().endsWith(".disabled")
-				&& !this.projects.containsKey(projectDir.getName())) {
+				&& !projectDir.getName().toLowerCase().endsWith(".disabled")) {
 			JavaProject project = new JavaProject(projectDir.getName(), projectDir, this, projectStateListener);
 			this.projects.put(project.getName(), project);
 			return project;
@@ -778,7 +753,7 @@ public class ProjectManager {
 	 * which would usually contain the "src" and "bin" directory no longer exists.
 	 * @return The removed projects.
 	 */
-	public Set<JavaProject> removeDeletedProjects() {
+	public Set<JavaProject> removeUnloadedProjectsIfDeleted() {
 		Set<JavaProject> removedProjects = new HashSet<JavaProject>();
 		for(Iterator<JavaProject> it = this.projects.values().iterator(); it.hasNext(); ) {
 			JavaProject project = it.next();
@@ -796,12 +771,55 @@ public class ProjectManager {
 	 * @param projectName - The name of the project to remove if it's unloaded and its project directory was deleted.
 	 * @return The removed project or null if the project was not removed.
 	 */
-	public JavaProject removeDeletedProject(String projectName) {
+	public JavaProject removeUnloadedProjectIfDeleted(String projectName) {
 		JavaProject project = this.projects.get(projectName);
 		if(project != null && !project.isEnabled() && !project.getProjectDir().exists()) {
 			this.projects.remove(projectName);
 			return project;
 		}
+		return null;
+	}
+	
+	/**
+	 * Unloads and removes the given project if its project directory which would usually contain the "src" and "bin"
+	 * directory no longer exists. The unload happens recursively, meaning that any projects that depend on this
+	 * project will also be unloaded (but not removed).
+	 * @param projectName - The name of the project to remove if its project directory was deleted.
+	 * @param exHandler - An exception handler for UnloadExceptions that might occur while unloading the project and
+	 * its dependencies recursively.
+	 * @return A list of unloaded projects in an order where depending projects always have a lower index than their
+	 * dependents. Returns an empty list when the project was removed, but not loaded. Returns null when the project
+	 * was not removed.
+	 */
+	public List<JavaProject> unloadAndRemoveProjectIfDeleted(String projectName, UnloadExceptionHandler exHandler) {
+		
+		// Get the project.
+		JavaProject project = this.projects.get(projectName);
+		
+		// Check if the project exists in the project manager and has been removed.
+		if(project != null && !project.getProjectDir().exists()) {
+			
+			// Attempt to unload the project if it is loaded.
+			List<JavaProject> unloadedProjects;
+			if(project.isEnabled()) {
+				try {
+					unloadedProjects = project.unload(UnloadMethod.UNLOAD_DEPENDENTS, exHandler);
+				} catch (UnloadException e) {
+					// This exception should never be thrown due to using the UNLOAD_DEPENDENTS unload method.
+					throw new InternalError(e);
+				}
+			} else {
+				unloadedProjects = Collections.emptyList();
+			}
+			
+			// Remove the project from the project manager.
+			this.projects.remove(projectName);
+			
+			// Return the unloaded projects.
+			return unloadedProjects;
+		}
+		
+		// The project either does not exist or exists and has a project directory.
 		return null;
 	}
 	
@@ -814,17 +832,7 @@ public class ProjectManager {
 		this.projects.clear();
 	}
 	
-	public static enum RecompileStatus {
-		ADDED_FROM_FILE_SYSTEM,
-		REMOVED,
-		COMPILED,
-		UNLOADED,
-		LOADED,
-		SUCCESS;
-	}
-	
 	public static interface RecompileFeedbackHandler extends ProjectExceptionHandler, CompilerFeedbackHandler {
-		void actionPerformed(RecompileStatus status);
 	}
 	
 }
