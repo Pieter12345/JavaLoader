@@ -319,8 +319,8 @@ public class Graph<T> implements Iterable<T> {
 	 * <li>When a node is returned, its children are added to the queue if and only if all their parents have been
 	 *   handled.</li>
 	 * </ul>
-	 * This implementation guarentees that parent nodes are returned before their children, even when multiple root nodes
-	 * exist.
+	 * This implementation guarentees that parent nodes are returned before their children, even when multiple
+	 * root nodes exist.
 	 * If the graph contains a cycle, all nodes within the cycle and their descendents are skipped without notice.
 	 * @author P.J.S. Kools
 	 * @param <T>
@@ -390,7 +390,7 @@ public class Graph<T> implements Iterable<T> {
 		 */
 		public List<T> removeDescendents() {
 			
-			// Return null if the 'next()' method hasn't been called yet. 
+			// Return null if the 'next()' method hasn't been called yet.
 			if(this.last == null) {
 				return null;
 			}
@@ -507,7 +507,7 @@ public class Graph<T> implements Iterable<T> {
 		 */
 		public List<T> removeAncestors() {
 			
-			// Return null if the 'next()' method hasn't been called yet. 
+			// Return null if the 'next()' method hasn't been called yet.
 			if(this.last == null) {
 				return null;
 			}

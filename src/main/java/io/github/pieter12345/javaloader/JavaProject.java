@@ -13,8 +13,11 @@ import java.util.Locale;
 import java.util.Stack;
 
 import javax.tools.JavaCompiler;
+import javax.tools.JavaCompiler.CompilationTask;
 import javax.tools.StandardJavaFileManager;
 import javax.tools.ToolProvider;
+
+import com.google.common.io.Files;
 
 import io.github.pieter12345.javaloader.dependency.Dependency;
 import io.github.pieter12345.javaloader.dependency.DependencyScope;
@@ -27,10 +30,6 @@ import io.github.pieter12345.javaloader.exceptions.LoadException;
 import io.github.pieter12345.javaloader.exceptions.UnloadException;
 import io.github.pieter12345.javaloader.exceptions.handlers.UnloadExceptionHandler;
 import io.github.pieter12345.javaloader.utils.Utils;
-
-import javax.tools.JavaCompiler.CompilationTask;
-
-import com.google.common.io.Files;
 
 /**
  * JavaProject class.
@@ -213,7 +212,12 @@ public class JavaProject {
 					compiler.getStandardFileManager(null, Locale.US, StandardCharsets.UTF_8);
 			CompilationTask compileTask = compiler.getTask(feedbackWriter, fileManager,
 					null, options, null, fileManager.getJavaFileObjects(files.toArray(new File[0])));
-			try { fileManager.close(); } catch (IOException e) { e.printStackTrace(); } // Never happens.
+			try {
+				fileManager.close();
+			} catch (IOException e) {
+				// Never happens.
+				throw new InternalError(e);
+			}
 			boolean success = compileTask.call();
 			if(!success) {
 				throw new CompileException(this, "Javac compile unsuccessfull.");
@@ -326,7 +330,7 @@ public class JavaProject {
 		
 		// Get the INCLUDE dependency files for the classloader. Existence of files will be checked by the classloader,
 		// but we will validate that JavaProject dependencies that are marked as PROVIDED are loaded here.
-		List<File>dependencyFiles = new ArrayList<File>();
+		List<File> dependencyFiles = new ArrayList<File>();
 		if(this.dependencies != null) {
 			for(int i = 0; i < this.dependencies.length; i++) {
 				Dependency dependency = this.dependencies[i];
@@ -637,7 +641,7 @@ public class JavaProject {
 	 *  This directory is in the project directory.
 	 */
 	public void setBinDirName(String binDirName) {
-		this.binDir = 
+		this.binDir =
 				new File(this.projectDir.getAbsolutePath() + "/" + binDirName.replaceAll("(\\.\\.|\\\\|\\/)", " "));
 	}
 	
@@ -698,7 +702,7 @@ public class JavaProject {
 	 * Initializes the {@link #dependencies} field using the dependencies file in the binary directory.
 	 * Once initialized, calls to this method will be ignored.
 	 * If the user would swap the project's binary files between a call to {@link #initDependencies()} and
-	 * {@link JavaProject#load()}, the used dependencies will be out of sync with the new binary files. 
+	 * {@link JavaProject#load()}, the used dependencies will be out of sync with the new binary files.
 	 * @throws IOException When an I/O error occurs while reading the dependencies descriptor file.
 	 * @throws DependencyException When the dependencies file contains an invalid descriptor.
 	 */

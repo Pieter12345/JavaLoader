@@ -70,7 +70,7 @@ public class JavaLoaderBukkitProjectPlugin extends PluginBase {
 	
 //	public JavaLoaderProjectPlugin() {
 //		final ClassLoader classLoader = this.getClass().getClassLoader();
-//		if (!(classLoader instanceof PluginClassLoader)) {
+//		if(!(classLoader instanceof PluginClassLoader)) {
 //			throw new IllegalStateException("JavaPlugin requires " + PluginClassLoader.class.getName());
 //		}
 //		((PluginClassLoader) classLoader).initialize(this);
@@ -79,7 +79,7 @@ public class JavaLoaderBukkitProjectPlugin extends PluginBase {
 //	protected JavaLoaderProjectPlugin(final JavaPluginLoader loader,
 //			final PluginDescriptionFile description, final File dataFolder, final File file) {
 //		final ClassLoader classLoader = this.getClass().getClassLoader();
-//		if (classLoader instanceof PluginClassLoader) {
+//		if(classLoader instanceof PluginClassLoader) {
 //			throw new IllegalStateException("Cannot use initialization constructor at runtime");
 //		}
 //		init(loader, loader.server, description, dataFolder, file, classLoader);
@@ -148,7 +148,7 @@ public class JavaLoaderBukkitProjectPlugin extends PluginBase {
 	
 	@Override
 	public FileConfiguration getConfig() {
-		if (newConfig == null) {
+		if(newConfig == null) {
 			reloadConfig();
 		}
 		return newConfig;
@@ -175,7 +175,7 @@ public class JavaLoaderBukkitProjectPlugin extends PluginBase {
 		newConfig = YamlConfiguration.loadConfiguration(configFile);
 
 		final InputStream defConfigStream = getResource("config.yml");
-		if (defConfigStream == null) {
+		if(defConfigStream == null) {
 			return;
 		}
 
@@ -194,20 +194,20 @@ public class JavaLoaderBukkitProjectPlugin extends PluginBase {
 	
 	@Override
 	public void saveDefaultConfig() {
-		if (!configFile.exists()) {
+		if(!configFile.exists()) {
 			saveResource("config.yml", false);
 		}
 	}
 	
 	@Override
 	public void saveResource(String resourcePath, boolean replace) {
-		if (resourcePath == null || resourcePath.equals("")) {
+		if(resourcePath == null || resourcePath.trim().isEmpty()) {
 			throw new IllegalArgumentException("ResourcePath cannot be null or empty");
 		}
 		
-		resourcePath = resourcePath.replace('\\', '/');
+		resourcePath = resourcePath.trim().replace('\\', '/');
 		InputStream in = getResource(resourcePath);
-		if (in == null) {
+		if(in == null) {
 			throw new IllegalArgumentException(
 					"The embedded resource '" + resourcePath + "' cannot be found in " + file);
 		}
@@ -216,16 +216,16 @@ public class JavaLoaderBukkitProjectPlugin extends PluginBase {
 		int lastIndex = resourcePath.lastIndexOf('/');
 		File outDir = new File(dataFolder, resourcePath.substring(0, lastIndex >= 0 ? lastIndex : 0));
 		
-		if (!outDir.exists()) {
+		if(!outDir.exists()) {
 			outDir.mkdirs();
 		}
 		
 		try {
-			if (!outFile.exists() || replace) {
+			if(!outFile.exists() || replace) {
 				OutputStream out = new FileOutputStream(outFile);
 				byte[] buf = new byte[1024];
 				int len;
-				while ((len = in.read(buf)) > 0) {
+				while((len = in.read(buf)) > 0) {
 					out.write(buf, 0, len);
 				}
 				out.close();
@@ -241,14 +241,14 @@ public class JavaLoaderBukkitProjectPlugin extends PluginBase {
 	
 	@Override
 	public InputStream getResource(String filename) {
-		if (filename == null) {
+		if(filename == null) {
 			throw new IllegalArgumentException("Filename cannot be null");
 		}
 		
 		try {
 			URL url = getClassLoader().getResource(filename);
 			
-			if (url == null) {
+			if(url == null) {
 				return null;
 			}
 			
@@ -275,10 +275,10 @@ public class JavaLoaderBukkitProjectPlugin extends PluginBase {
 	 * @param enabled true if enabled, otherwise false
 	 */
 	protected final void setEnabled(final boolean enabled) {
-		if (isEnabled != enabled) {
+		if(isEnabled != enabled) {
 			isEnabled = enabled;
 			
-			if (isEnabled) {
+			if(isEnabled) {
 				onEnable();
 			} else {
 				onDisable();
@@ -329,12 +329,12 @@ public class JavaLoaderBukkitProjectPlugin extends PluginBase {
 		String alias = name.toLowerCase(java.util.Locale.ENGLISH);
 		PluginCommand command = getServer().getPluginCommand(alias);
 		
-		if (command == null || command.getPlugin() != this) {
+		if(command == null || command.getPlugin() != this) {
 			command = getServer().getPluginCommand(
 					description.getName().toLowerCase(java.util.Locale.ENGLISH) + ":" + alias);
 		}
 		
-		if (command != null && command.getPlugin() == this) {
+		if(command != null && command.getPlugin() == this) {
 			return command;
 		} else {
 			return null;
@@ -400,15 +400,15 @@ public class JavaLoaderBukkitProjectPlugin extends PluginBase {
 	 */
 	public static <T extends JavaLoaderBukkitProjectPlugin> T getPlugin(Class<T> clazz) {
 //		Validate.notNull(clazz, "Null class cannot have a plugin");
-//		if (!JavaLoaderProjectPlugin.class.isAssignableFrom(clazz)) {
+//		if(!JavaLoaderProjectPlugin.class.isAssignableFrom(clazz)) {
 //			throw new IllegalArgumentException(clazz + " does not extend " + JavaLoaderProjectPlugin.class);
 //		}
 //		final ClassLoader cl = clazz.getClassLoader();
-//		if (!(cl instanceof PluginClassLoader)) {
+//		if(!(cl instanceof PluginClassLoader)) {
 //			throw new IllegalArgumentException(clazz + " is not initialized by " + PluginClassLoader.class);
 //		}
 //		JavaLoaderProjectPlugin plugin = ((PluginClassLoader) cl).plugin;
-//		if (plugin == null) {
+//		if(plugin == null) {
 //			throw new IllegalStateException("Cannot get plugin for " + clazz + " from a static initializer");
 //		}
 //		return clazz.cast(plugin);
@@ -430,11 +430,11 @@ public class JavaLoaderBukkitProjectPlugin extends PluginBase {
 	public static JavaLoaderBukkitProjectPlugin getProvidingPlugin(Class<?> clazz) {
 //		Validate.notNull(clazz, "Null class cannot have a plugin");
 //		final ClassLoader cl = clazz.getClassLoader();
-//		if (!(cl instanceof PluginClassLoader)) {
+//		if(!(cl instanceof PluginClassLoader)) {
 //			throw new IllegalArgumentException(clazz + " is not provided by " + PluginClassLoader.class);
 //		}
 //		JavaLoaderProjectPlugin plugin = ((PluginClassLoader) cl).plugin;
-//		if (plugin == null) {
+//		if(plugin == null) {
 //			throw new IllegalStateException("Cannot get plugin for " + clazz + " from a static initializer");
 //		}
 //		return plugin;

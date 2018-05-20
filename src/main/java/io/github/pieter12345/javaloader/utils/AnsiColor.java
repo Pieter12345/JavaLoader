@@ -1,6 +1,6 @@
 package io.github.pieter12345.javaloader.utils;
 
-public class AnsiColor {
+public abstract class AnsiColor {
 	public static final String RESET          = "\u001B[m";
 	public static final String BLACK          = "\u001B[30m";
 	public static final String RED            = "\u001B[31m";
@@ -33,24 +33,24 @@ public class AnsiColor {
 					colorStr = "" + colorizeChar;
 				} else {
 					switch(colorChar) {
-					case 'r': colorStr = RESET; break;
-					case '0': colorStr = BLACK; break;
-					case '1': colorStr = BLUE; break;
-					case '2': colorStr = GREEN; break;
-					case '3': colorStr = CYAN; break;
-					case '4': colorStr = RED; break;
-					case '5': colorStr = MAGENTA; break;
-					case '6': colorStr = YELLOW; break;
-					case '7': colorStr = LIGHT_GRAY; break;
-					case '8': colorStr = DARK_GRAY; break;
-					case '9': colorStr = BLUE_BRIGHT; break;
-					case 'a': colorStr = GREEN_BRIGHT; break;
-					case 'b': colorStr = CYAN_BRIGHT; break;
-					case 'c': colorStr = RED_BRIGHT; break;
-					case 'd': colorStr = MAGENTA_BRIGHT; break;
-					case 'e': colorStr = YELLOW_BRIGHT; break;
-					case 'f': colorStr = WHITE; break;
-					default: throw new RuntimeException("Unknown color char found: " + colorChar);
+						case 'r': colorStr = RESET; break;
+						case '0': colorStr = BLACK; break;
+						case '1': colorStr = BLUE; break;
+						case '2': colorStr = GREEN; break;
+						case '3': colorStr = CYAN; break;
+						case '4': colorStr = RED; break;
+						case '5': colorStr = MAGENTA; break;
+						case '6': colorStr = YELLOW; break;
+						case '7': colorStr = LIGHT_GRAY; break;
+						case '8': colorStr = DARK_GRAY; break;
+						case '9': colorStr = BLUE_BRIGHT; break;
+						case 'a': colorStr = GREEN_BRIGHT; break;
+						case 'b': colorStr = CYAN_BRIGHT; break;
+						case 'c': colorStr = RED_BRIGHT; break;
+						case 'd': colorStr = MAGENTA_BRIGHT; break;
+						case 'e': colorStr = YELLOW_BRIGHT; break;
+						case 'f': colorStr = WHITE; break;
+						default: throw new RuntimeException("Unknown color char found: " + colorChar);
 					}
 				}
 				if(colorStr != null) {

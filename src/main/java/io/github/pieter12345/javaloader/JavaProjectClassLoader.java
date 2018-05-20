@@ -121,7 +121,7 @@ public class JavaProjectClassLoader extends URLClassLoader {
 				Class<?> definedClass = this.defineClass(name, bytes, 0, bytes.length, this.protectionDomain);
 				this.classMap.put(name, definedClass);
 				return definedClass;
-			} catch(IOException e) {
+			} catch (IOException e) {
 				throw new ClassNotFoundException(
 						"An IOException occured while reading existing class file: " + classFile.getAbsolutePath());
 			}
@@ -133,7 +133,7 @@ public class JavaProjectClassLoader extends URLClassLoader {
 			Class<?> definedClass = super.loadClass(name);
 			this.classMap.put(name, definedClass);
 			return definedClass;
-		} catch(ClassNotFoundException e) {
+		} catch (ClassNotFoundException e) {
 			// Ignore.
 		}
 		
@@ -142,7 +142,7 @@ public class JavaProjectClassLoader extends URLClassLoader {
 			Class<?> definedClass = JavaProject.class.getClassLoader().loadClass(name);
 			this.classMap.put(name, definedClass);
 			return definedClass;
-		} catch(ClassNotFoundException e) {
+		} catch (ClassNotFoundException e) {
 			// Ignore.
 		}
 		

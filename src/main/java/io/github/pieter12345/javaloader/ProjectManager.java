@@ -598,8 +598,9 @@ public class ProjectManager {
 				
 				// The project should already have an exception for its failure, add one for its dependents.
 				for(int i = 1; i < removedProjects.size(); i++) {
-					feedbackHandler.handleCompileException(new CompileException(project, "Indirect or direct"
-							+ " dependency project was not successfully compiled: " + removedProjects.get(i).getName()));
+					feedbackHandler.handleCompileException(new CompileException(project,
+							"Indirect or direct dependency project was not successfully compiled: "
+							+ removedProjects.get(i).getName()));
 					errorProjects.add(removedProjects.get(i));
 				}
 			}
@@ -699,7 +700,8 @@ public class ProjectManager {
 				for(File projectDir : projectDirs) {
 					if(projectDir.isDirectory() && !projectDir.getName().toLowerCase().endsWith(".disabled")
 							&& !this.projects.containsKey(projectDir.getName())) {
-						JavaProject project = new JavaProject(projectDir.getName(), projectDir, this, projectStateListener);
+						JavaProject project = new JavaProject(
+								projectDir.getName(), projectDir, this, projectStateListener);
 						this.projects.put(project.getName(), project);
 						newProjects.add(project);
 					}

@@ -29,10 +29,6 @@ import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.SimplePluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import io.github.pieter12345.javaloader.exceptions.CompileException;
-import io.github.pieter12345.javaloader.exceptions.DepOrderViolationException;
-import io.github.pieter12345.javaloader.exceptions.LoadException;
-import io.github.pieter12345.javaloader.exceptions.UnloadException;
 import io.github.pieter12345.javaloader.JavaLoaderProject;
 import io.github.pieter12345.javaloader.JavaProject;
 import io.github.pieter12345.javaloader.JavaProject.UnloadMethod;
@@ -40,6 +36,10 @@ import io.github.pieter12345.javaloader.ProjectManager;
 import io.github.pieter12345.javaloader.ProjectManager.RecompileAllResult;
 import io.github.pieter12345.javaloader.ProjectManager.RecompileFeedbackHandler;
 import io.github.pieter12345.javaloader.ProjectStateListener;
+import io.github.pieter12345.javaloader.exceptions.CompileException;
+import io.github.pieter12345.javaloader.exceptions.DepOrderViolationException;
+import io.github.pieter12345.javaloader.exceptions.LoadException;
+import io.github.pieter12345.javaloader.exceptions.UnloadException;
 import io.github.pieter12345.javaloader.utils.Utils;
 
 /**
@@ -76,6 +76,10 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 			}
 			VERSION = "Unknown";
 		}
+	}
+	
+	public JavaLoaderBukkitPlugin() {
+		// This runs when Bukkit creates JavaLoader. Use onEnable() for initialization on enable instead.
 	}
 	
 	@Override
@@ -295,147 +299,149 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 		}
 		
 		switch(args[0].toLowerCase()) {
-		case "help":
-			
-			// "/javaloader help [command]".
-			if(args.length == 1) {
-				sender.sendMessage(PREFIX_INFO + colorize("&aJavaLoader - Version: &8" + VERSION + "&a."
-						+ " Author:&8 Pieter12345/woesh0007&a."
-						+ "\n&6  - /javaloader help [subcommand]"
-						+ "\n&3	  Displays this page or information about the subcommand."
-						+ "\n&6  - /javaloader list"
-						+ "\n&3   Displays a list of all projects and their status."
-						+ "\n&6  - /javaloader recompile [project]"
-						+ "\n&3	  Recompiles, unloads and loads the given or all projects."
-						+ "\n&6  - /javaloader unload [project]"
-						+ "\n&3	  Unloads the given or all projects."
-						+ "\n&6  - /javaloader load [project]"
-						+ "\n&3	  Loads the given or all projects."));
-			} else if(args.length == 2) {
-				switch(args[1].toLowerCase()) {
-				case "help":
-					sender.sendMessage(PREFIX_INFO + colorize("&6/javaloader help &8-&3 Displays command help."));
-					return true;
-				case "list":
-					sender.sendMessage(PREFIX_INFO + colorize(
-							"&6/javaloader list &8-&3 Displays a list of all projects and their status."));
-					return true;
-				case "recompile":
-					sender.sendMessage(PREFIX_INFO + colorize("&6/javaloader recompile [project] &8-&3 Recompiles,"
-							+ " unloads and loads the given project or all projects when no project is given."
-							+ " Recompiling happens before projects are unloaded, so the old project will stay loaded"
-							+ " when a recompile Exception occurs."));
-					return true;
-				case "load":
-					sender.sendMessage(PREFIX_INFO + colorize("&6/javaloader load [project] &8-&3 Loads the given"
-							+ " project or all projects when no project is given. To load a project, only the .class"
-							+ " files in the project folder have to be valid."
-							+ " This will also load newly added projects."));
-					return true;
-				case "unload":
-					sender.sendMessage(PREFIX_INFO + colorize("&6/javaloader unload [project] &8-&3 Unloads the given"
-							+ " project or all projects when no project is given."
-							+ " Projects that no longer exist will be removed."));
-					return true;
-				default:
-					sender.sendMessage(PREFIX_ERROR + "Unknown subcommand: /javaloader " + args[1]);
-					return true;
+			case "help":
+				
+				// "/javaloader help [command]".
+				if(args.length == 1) {
+					sender.sendMessage(PREFIX_INFO + colorize("&aJavaLoader - Version: &8" + VERSION + "&a."
+							+ " Author:&8 Pieter12345/woesh0007&a."
+							+ "\n&6  - /javaloader help [subcommand]"
+							+ "\n&3	  Displays this page or information about the subcommand."
+							+ "\n&6  - /javaloader list"
+							+ "\n&3   Displays a list of all projects and their status."
+							+ "\n&6  - /javaloader recompile [project]"
+							+ "\n&3	  Recompiles, unloads and loads the given or all projects."
+							+ "\n&6  - /javaloader unload [project]"
+							+ "\n&3	  Unloads the given or all projects."
+							+ "\n&6  - /javaloader load [project]"
+							+ "\n&3	  Loads the given or all projects."));
+				} else if(args.length == 2) {
+					switch(args[1].toLowerCase()) {
+						case "help":
+							sender.sendMessage(PREFIX_INFO
+									+ colorize("&6/javaloader help &8-&3 Displays command help."));
+							return true;
+						case "list":
+							sender.sendMessage(PREFIX_INFO + colorize(
+									"&6/javaloader list &8-&3 Displays a list of all projects and their status."));
+							return true;
+						case "recompile":
+							sender.sendMessage(PREFIX_INFO + colorize("&6/javaloader recompile [project] &8-&3"
+									+ " Recompiles, unloads and loads the given project or all projects when no project"
+									+ " is given. Recompiling happens before projects are unloaded, so the old project"
+									+ " will stay loaded when a recompile Exception occurs."));
+							return true;
+						case "load":
+							sender.sendMessage(PREFIX_INFO + colorize("&6/javaloader load [project] &8-&3 Loads the"
+									+ " given project or all projects when no project is given. To load a project, only"
+									+ " the .class files in the project folder have to be valid."
+									+ " This will also load newly added projects."));
+							return true;
+						case "unload":
+							sender.sendMessage(PREFIX_INFO + colorize("&6/javaloader unload [project] &8-&3 Unloads the"
+									+ " given project or all projects when no project is given."
+									+ " Projects that no longer exist will be removed."));
+							return true;
+						default:
+							sender.sendMessage(PREFIX_ERROR + "Unknown subcommand: /javaloader " + args[1]);
+							return true;
+					}
+				} else {
+					sender.sendMessage(PREFIX_ERROR + "Too many arguments.");
 				}
-			} else {
-				sender.sendMessage(PREFIX_ERROR + "Too many arguments.");
-			}
-			return true;
-			
-		case "list":
-			
-			// "/javaloader list".
-			if(args.length == 1) {
+				return true;
 				
-				// TODO - Consider adding new projects from the file system here.
+			case "list":
 				
-				// Get all projects and sort them.
-				JavaProject[] projects = this.projectManager.getProjects();
-				List<JavaProject> sortedProjects = Arrays.<JavaProject>asList(projects);
-				sortedProjects.sort((JavaProject p1, JavaProject p2) -> p1.getName().compareTo(p2.getName()));
-				
-				// Give feedback for having no projects available.
-				if(projects.length == 0) {
-					sender.sendMessage(PREFIX_INFO + "There are no projects available.");
-					return true;
-				}
-				
-				// Construct the feedback message for >=1 projects available.
-				String projectsStr = Utils.glueIterable(sortedProjects, (JavaProject project) ->
-						(project.isEnabled() ? ChatColor.DARK_GREEN : ChatColor.RED) + project.getName()
-						, ChatColor.GREEN + ", ");
-				String message = colorize("Projects (&2loaded&a/&cunloaded&a): " + projectsStr + ".");
-				
-				// Send the feedback.
-				sender.sendMessage(PREFIX_INFO + message);
-			} else {
-				sender.sendMessage(PREFIX_ERROR + "Too many arguments.");
-			}
-			return true;
-			
-		case "recompile":
-			
-			// "/javaloader recompile".
-			if(args.length == 1) {
-				
-				// Recompile all projects.
-				final List<String> messages = new ArrayList<String>();
-				RecompileAllResult result = this.projectManager.recompileAllProjects(new RecompileFeedbackHandler() {
-					@Override
-					public void handleUnloadException(UnloadException e) {
-						sender.sendMessage(PREFIX_ERROR + "An UnloadException occurred while unloading"
-								+ " java project \"" + e.getProject().getName() + "\":"
-								+ (e.getCause() == null ? " " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
-					}
-					@Override
-					public void handleLoadException(LoadException e) {
-						sender.sendMessage(PREFIX_ERROR + "A LoadException occurred while loading"
-								+ " java project \"" + e.getProject().getName() + "\":"
-								+ (e.getCause() == null ? " " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
-					}
-					@Override
-					public void handleCompileException(CompileException e) {
-						sender.sendMessage(PREFIX_ERROR + "A CompileException occurred while compiling"
-								+ " java project \"" + e.getProject().getName() + "\":"
-								+ (e.getCause() == null ? " " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
-					}
-					@Override
-					public void compilerFeedback(String feedback) {
-						messages.add(feedback);
-					}
-				}, this.projectStateListener);
-				
-				// Give compiler feedback.
-				if(!messages.isEmpty() && COMPILER_FEEDBACK_LIMIT > 0) {
-					String feedback = "";
+				// "/javaloader list".
+				if(args.length == 1) {
 					
-					// Add at max all but one feedback string.
-					for(int i = 0; i < messages.size() - 1; i++) {
-						if(i >= COMPILER_FEEDBACK_LIMIT) {
-							feedback += (feedback.endsWith("\n") ? "" : "\n") + "... "
-									+ (messages.size() - i - 1) + " more";
-							break;
+					// TODO - Consider adding new projects from the file system here.
+					
+					// Get all projects and sort them.
+					JavaProject[] projects = this.projectManager.getProjects();
+					List<JavaProject> sortedProjects = Arrays.<JavaProject>asList(projects);
+					sortedProjects.sort((JavaProject p1, JavaProject p2) -> p1.getName().compareTo(p2.getName()));
+					
+					// Give feedback for having no projects available.
+					if(projects.length == 0) {
+						sender.sendMessage(PREFIX_INFO + "There are no projects available.");
+						return true;
+					}
+					
+					// Construct the feedback message for >=1 projects available.
+					String projectsStr = Utils.glueIterable(sortedProjects, (JavaProject project) ->
+							(project.isEnabled() ? ChatColor.DARK_GREEN : ChatColor.RED) + project.getName(),
+							ChatColor.GREEN + ", ");
+					String message = colorize("Projects (&2loaded&a/&cunloaded&a): " + projectsStr + ".");
+					
+					// Send the feedback.
+					sender.sendMessage(PREFIX_INFO + message);
+				} else {
+					sender.sendMessage(PREFIX_ERROR + "Too many arguments.");
+				}
+				return true;
+				
+			case "recompile":
+				
+				// "/javaloader recompile".
+				if(args.length == 1) {
+					
+					// Recompile all projects.
+					final List<String> messages = new ArrayList<String>();
+					RecompileAllResult result = this.projectManager.recompileAllProjects(
+							new RecompileFeedbackHandler() {
+						@Override
+						public void handleUnloadException(UnloadException e) {
+							sender.sendMessage(PREFIX_ERROR + "An UnloadException occurred while unloading"
+									+ " java project \"" + e.getProject().getName() + "\":"
+									+ (e.getCause() == null ? " " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
 						}
-						feedback += messages.get(i);
+						@Override
+						public void handleLoadException(LoadException e) {
+							sender.sendMessage(PREFIX_ERROR + "A LoadException occurred while loading"
+									+ " java project \"" + e.getProject().getName() + "\":"
+									+ (e.getCause() == null ? " " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
+						}
+						@Override
+						public void handleCompileException(CompileException e) {
+							sender.sendMessage(PREFIX_ERROR + "A CompileException occurred while compiling"
+									+ " java project \"" + e.getProject().getName() + "\":"
+									+ (e.getCause() == null ? " " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
+						}
+						@Override
+						public void compilerFeedback(String feedback) {
+							messages.add(feedback);
+						}
+					}, this.projectStateListener);
+					
+					// Give compiler feedback.
+					if(!messages.isEmpty() && COMPILER_FEEDBACK_LIMIT > 0) {
+						String feedback = "";
+						
+						// Add at max all but one feedback string.
+						for(int i = 0; i < messages.size() - 1; i++) {
+							if(i >= COMPILER_FEEDBACK_LIMIT) {
+								feedback += (feedback.endsWith("\n") ? "" : "\n") + "... "
+										+ (messages.size() - i - 1) + " more";
+								break;
+							}
+							feedback += messages.get(i);
+						}
+						
+						// Add the last feedback string. This is always "x errors".
+						feedback += (feedback.endsWith("\n") ? "" : "\n") + messages.get(messages.size() - 1);
+						
+						if(feedback.endsWith("\n")) {
+							feedback = feedback.substring(0, feedback.length() - 1);
+						}
+						feedback = feedback.replace("\t", "    "); // Minecraft cannot display tab characters.
+						sender.sendMessage(PREFIX_ERROR + "Compiler feedback:\n"
+								+ ChatColor.GOLD + feedback + ChatColor.RESET);
 					}
 					
-					// Add the last feedback string. This is always "x errors".
-					feedback += (feedback.endsWith("\n") ? "" : "\n") + messages.get(messages.size() - 1);
-					
-					if(feedback.endsWith("\n")) {
-						feedback = feedback.substring(0, feedback.length() - 1);
-					}
-					feedback = feedback.replace("\t", "    "); // Minecraft cannot display tab characters.
-					sender.sendMessage(PREFIX_ERROR + "Compiler feedback:\n"
-							+ ChatColor.GOLD + feedback + ChatColor.RESET);
-				}
-				
-				// Give feedback.
-				sender.sendMessage(new String[] {
+					// Give feedback.
+					sender.sendMessage(new String[] {
 						PREFIX_INFO + "Recompile complete.",
 						"    Projects added: " + result.addedProjects.size(),
 						"    Projects removed: " + result.removedProjects.size(),
@@ -443,232 +449,244 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 						"    Projects unloaded: " + result.unloadedProjects.size(),
 						"    Projects loaded: " + result.loadedProjects.size(),
 						"    Projects with errors: " + result.errorProjects.size()
-						});
+					});
+					return true;
+				}
 				
-			}
-			// "/javaloader recompile <projectName>".
-			else if(args.length == 2) {
-				final String projectName = args[1];
-				
-				// Get the project. Attempt to add it from the file system if it does not yet exist in the
-				// project manager.
-				JavaProject project = this.projectManager.getProject(projectName);
-				if(project == null) {
-					project = this.projectManager
-							.addProjectFromProjectDirectory(projectName, this.projectStateListener);
+				// "/javaloader recompile <projectName>".
+				if(args.length == 2) {
+					final String projectName = args[1];
+					
+					// Get the project. Attempt to add it from the file system if it does not yet exist in the
+					// project manager.
+					JavaProject project = this.projectManager.getProject(projectName);
 					if(project == null) {
-						sender.sendMessage(PREFIX_ERROR + "Project does not exist: \"" + projectName + "\".");
+						project = this.projectManager
+								.addProjectFromProjectDirectory(projectName, this.projectStateListener);
+						if(project == null) {
+							sender.sendMessage(PREFIX_ERROR + "Project does not exist: \"" + projectName + "\".");
+							return true;
+						}
+					}
+					
+					// Unload and remove the project if it was deleted from the file system.
+					List<JavaProject> removedProjects = this.projectManager.unloadAndRemoveProjectIfDeleted(
+							projectName, (UnloadException e) -> {
+						sender.sendMessage(PREFIX_ERROR + "An UnloadException occurred in"
+								+ " java project \"" + e.getProject().getName() + "\":"
+								+ (e.getCause() == null ? " " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
+					});
+					if(removedProjects != null) {
+						if(removedProjects.isEmpty()) {
+							sender.sendMessage(PREFIX_INFO + "Removed project because it no longer exists in the file"
+									+ " system: \"" + projectName + "\".");
+						} else {
+							sender.sendMessage(PREFIX_INFO + "Removed and unloaded project because it no longer exists"
+									+ " in the file system: \"" + projectName + "\".");
+							if(removedProjects.size() > 1) {
+								assert(removedProjects.get(0).getName().equals(projectName));
+								removedProjects.remove(0);
+								sender.sendMessage(PREFIX_INFO + "The following " + (removedProjects.size() == 1
+										? "dependent was" : "dependents were") + " unloaded: "
+										+ Utils.glueIterable(removedProjects, (JavaProject p) -> p.getName(), ", ")
+										+ ".");
+							}
+						}
 						return true;
 					}
-				}
-				
-				// Unload and remove the project if it was deleted from the file system.
-				List<JavaProject> removedProjects = this.projectManager.unloadAndRemoveProjectIfDeleted(
-						projectName, (UnloadException e) -> {
-					sender.sendMessage(PREFIX_ERROR + "An UnloadException occurred in"
-							+ " java project \"" + e.getProject().getName() + "\":"
-							+ (e.getCause() == null ? " " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
-				});
-				if(removedProjects != null) {
-					if(removedProjects.isEmpty()) {
-						sender.sendMessage(PREFIX_INFO + "Removed project because it no longer exists in the file"
-								+ " system: \"" + projectName + "\".");
-					} else {
-						sender.sendMessage(PREFIX_INFO + "Removed and unloaded project because it no longer exists in"
-								+ " the file system: \"" + projectName + "\".");
-						if(removedProjects.size() > 1) {
-							assert(removedProjects.get(0).getName().equals(projectName));
-							removedProjects.remove(0);
-							sender.sendMessage(PREFIX_INFO + "The following " + (removedProjects.size() == 1
-									? "dependent was" : "dependents were") + " unloaded: "
-									+ Utils.glueIterable(removedProjects, (JavaProject p) -> p.getName(), ", ") + ".");
-						}
-					}
-					return true;
-				}
-				
-				// Recompile the project.
-				boolean success = false;
-				final List<String> messages = new ArrayList<String>();
-				try {
-					this.projectManager.recompile(project,
-							(String compilerFeedback) -> messages.add(compilerFeedback),
-							(UnloadException e) -> sender.sendMessage(PREFIX_ERROR + (e.getCause() == null
-									? "UnloadException: " + e.getMessage() : "An UnloadException occurred in java"
-									+ " project \"" + e.getProject().getName() + "\":\n" + Utils.getStacktrace(e))));
-					success = true;
-				} catch (CompileException e) {
-					sender.sendMessage(PREFIX_ERROR + (e.getCause() == null
-							? "CompileException: " + e.getMessage() : "A CompileException occurred in java"
-							+ " project \"" + e.getProject().getName() + "\":\n" + Utils.getStacktrace(e)));
-				} catch (LoadException e) {
-					sender.sendMessage(PREFIX_ERROR + (e.getCause() == null
-							? "LoadException: " + e.getMessage() : "A LoadException occurred in java"
-							+ " project \"" + e.getProject().getName() + "\":\n" + Utils.getStacktrace(e)));
-				} catch (DepOrderViolationException e) {
-					sender.sendMessage(PREFIX_ERROR + (e.getCause() == null
-							? "DepOrderViolationException: " + e.getMessage() : "A DepOrderViolationException occurred"
-							+ " in java project \"" + e.getProject().getName() + "\":\n" + Utils.getStacktrace(e)));
-				} catch (IllegalArgumentException e) {
-					throw new InternalError("Project is obtained from this manager, so this should be impossible.", e);
-				}
-				
-				// Give compiler feedback.
-				if(!messages.isEmpty() && COMPILER_FEEDBACK_LIMIT > 0) {
-					String feedback = "";
 					
-					// Add at max all but one feedback string.
-					for(int i = 0; i < messages.size() - 1; i++) {
-						if(i >= COMPILER_FEEDBACK_LIMIT) {
-							feedback += (feedback.endsWith("\n") ? "" : "\n") + "... "
-									+ (messages.size() - i - 1) + " more";
-							break;
-						}
-						feedback += messages.get(i);
-					}
-					
-					// Add the last feedback string. This is always "x errors".
-					feedback += (feedback.endsWith("\n") ? "" : "\n") + messages.get(messages.size() - 1);
-					
-					if(feedback.endsWith("\n")) {
-						feedback = feedback.substring(0, feedback.length() - 1);
-					}
-					feedback = feedback.replace("\t", "    "); // Minecraft cannot display tab characters.
-					sender.sendMessage(PREFIX_ERROR + "Compiler feedback:\n"
-							+ ChatColor.GOLD + feedback + ChatColor.RESET);
-				}
-				
-				// Send feedback.
-				sender.sendMessage(PREFIX_INFO + "Recompile complete" + (success ? "" : " (with errors)") + ".");
-				
-			} else {
-				sender.sendMessage(PREFIX_ERROR + "Too many arguments.");
-			}
-			return true;
-			
-		case "unload":
-			// "/javaloader unload".
-			if(args.length == 1) {
-				
-				// Unload all projects.
-				Set<JavaProject> unloadedProjects = this.projectManager.unloadAllProjects((UnloadException ex) -> {
-					Bukkit.getConsoleSender().sendMessage(PREFIX_ERROR + "An UnloadException occurred while unloading"
-							+ " java project \"" + ex.getProject().getName() + "\":"
-							+ (ex.getCause() == null ? " " + ex.getMessage() : "\n" + Utils.getStacktrace(ex)));
-				});
-				
-				// Remove no longer existing projects from the project manager.
-				Set<JavaProject> removedProjects = this.projectManager.removeUnloadedProjectsIfDeleted();
-				
-				// Send feedback.
-				sender.sendMessage(PREFIX_INFO + "Unloaded " + unloadedProjects.size()
-						+ " project" + (unloadedProjects.size() == 1 ? "" : "s") + ".");
-				if(removedProjects.size() != 0) {
-					sender.sendMessage(PREFIX_INFO + "Removed " + removedProjects.size()
-							+ " project" + (removedProjects.size() == 1 ? "" : "s")
-							+ " due to their project directory no longer existing.");
-				}
-			}
-			// "/javaloader unload <projectName>".
-			else if(args.length == 2) {
-				String projectName = args[1];
-				JavaProject project = this.projectManager.getProject(projectName);
-				
-				// Check if the project exists.
-				if(project == null) {
-					sender.sendMessage(PREFIX_ERROR + "Project does not exist: " + projectName);
-					return true;
-				}
-				
-				// Unload the project if it was loaded.
-				if(project.isEnabled()) {
+					// Recompile the project.
+					boolean success = false;
+					final List<String> messages = new ArrayList<String>();
 					try {
-						project.unload(UnloadMethod.EXCEPTION_ON_LOADED_DEPENDENTS, (UnloadException e) -> {
-							sender.sendMessage(PREFIX_ERROR + "An UnloadException occurred while unloading"
-									+ " java project \"" + project.getName() + "\":"
-									+ (e.getCause() == null ? " " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
-						});
-						sender.sendMessage(PREFIX_INFO + "Project unloaded: " + projectName);
-					} catch (UnloadException e) {
-						sender.sendMessage(PREFIX_ERROR + "An UnloadException occurred while unloading"
-								+ " java project \"" + project.getName() + "\":"
-								+ (e.getCause() == null ? " " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
+						this.projectManager.recompile(project,
+								(String compilerFeedback) -> messages.add(compilerFeedback),
+								(UnloadException e) -> sender.sendMessage(PREFIX_ERROR + (e.getCause() == null
+										? "UnloadException: " + e.getMessage() : "An UnloadException occurred in java"
+										+ " project \"" + e.getProject().getName() + "\":\n"
+										+ Utils.getStacktrace(e))));
+						success = true;
+					} catch (CompileException e) {
+						sender.sendMessage(PREFIX_ERROR + (e.getCause() == null
+								? "CompileException: " + e.getMessage() : "A CompileException occurred in java"
+								+ " project \"" + e.getProject().getName() + "\":\n" + Utils.getStacktrace(e)));
+					} catch (LoadException e) {
+						sender.sendMessage(PREFIX_ERROR + (e.getCause() == null
+								? "LoadException: " + e.getMessage() : "A LoadException occurred in java"
+								+ " project \"" + e.getProject().getName() + "\":\n" + Utils.getStacktrace(e)));
+					} catch (DepOrderViolationException e) {
+						sender.sendMessage(PREFIX_ERROR + (e.getCause() == null
+								? "DepOrderViolationException: " + e.getMessage() : "A DepOrderViolationException"
+								+ " occurred in java project \"" + e.getProject().getName() + "\":\n"
+								+ Utils.getStacktrace(e)));
+					} catch (IllegalArgumentException e) {
+						throw new InternalError(
+								"Project is obtained from this manager, so this should be impossible.", e);
 					}
+					
+					// Give compiler feedback.
+					if(!messages.isEmpty() && COMPILER_FEEDBACK_LIMIT > 0) {
+						String feedback = "";
+						
+						// Add at max all but one feedback string.
+						for(int i = 0; i < messages.size() - 1; i++) {
+							if(i >= COMPILER_FEEDBACK_LIMIT) {
+								feedback += (feedback.endsWith("\n") ? "" : "\n") + "... "
+										+ (messages.size() - i - 1) + " more";
+								break;
+							}
+							feedback += messages.get(i);
+						}
+						
+						// Add the last feedback string. This is always "x errors".
+						feedback += (feedback.endsWith("\n") ? "" : "\n") + messages.get(messages.size() - 1);
+						
+						if(feedback.endsWith("\n")) {
+							feedback = feedback.substring(0, feedback.length() - 1);
+						}
+						feedback = feedback.replace("\t", "    "); // Minecraft cannot display tab characters.
+						sender.sendMessage(PREFIX_ERROR + "Compiler feedback:\n"
+								+ ChatColor.GOLD + feedback + ChatColor.RESET);
+					}
+					
+					// Send feedback.
+					sender.sendMessage(PREFIX_INFO + "Recompile complete" + (success ? "" : " (with errors)") + ".");
+					
 				} else {
-					sender.sendMessage(PREFIX_ERROR + "Project was not enabled: " + projectName);
+					sender.sendMessage(PREFIX_ERROR + "Too many arguments.");
+				}
+				return true;
+				
+			case "unload":
+				
+				// "/javaloader unload".
+				if(args.length == 1) {
+					
+					// Unload all projects.
+					Set<JavaProject> unloadedProjects = this.projectManager.unloadAllProjects((UnloadException ex) -> {
+						Bukkit.getConsoleSender().sendMessage(PREFIX_ERROR + "An UnloadException occurred while"
+								+ " unloading java project \"" + ex.getProject().getName() + "\":"
+								+ (ex.getCause() == null ? " " + ex.getMessage() : "\n" + Utils.getStacktrace(ex)));
+					});
+					
+					// Remove no longer existing projects from the project manager.
+					Set<JavaProject> removedProjects = this.projectManager.removeUnloadedProjectsIfDeleted();
+					
+					// Send feedback.
+					sender.sendMessage(PREFIX_INFO + "Unloaded " + unloadedProjects.size()
+							+ " project" + (unloadedProjects.size() == 1 ? "" : "s") + ".");
+					if(removedProjects.size() != 0) {
+						sender.sendMessage(PREFIX_INFO + "Removed " + removedProjects.size()
+								+ " project" + (removedProjects.size() == 1 ? "" : "s")
+								+ " due to their project directory no longer existing.");
+					}
+					return true;
 				}
 				
-				// Remove the project if it was successfully disabled and does not exist anymore.
-				JavaProject removedProject = this.projectManager.removeUnloadedProjectIfDeleted(projectName);
-				if(removedProject != null) {
-					sender.sendMessage(PREFIX_INFO
-							+ "Removed project due to its project directory no longer existing: " + projectName);
-				}
-				
-			} else {
-				sender.sendMessage(PREFIX_ERROR + "Too many arguments.");
-			}
-			return true;
-		case "load":
-			// "/javaloader load".
-			if(args.length == 1) {
-				
-				// Add new projects (happens when a new project directory is created).
-				this.projectManager.addProjectsFromProjectDirectory(this.projectStateListener);
-				
-				// Load all projects.
-				Set<JavaProject> loadedProjects = this.projectManager.loadAllProjects((LoadException ex) -> {
-					Bukkit.getConsoleSender().sendMessage(PREFIX_ERROR + "A LoadException occurred while loading"
-							+ " java project \"" + ex.getProject().getName() + "\":"
-							+ (ex.getCause() == null ? " " + ex.getMessage() : "\n" + Utils.getStacktrace(ex)));
-				});
-				
-				// Send feedback.
-				sender.sendMessage(PREFIX_INFO + "Loaded " + loadedProjects.size()
-						+ " project" + (loadedProjects.size() == 1 ? "" : "s") + ".");
-				
-			}
-			// "/javaloader load <projectName>".
-			else if(args.length == 2) {
-				String projectName = args[1];
-				JavaProject project = this.projectManager.getProject(projectName);
-				
-				// Check if the project exists. Add the project from the filesystem if it was added.
-				if(project == null) {
+				// "/javaloader unload <projectName>".
+				if(args.length == 2) {
+					String projectName = args[1];
+					JavaProject project = this.projectManager.getProject(projectName);
 					
-					// Attempt to load the project from file. This works if it has been added during runtime.
-					project = this.projectManager.addProjectFromProjectDirectory(
-							projectName, this.projectStateListener);
-					
-					// Print an error if the project does not exist.
+					// Check if the project exists.
 					if(project == null) {
 						sender.sendMessage(PREFIX_ERROR + "Project does not exist: " + projectName);
 						return true;
 					}
 					
-				}
-				
-				// Load the project if it wasn't loaded.
-				if(!project.isEnabled()) {
-					try {
-						project.load();
-						sender.sendMessage(PREFIX_INFO + "Project loaded: " + projectName);
-					} catch (LoadException e) {
-						sender.sendMessage(PREFIX_ERROR + "A LoadException occurred while loading"
-								+ " java project \"" + project.getName() + "\":"
-								+ (e.getCause() == null ? " " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
+					// Unload the project if it was loaded.
+					if(project.isEnabled()) {
+						try {
+							project.unload(UnloadMethod.EXCEPTION_ON_LOADED_DEPENDENTS, (UnloadException e) -> {
+								sender.sendMessage(PREFIX_ERROR + "An UnloadException occurred while unloading"
+										+ " java project \"" + project.getName() + "\":"
+										+ (e.getCause() == null
+												? " " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
+							});
+							sender.sendMessage(PREFIX_INFO + "Project unloaded: " + projectName);
+						} catch (UnloadException e) {
+							sender.sendMessage(PREFIX_ERROR + "An UnloadException occurred while unloading"
+									+ " java project \"" + project.getName() + "\":"
+									+ (e.getCause() == null ? " " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
+						}
+					} else {
+						sender.sendMessage(PREFIX_ERROR + "Project was not enabled: " + projectName);
 					}
+					
+					// Remove the project if it was successfully disabled and does not exist anymore.
+					JavaProject removedProject = this.projectManager.removeUnloadedProjectIfDeleted(projectName);
+					if(removedProject != null) {
+						sender.sendMessage(PREFIX_INFO
+								+ "Removed project due to its project directory no longer existing: " + projectName);
+					}
+					
 				} else {
-					sender.sendMessage(PREFIX_ERROR + "Project already loaded: " + projectName);
+					sender.sendMessage(PREFIX_ERROR + "Too many arguments.");
+				}
+				return true;
+			case "load":
+				
+				// "/javaloader load".
+				if(args.length == 1) {
+					
+					// Add new projects (happens when a new project directory is created).
+					this.projectManager.addProjectsFromProjectDirectory(this.projectStateListener);
+					
+					// Load all projects.
+					Set<JavaProject> loadedProjects = this.projectManager.loadAllProjects((LoadException ex) -> {
+						Bukkit.getConsoleSender().sendMessage(PREFIX_ERROR + "A LoadException occurred while loading"
+								+ " java project \"" + ex.getProject().getName() + "\":"
+								+ (ex.getCause() == null ? " " + ex.getMessage() : "\n" + Utils.getStacktrace(ex)));
+					});
+					
+					// Send feedback.
+					sender.sendMessage(PREFIX_INFO + "Loaded " + loadedProjects.size()
+							+ " project" + (loadedProjects.size() == 1 ? "" : "s") + ".");
+					return true;
 				}
 				
-			} else {
-				sender.sendMessage(PREFIX_ERROR + "Too many arguments.");
-			}
-			return true;
-		default:
-			sender.sendMessage(PREFIX_ERROR + "Unknown argument: " + args[0]);
-			return true;
+				// "/javaloader load <projectName>".
+				if(args.length == 2) {
+					String projectName = args[1];
+					JavaProject project = this.projectManager.getProject(projectName);
+					
+					// Check if the project exists. Add the project from the filesystem if it was added.
+					if(project == null) {
+						
+						// Attempt to load the project from file. This works if it has been added during runtime.
+						project = this.projectManager.addProjectFromProjectDirectory(
+								projectName, this.projectStateListener);
+						
+						// Print an error if the project does not exist.
+						if(project == null) {
+							sender.sendMessage(PREFIX_ERROR + "Project does not exist: " + projectName);
+							return true;
+						}
+						
+					}
+					
+					// Load the project if it wasn't loaded.
+					if(!project.isEnabled()) {
+						try {
+							project.load();
+							sender.sendMessage(PREFIX_INFO + "Project loaded: " + projectName);
+						} catch (LoadException e) {
+							sender.sendMessage(PREFIX_ERROR + "A LoadException occurred while loading"
+									+ " java project \"" + project.getName() + "\":"
+									+ (e.getCause() == null ? " " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
+						}
+					} else {
+						sender.sendMessage(PREFIX_ERROR + "Project already loaded: " + projectName);
+					}
+					
+				} else {
+					sender.sendMessage(PREFIX_ERROR + "Too many arguments.");
+				}
+				return true;
+				
+			default:
+				sender.sendMessage(PREFIX_ERROR + "Unknown argument: " + args[0]);
+				return true;
 		}
 	}
 	

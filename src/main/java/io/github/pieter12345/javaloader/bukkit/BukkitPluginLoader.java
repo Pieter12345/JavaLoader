@@ -75,10 +75,10 @@ public class BukkitPluginLoader implements PluginLoader {
 			Method[] publicMethods = listener.getClass().getMethods();
 			Method[] privateMethods = listener.getClass().getDeclaredMethods();
 			methods = new HashSet<Method>(publicMethods.length + privateMethods.length, 1.0f);
-			for (Method method : publicMethods) {
+			for(Method method : publicMethods) {
 				methods.add(method);
 			}
-			for (Method method : privateMethods) {
+			for(Method method : privateMethods) {
 				methods.add(method);
 			}
 		} catch (NoClassDefFoundError e) {
@@ -87,15 +87,17 @@ public class BukkitPluginLoader implements PluginLoader {
 			return ret;
 		}
 		
-		for (final Method method : methods) {
+		for(final Method method : methods) {
 			final EventHandler eh = method.getAnnotation(EventHandler.class);
-			if (eh == null) continue;
+			if(eh == null) {
+				continue;
+			}
 			// Do not register bridge or synthetic methods to avoid event duplication.
-			if (method.isBridge() || method.isSynthetic()) {
+			if(method.isBridge() || method.isSynthetic()) {
 				continue;
 			}
 			final Class<?> checkClass;
-			if (method.getParameterTypes().length != 1
+			if(method.getParameterTypes().length != 1
 					|| !Event.class.isAssignableFrom(checkClass = method.getParameterTypes()[0])) {
 				plugin.getLogger().severe(plugin.getDescription().getFullName() + " attempted to register an invalid"
 						+ " EventHandler method signature \""
@@ -105,17 +107,17 @@ public class BukkitPluginLoader implements PluginLoader {
 			final Class<? extends Event> eventClass = checkClass.asSubclass(Event.class);
 			method.setAccessible(true);
 			Set<RegisteredListener> eventSet = ret.get(eventClass);
-			if (eventSet == null) {
+			if(eventSet == null) {
 				eventSet = new HashSet<RegisteredListener>();
 				ret.put(eventClass, eventSet);
 			}
 			
-			for (Class<?> clazz = eventClass; Event.class.isAssignableFrom(clazz); clazz = clazz.getSuperclass()) {
+			for(Class<?> clazz = eventClass; Event.class.isAssignableFrom(clazz); clazz = clazz.getSuperclass()) {
 				// This loop checks for extending deprecated events.
-				if (clazz.getAnnotation(Deprecated.class) != null) {
+				if(clazz.getAnnotation(Deprecated.class) != null) {
 					Warning warning = clazz.getAnnotation(Warning.class);
 					WarningState warningState = server.getWarningState();
-					if (!warningState.printFor(warning)) {
+					if(!warningState.printFor(warning)) {
 						break;
 					}
 					plugin.getLogger().log(
@@ -126,8 +128,8 @@ public class BukkitPluginLoader implements PluginLoader {
 									plugin.getDescription().getFullName(),
 									clazz.getName(),
 									method.toGenericString(),
-									(warning != null && warning.reason().length() != 0) ?
-											warning.reason() : "Server performance will be affected",
+									(warning != null && warning.reason().length() != 0)
+											? warning.reason() : "Server performance will be affected",
 									Arrays.toString(plugin.getDescription().getAuthors().toArray())),
 							warningState == WarningState.ON ? new AuthorNagException(null) : null);
 					break;
@@ -138,7 +140,7 @@ public class BukkitPluginLoader implements PluginLoader {
 				@Override
 				public void execute(Listener listener, Event event) throws EventException {
 					try {
-						if (!eventClass.isAssignableFrom(event.getClass())) {
+						if(!eventClass.isAssignableFrom(event.getClass())) {
 							return;
 						}
 						method.invoke(listener, event);
@@ -149,7 +151,7 @@ public class BukkitPluginLoader implements PluginLoader {
 					}
 				}
 			};
-			if (useTimings) {
+			if(useTimings) {
 				eventSet.add(
 						new TimedRegisteredListener(listener, executor, eh.priority(), plugin, eh.ignoreCancelled()));
 			} else {
