@@ -91,6 +91,9 @@
 		<module name="Indentation"/>
 		-->
 		
+		<!-- Require javadocs for classes, interfaces, enums and annotations -->
+		<module name="JavadocType"/>
+		
 		<!-- Ensure usage of "{" at the end of a line (and not on a newline) -->
 		<module name="LeftCurly"/>
 		
