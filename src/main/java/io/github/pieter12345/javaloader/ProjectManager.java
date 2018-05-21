@@ -142,11 +142,12 @@ public class ProjectManager {
 	}
 	
 	/**
-	 * Loads all projects in this project manager.
+	 * Loads all projects in this project manager which are not currently loaded.
 	 * @param exHandler - An exception handler for load exceptions that occur during loading.
-	 * @return The loaded projects.
+	 * @return A LoadAllResult containing a set of loaded projects by this method and a set of error projects.
+	 * These sets do not overlap.
 	 */
-	public Set<JavaProject> loadAllProjects(LoadExceptionHandler exHandler) {
+	public LoadAllResult loadAllProjects(LoadExceptionHandler exHandler) {
 		
 		// Create a set of unloaded projects.
 		Set<JavaProject> projects = new HashSet<JavaProject>();
@@ -216,7 +217,6 @@ public class ProjectManager {
 				} catch (LoadException e) {
 					exHandler.handleLoadException(e);
 					isErrorProject = true;
-					// TODO - Remove unnecessary errorProjects add or return error projects somehow.
 					errorProjects.add(project);
 				}
 			}
@@ -230,14 +230,27 @@ public class ProjectManager {
 				for(int i = 1; i < removedProjects.size(); i++) {
 					exHandler.handleLoadException(new LoadException(project, "Indirect or direct"
 							+ " dependency project could not be loaded: " + removedProjects.get(i).getName()));
-					// TODO - Remove unnecessary errorProjects add or return error projects somehow.
 					errorProjects.add(removedProjects.get(i));
 				}
 			}
 		}
 		
 		// Return the projects that have been loaded.
-		return loadedProjects;
+		return new LoadAllResult(loadedProjects, errorProjects);
+	}
+	
+	/**
+	 * Represents the result of a load-all operation.
+	 * @author P.J.S. Kools
+	 */
+	public static class LoadAllResult {
+		public final Set<JavaProject> loadedProjects;
+		public final Set<JavaProject> errorProjects;
+		
+		public LoadAllResult(Set<JavaProject> loaded, Set<JavaProject> error) {
+			this.loadedProjects = loaded;
+			this.errorProjects = error;
+		}
 	}
 	
 	/**
@@ -619,8 +632,7 @@ public class ProjectManager {
 		}
 		
 		// Unload all projects.
-		Set<JavaProject> unloadedProjects = this.unloadAllProjects(
-				(UnloadException ex) -> feedbackHandler.handleUnloadException(ex));
+		Set<JavaProject> unloadedProjects = this.unloadAllProjects(feedbackHandler);
 		
 		// Remove deleted projects.
 		Set<JavaProject> removedProjects = this.removeUnloadedProjectsIfDeleted();
@@ -667,11 +679,9 @@ public class ProjectManager {
 		}
 		
 		// Load all projects. Projects that have caused errors might fail, but might also work using their old binaries.
-		Set<JavaProject> loadedProjects = this.loadAllProjects(
-				(LoadException ex) -> {
-					errorProjects.add(ex.getProject());
-					feedbackHandler.handleLoadException(ex);
-				});
+		LoadAllResult loadAllResult = this.loadAllProjects(feedbackHandler);
+		Set<JavaProject> loadedProjects = loadAllResult.loadedProjects;
+		errorProjects.addAll(loadAllResult.errorProjects);
 		
 		// Return the result.
 		return new RecompileAllResult(addedProjects, removedProjects,
@@ -846,7 +856,7 @@ public class ProjectManager {
 	 * @param exHandler - An exception handler for unload exceptions that occur during unloading.
 	 */
 	public void clear(UnloadExceptionHandler exHandler) {
-		this.unloadAllProjects((UnloadException ex) -> exHandler.handleUnloadException(ex));
+		this.unloadAllProjects(exHandler);
 		this.projects.clear();
 	}
 	

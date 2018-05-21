@@ -18,6 +18,7 @@ import io.github.pieter12345.javaloader.JavaLoaderProject;
 import io.github.pieter12345.javaloader.JavaProject;
 import io.github.pieter12345.javaloader.JavaProject.UnloadMethod;
 import io.github.pieter12345.javaloader.ProjectManager;
+import io.github.pieter12345.javaloader.ProjectManager.LoadAllResult;
 import io.github.pieter12345.javaloader.ProjectManager.RecompileAllResult;
 import io.github.pieter12345.javaloader.ProjectManager.RecompileFeedbackHandler;
 import io.github.pieter12345.javaloader.ProjectStateListener;
@@ -122,7 +123,7 @@ public class JavaLoaderStandalone {
 		this.projectManager.addProjectsFromProjectDirectory(this.projectStateListener);
 		
 		// Load all projects.
-		Set<JavaProject> loadedProjects = this.projectManager.loadAllProjects((LoadException ex) -> {
+		LoadAllResult loadAllResult = this.projectManager.loadAllProjects((LoadException ex) -> {
 			printFeedback(PREFIX_ERROR + "A LoadException occurred while loading"
 					+ " java project \"" + ex.getProject().getName() + "\":"
 					+ (ex.getCause() == null ? " " + ex.getMessage() : "\n" + Utils.getStacktrace(ex)));
@@ -130,7 +131,7 @@ public class JavaLoaderStandalone {
 		
 		// Print feedback.
 		JavaProject[] projects = this.projectManager.getProjects();
-		printFeedback("JavaLoader " + VERSION + " started. " + loadedProjects.size() + "/"
+		printFeedback("JavaLoader " + VERSION + " started. " + loadAllResult.loadedProjects.size() + "/"
 				+ projects.length + " projects loaded.");
 		
 		// Start the input reader.
@@ -210,8 +211,6 @@ public class JavaLoaderStandalone {
 				
 				// "list".
 				if(args.length == 0) {
-					
-					// TODO - Consider adding new projects from the file system here.
 					
 					// Get all projects and sort them.
 					JavaProject[] projects = this.projectManager.getProjects();
@@ -487,15 +486,15 @@ public class JavaLoaderStandalone {
 					this.projectManager.addProjectsFromProjectDirectory(this.projectStateListener);
 					
 					// Load all projects.
-					Set<JavaProject> loadedProjects = this.projectManager.loadAllProjects((LoadException ex) -> {
+					LoadAllResult loadAllResult = this.projectManager.loadAllProjects((LoadException ex) -> {
 						printFeedback(PREFIX_ERROR + "A LoadException occurred while loading"
 								+ " java project \"" + ex.getProject().getName() + "\":"
 								+ (ex.getCause() == null ? " " + ex.getMessage() : "\n" + Utils.getStacktrace(ex)));
 					});
 					
 					// Send feedback.
-					printFeedback(PREFIX_INFO + "Loaded " + loadedProjects.size()
-							+ " project" + (loadedProjects.size() == 1 ? "" : "s") + ".");
+					printFeedback(PREFIX_INFO + "Loaded " + loadAllResult.loadedProjects.size()
+							+ " project" + (loadAllResult.loadedProjects.size() == 1 ? "" : "s") + ".");
 					return;
 				}
 				

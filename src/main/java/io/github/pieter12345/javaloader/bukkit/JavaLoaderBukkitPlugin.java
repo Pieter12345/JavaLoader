@@ -33,6 +33,7 @@ import io.github.pieter12345.javaloader.JavaLoaderProject;
 import io.github.pieter12345.javaloader.JavaProject;
 import io.github.pieter12345.javaloader.JavaProject.UnloadMethod;
 import io.github.pieter12345.javaloader.ProjectManager;
+import io.github.pieter12345.javaloader.ProjectManager.LoadAllResult;
 import io.github.pieter12345.javaloader.ProjectManager.RecompileAllResult;
 import io.github.pieter12345.javaloader.ProjectManager.RecompileFeedbackHandler;
 import io.github.pieter12345.javaloader.ProjectStateListener;
@@ -257,7 +258,7 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 		this.projectManager.addProjectsFromProjectDirectory(this.projectStateListener);
 		
 		// Load all projects.
-		Set<JavaProject> loadedProjects = this.projectManager.loadAllProjects((LoadException ex) -> {
+		LoadAllResult loadAllResult = this.projectManager.loadAllProjects((LoadException ex) -> {
 			Bukkit.getConsoleSender().sendMessage(PREFIX_ERROR + "A LoadException occurred while loading"
 					+ " java project \"" + ex.getProject().getName() + "\":"
 					+ (ex.getCause() == null ? " " + ex.getMessage() : "\n" + Utils.getStacktrace(ex)));
@@ -265,8 +266,8 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 		
 		// Print feedback.
 		JavaProject[] projects = this.projectManager.getProjects();
-		Bukkit.getConsoleSender().sendMessage("JavaLoader " + VERSION + " enabled. " + loadedProjects.size() + "/"
-				+ projects.length + " projects loaded.");
+		Bukkit.getConsoleSender().sendMessage("JavaLoader " + VERSION + " enabled. "
+				+ loadAllResult.loadedProjects.size() + "/" + projects.length + " projects loaded.");
 		
 	}
 	
@@ -355,8 +356,6 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 				
 				// "/javaloader list".
 				if(args.length == 1) {
-					
-					// TODO - Consider adding new projects from the file system here.
 					
 					// Get all projects and sort them.
 					JavaProject[] projects = this.projectManager.getProjects();
@@ -633,15 +632,15 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 					this.projectManager.addProjectsFromProjectDirectory(this.projectStateListener);
 					
 					// Load all projects.
-					Set<JavaProject> loadedProjects = this.projectManager.loadAllProjects((LoadException ex) -> {
+					LoadAllResult loadAllResult = this.projectManager.loadAllProjects((LoadException ex) -> {
 						Bukkit.getConsoleSender().sendMessage(PREFIX_ERROR + "A LoadException occurred while loading"
 								+ " java project \"" + ex.getProject().getName() + "\":"
 								+ (ex.getCause() == null ? " " + ex.getMessage() : "\n" + Utils.getStacktrace(ex)));
 					});
 					
 					// Send feedback.
-					sender.sendMessage(PREFIX_INFO + "Loaded " + loadedProjects.size()
-							+ " project" + (loadedProjects.size() == 1 ? "" : "s") + ".");
+					sender.sendMessage(PREFIX_INFO + "Loaded " + loadAllResult.loadedProjects.size()
+							+ " project" + (loadAllResult.loadedProjects.size() == 1 ? "" : "s") + ".");
 					return true;
 				}
 				
