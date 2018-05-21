@@ -16,6 +16,10 @@ import io.github.pieter12345.javaloader.exceptions.LoadException;
 import io.github.pieter12345.javaloader.exceptions.UnloadException;
 import io.github.pieter12345.javaloader.exceptions.handlers.UnloadExceptionHandler;
 
+/**
+ * Tests the {@link ProjectManager} class.
+ * @author P.J.S. Kools
+ */
 class ProjectManagerTest {
 	
 	/**

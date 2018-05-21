@@ -13,6 +13,10 @@ import org.junit.jupiter.api.Test;
 import io.github.pieter12345.graph.Graph.ChildBeforeParentGraphIterator;
 import io.github.pieter12345.graph.Graph.ParentBeforeChildGraphIterator;
 
+/**
+ * Tests the {@link Graph} class.
+ * @author P.J.S. Kools
+ */
 class GraphTest {
 	
 	/**

@@ -88,6 +88,11 @@ public abstract class Utils {
 		return str.toString();
 	}
 	
+	/**
+	 * Used to specify how type T should be converted to a String.
+	 * @author P.J.S. Kools
+	 * @param <T> The type.
+	 */
 	public static interface Stringifier<T> {
 		String toString(T object);
 	}

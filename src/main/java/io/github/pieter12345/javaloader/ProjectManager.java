@@ -29,6 +29,10 @@ import io.github.pieter12345.javaloader.exceptions.handlers.ProjectExceptionHand
 import io.github.pieter12345.javaloader.exceptions.handlers.UnloadExceptionHandler;
 import io.github.pieter12345.javaloader.utils.Utils;
 
+/**
+ * Manages JavaProject instances and provides 'bulk' operations such as load all, unload all and compile all projects.
+ * @author P.J.S. Kools
+ */
 public class ProjectManager {
 	
 	// Variables & Constants.
@@ -379,6 +383,10 @@ public class ProjectManager {
 		return sccs;
 	}
 	
+	/**
+	 * Represents the result of a graph generation operation.
+	 * @author P.J.S. Kools
+	 */
 	private static class GraphGenerationResult {
 		public final Graph<JavaProject> graph;
 		public final List<JavaProjectException> exceptions;
@@ -504,6 +512,10 @@ public class ProjectManager {
 	 * @param feedbackHandler - The project feedback handler which will receive all thrown exceptions and feedback that
 	 * occur during the recompile.
 	 * @param projectStateListener - The listener that will be set in newly added projects from the file system.
+	 * @return A RecompileAllResult containing a set of all added, removed, compiled, unloaded, loaded and error
+	 * projects. If a project is in the 'loaded' set, it was recompiled successfully and will not be in the 'error' set.
+	 * If the project is in the 'error' set, it did not recompile successfully and will not be in the 'loaded' set.
+	 * The 'error', 'loaded' and 'removed' set combined form a set of all handled projects.
 	 * @throws IllegalStateException If one or more projects has its binary directory set to something other than "bin".
 	 */
 	public RecompileAllResult recompileAllProjects(RecompileFeedbackHandler feedbackHandler,
@@ -666,6 +678,10 @@ public class ProjectManager {
 				compiledProjects, unloadedProjects, loadedProjects, errorProjects);
 	}
 	
+	/**
+	 * Represents the result of a recompile-all operation.
+	 * @author P.J.S. Kools
+	 */
 	public static class RecompileAllResult {
 		public final Set<JavaProject> addedProjects;
 		public final Set<JavaProject> removedProjects;
@@ -834,6 +850,10 @@ public class ProjectManager {
 		this.projects.clear();
 	}
 	
+	/**
+	 * Represents a {@link ProjectExceptionHandler} combined with a {@link CompilerFeedbackHandler}.
+	 * @author P.J.S. Kools
+	 */
 	public static interface RecompileFeedbackHandler extends ProjectExceptionHandler, CompilerFeedbackHandler {
 	}
 	

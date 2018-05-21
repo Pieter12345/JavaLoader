@@ -1,5 +1,9 @@
 package io.github.pieter12345.javaloader.utils;
 
+/**
+ * ANSI color support.
+ * @author P.J.S. Kools
+ */
 public abstract class AnsiColor {
 	public static final String RESET          = "\u001B[m";
 	public static final String BLACK          = "\u001B[30m";

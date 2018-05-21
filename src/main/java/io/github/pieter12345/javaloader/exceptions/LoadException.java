@@ -2,6 +2,11 @@ package io.github.pieter12345.javaloader.exceptions;
 
 import io.github.pieter12345.javaloader.JavaProject;
 
+/**
+ * This exception can be thrown when a load operation performed on a JavaProject
+ * has an unexpected result.
+ * @author P.J.S. Kools
+ */
 @SuppressWarnings("serial")
 public class LoadException extends JavaProjectException {
 	

@@ -299,6 +299,10 @@ public class JavaProject {
 		}
 	}
 	
+	/**
+	 * An interface representing a compiler feedback handler.
+	 * @author P.J.S. Kools
+	 */
 	public static interface CompilerFeedbackHandler {
 		void compilerFeedback(String feedback);
 	}

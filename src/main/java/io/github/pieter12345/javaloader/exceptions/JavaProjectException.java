@@ -2,6 +2,11 @@ package io.github.pieter12345.javaloader.exceptions;
 
 import io.github.pieter12345.javaloader.JavaProject;
 
+/**
+ * This exception or one of its more specific subclasses can be thrown when some operation performed on a JavaProject
+ * has an unexpected result.
+ * @author P.J.S. Kools
+ */
 @SuppressWarnings("serial")
 public class JavaProjectException extends Exception {
 	
