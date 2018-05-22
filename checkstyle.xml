@@ -17,6 +17,7 @@
 	
 	<module name="TreeWalker">
 		
+		<!-- Set tabWidth property for checks such as line length -->
 		<property name="tabWidth" value="4"/>
 		
 		<!-- Line length <= 120 characters -->
@@ -49,7 +50,7 @@
 		<!-- Disallow "str.equals("string")", forcing format ""string".equals(str)" to avoid unnecessary NullPointerExceptions -->
 		<!-- <module name="EqualsAvoidNull"/> -->
 		
-		<!-- Ensure that	"break" or "return" is used in non-empty switch/case cases -->
+		<!-- Ensure that "break" or "return" is used in non-empty switch/case cases -->
 		<module name="FallThrough"/>
 		
 		<!-- Ensure that classes without public constructor are final -->

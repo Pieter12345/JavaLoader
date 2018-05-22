@@ -2,11 +2,11 @@
 <!DOCTYPE suppressions PUBLIC "-//Puppy Crawl//DTD Suppressions 1.1//EN" "http://www.puppycrawl.com/dtds/suppressions_1_1.dtd">
 
 <suppressions>
-    
-    <!-- Allow star imports in "...Test.java" files -->
-    <suppress checks="AvoidStarImport" files=".*Test\.java$"/>
-    
-    <!-- Allow 'missing' default constructor in "...Test.java" files -->
-    <suppress checks="MissingCtor" files=".*Test\.java$"/>
-    
+	
+	<!-- Allow star imports in "...Test.java" files -->
+	<suppress checks="AvoidStarImport" files=".*Test\.java$"/>
+	
+	<!-- Allow 'missing' default constructor in "...Test.java" files -->
+	<suppress checks="MissingCtor" files=".*Test\.java$"/>
+	
 </suppressions>
