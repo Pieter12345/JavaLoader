@@ -48,7 +48,7 @@ public class JavaLoaderStandalone {
 	private static final int COMPILER_FEEDBACK_LIMIT = 5; // The max amount of warnings/errors to print per recompile.
 	
 	private ProjectManager projectManager;
-	private final File projectsDir = new File(new File("").getAbsolutePath() + "/JavaProjects");
+	private final File projectsDir;
 	private ProjectStateListener projectStateListener;
 	
 	private boolean enabled = true;
@@ -89,7 +89,26 @@ public class JavaLoaderStandalone {
 		});
 	}
 	
+	/**
+	 * Starts the JavaLoader standalone version. The projects directory will be set to 'JavaProjects' in the same
+	 * directory as the JavaLoader jar file.
+	 */
 	public JavaLoaderStandalone() {
+		this(new File(new File("").getAbsolutePath() + "/JavaProjects"));
+	}
+	
+	/**
+	 * Starts the JavaLoader standalone version.
+	 * @param projectsDir - The directory which JavaLoader will use to search for project directories in.
+	 */
+	public JavaLoaderStandalone(File projectsDir) {
+		
+		// Set the projects directory.
+		this.projectsDir = projectsDir;
+		if(this.projectsDir.isFile()) {
+			throw new IllegalStateException("Projects directory path leads to an existing file (and not a directory): "
+					+ this.projectsDir.getAbsolutePath());
+		}
 		
 		// Check if a JDK is available, otherwise disable the plugin.
 		JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
@@ -136,22 +155,24 @@ public class JavaLoaderStandalone {
 		printFeedback("JavaLoader " + VERSION + " started. " + loadAllResult.loadedProjects.size() + "/"
 				+ projects.length + " projects loaded.");
 		
-		// Start the input reader.
-		Scanner scanner = new Scanner(System.in);
-		while(this.enabled) {
-			if(scanner.hasNextLine()) {
-				String line = scanner.nextLine().replaceAll("[\r\n\t]", " ").trim();
-				if(line.isEmpty()) {
-					continue;
+		// Start the input reader on a new thread.
+		new Thread(() -> {
+			Scanner scanner = new Scanner(System.in);
+			while(this.enabled) {
+				if(scanner.hasNextLine()) {
+					String line = scanner.nextLine().replaceAll("[\r\n\t]", " ").trim();
+					if(line.isEmpty()) {
+						continue;
+					}
+					String[] lineParts = line.split(" ");
+					String command = lineParts[0];
+					String[] args = new String[lineParts.length - 1];
+					System.arraycopy(lineParts, 1, args, 0, args.length);
+					this.processCommand(command, args);
 				}
-				String[] lineParts = line.split(" ");
-				String command = lineParts[0];
-				String[] args = new String[lineParts.length - 1];
-				System.arraycopy(lineParts, 1, args, 0, args.length);
-				this.processCommand(command, args);
 			}
-		}
-		scanner.close();
+			scanner.close();
+		}).start();
 		
 	}
 	
