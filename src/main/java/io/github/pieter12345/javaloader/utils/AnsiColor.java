@@ -23,16 +23,36 @@ public abstract class AnsiColor {
 	public static final String CYAN_BRIGHT    = "\u001B[36;1m";
 	public static final String WHITE          = "\u001B[37;1m"; // White bright.
 	
+	/**
+	 * Colorizes the given string, using '&' as colorize character. Accepted input is &1, &2, ..., &9, &a, ..., &f
+	 * and &r to reset all colors. To print color character '&', type '&&'.
+	 * @param str - The string to colorize.
+	 * @return The colorized string or null when 'str' is null.
+	 * @throws FormatException When the colorize character is found in combination with an invalid color character.
+	 */
 	public static String colorize(String str) {
 		return colorize(str, '&');
 	}
 	
+	/**
+	 * Colorizes the given string, using the given colorize character. If the colorize character is '&', then accepted
+	 * input is &1, &2, ..., &9, &a, ..., &f and &r to reset all colors. To print color character '&', type '&&'.
+	 * @param str - The string to colorize.
+	 * @param colorizeChar - The colorize character.
+	 * @return The colorized string or null when 'str' is null.
+	 * @throws FormatException When the colorize character is found in combination with an invalid color character.
+	 */
 	public static String colorize(String str, char colorizeChar) {
-		
-		for(int i = 0; i < str.length() - 1; i++) {
+		if(str == null) {
+			return null;
+		}
+		for(int i = 0; i < str.length(); i++) {
 			if(str.charAt(i) == colorizeChar) {
+				if(i == str.length() - 1) {
+					throw new FormatException("Input ends with an unescaped colorize character.");
+				}
 				char colorChar = Character.toLowerCase(str.charAt(i + 1));
-				String colorStr = null;
+				String colorStr;
 				if(colorChar == colorizeChar) {
 					colorStr = "" + colorizeChar;
 				} else {
@@ -54,13 +74,11 @@ public abstract class AnsiColor {
 						case 'd': colorStr = MAGENTA_BRIGHT; break;
 						case 'e': colorStr = YELLOW_BRIGHT; break;
 						case 'f': colorStr = WHITE; break;
-						default: throw new RuntimeException("Unknown color char found: " + colorChar);
+						default: throw new FormatException("Unknown color char found: '" + colorChar + "'.");
 					}
 				}
-				if(colorStr != null) {
-					str = str.substring(0, i) + colorStr + str.substring(i + 2);
-					i += colorStr.length() - 1; // Skip the newly placed color string.
-				}
+				str = str.substring(0, i) + colorStr + str.substring(i + 2);
+				i += colorStr.length() - 1; // Skip the newly placed color string.
 			}
 		}
 		return str;
@@ -70,9 +88,20 @@ public abstract class AnsiColor {
 	 * stripColors method.
 	 * Strips all ANSI colors from the given string.
 	 * @param str - The String to strip.
-	 * @return The String without ANSI color codes.
+	 * @return The String without ANSI color codes or null if 'str' is null.
 	 */
 	public static String stripColors(String str) {
-		return str.replaceAll("\u001B\\[(\\d*(\\;\\d+)*)m", "");
+		return (str == null ? null : str.replaceAll("\u001B\\[(\\d*(\\;\\d+)*)m", ""));
+	}
+	
+	/**
+	 * Thrown when some passed argument does not match the required format.
+	 * @author P.J.S. Kools
+	 */
+	@SuppressWarnings("serial")
+	public static class FormatException extends RuntimeException {
+		public FormatException(String message) {
+			super(message);
+		}
 	}
 }

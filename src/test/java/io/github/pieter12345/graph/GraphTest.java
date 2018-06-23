@@ -239,7 +239,7 @@ class GraphTest {
 		}
 		
 		// Assert the iteration result with the expected answer.
-		assertThat(result.toArray(new Integer[0])).isEqualTo(new Integer[] {});
+		assertThat(result).isEmpty();
 	}
 	
 	/**
@@ -494,7 +494,7 @@ class GraphTest {
 		}
 		
 		// Assert the iteration result with the expected answer.
-		assertThat(result.toArray(new Integer[0])).isEqualTo(new Integer[] {});
+		assertThat(result).isEmpty();
 	}
 	
 	/**
