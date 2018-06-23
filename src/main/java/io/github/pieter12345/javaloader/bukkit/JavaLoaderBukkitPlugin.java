@@ -1,10 +1,12 @@
 package io.github.pieter12345.javaloader.bukkit;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
+import java.net.URLDecoder;
 import java.security.CodeSource;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -731,29 +733,53 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 		try {
 			CodeSource codeSource = JavaLoaderBukkitPlugin.class.getProtectionDomain().getCodeSource();
 			if(codeSource != null) {
-				ZipInputStream inStream = new ZipInputStream(codeSource.getLocation().openStream());
 				
-				ZipEntry zipEntry;
-				while((zipEntry = inStream.getNextEntry()) != null) {
-					String name = zipEntry.getName();
-					if(name.startsWith("exampleprojects/bukkit/")) {
-						File targetFile = new File(this.projectsDir
-								+ "/" + name.substring("exampleprojects/bukkit/".length()));
-						if(name.endsWith("/")) {
-							targetFile.mkdir();
-						} else {
-							FileOutputStream outStream = new FileOutputStream(targetFile);
-							
-							int amount = 0;
-							byte[] buffer = new byte[1024];
-							while((amount = inStream.read(buffer)) != -1) {
-								outStream.write(buffer, 0, amount);
+				// Select a source to copy from (directory (IDE) or jar (production)).
+				if(codeSource.getLocation().getPath().endsWith("/")) {
+					
+					// The code is being ran from a non-jar source. Get the projects base directory.
+					File exampleProjectsBaseDir = new File(
+							URLDecoder.decode(codeSource.getLocation().getPath(), "UTF-8")
+							+ "exampleprojects/bukkit");
+					
+					// Validate that the projects base directory exists.
+					if(!exampleProjectsBaseDir.isDirectory()) {
+						throw new FileNotFoundException("Example projects base directory not found at: "
+								+ exampleProjectsBaseDir.getAbsolutePath());
+					}
+					
+					// Copy all example projects into the projects directory.
+					for(File exampleProjectFile : exampleProjectsBaseDir.listFiles()) {
+						Utils.copyFile(exampleProjectFile, this.projectsDir);
+					}
+					
+				} else {
+					
+					// Copy the example projects from the jar.
+					ZipInputStream inStream = new ZipInputStream(codeSource.getLocation().openStream());
+					
+					ZipEntry zipEntry;
+					while((zipEntry = inStream.getNextEntry()) != null) {
+						String name = zipEntry.getName();
+						if(name.startsWith("exampleprojects/bukkit/")) {
+							File targetFile = new File(this.projectsDir
+									+ "/" + name.substring("exampleprojects/bukkit/".length()));
+							if(name.endsWith("/")) {
+								targetFile.mkdir();
+							} else {
+								FileOutputStream outStream = new FileOutputStream(targetFile);
+								
+								int amount = 0;
+								byte[] buffer = new byte[1024];
+								while((amount = inStream.read(buffer)) != -1) {
+									outStream.write(buffer, 0, amount);
+								}
+								outStream.close();
 							}
-							outStream.close();
 						}
 					}
+					inStream.close();
 				}
-				inStream.close();
 			}
 		} catch (Exception e) {
 			Bukkit.getConsoleSender().sendMessage(PREFIX_ERROR + "Failed to create example projects."

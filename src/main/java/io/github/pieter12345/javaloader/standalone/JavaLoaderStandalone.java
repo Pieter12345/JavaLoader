@@ -1,7 +1,9 @@
 package io.github.pieter12345.javaloader.standalone;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.net.URLDecoder;
 import java.security.CodeSource;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -561,32 +563,53 @@ public class JavaLoaderStandalone {
 		try {
 			CodeSource codeSource = JavaLoaderStandalone.class.getProtectionDomain().getCodeSource();
 			if(codeSource != null) {
-				if(codeSource.getLocation().getPath().endsWith("/")) {
-					throw new Exception("Creation of example projects is not supported when running from an IDE.");
-				}
-				ZipInputStream inStream = new ZipInputStream(codeSource.getLocation().openStream());
 				
-				ZipEntry zipEntry;
-				while((zipEntry = inStream.getNextEntry()) != null) {
-					String name = zipEntry.getName();
-					if(name.startsWith("exampleprojects/standalone/")) {
-						File targetFile = new File(this.projectsDir
-								+ "/" + name.substring("exampleprojects/standalone/".length()));
-						if(name.endsWith("/")) {
-							targetFile.mkdir();
-						} else {
-							FileOutputStream outStream = new FileOutputStream(targetFile);
-							
-							int amount = 0;
-							byte[] buffer = new byte[1024];
-							while((amount = inStream.read(buffer)) != -1) {
-								outStream.write(buffer, 0, amount);
+				// Select a source to copy from (directory (IDE) or jar (production)).
+				if(codeSource.getLocation().getPath().endsWith("/")) {
+					
+					// The code is being ran from a non-jar source. Get the projects base directory.
+					File exampleProjectsBaseDir = new File(
+							URLDecoder.decode(codeSource.getLocation().getPath(), "UTF-8")
+							+ "exampleprojects/standalone");
+					
+					// Validate that the projects base directory exists.
+					if(!exampleProjectsBaseDir.isDirectory()) {
+						throw new FileNotFoundException("Example projects base directory not found at: "
+								+ exampleProjectsBaseDir.getAbsolutePath());
+					}
+					
+					// Copy all example projects into the projects directory.
+					for(File exampleProjectFile : exampleProjectsBaseDir.listFiles()) {
+						Utils.copyFile(exampleProjectFile, this.projectsDir);
+					}
+					
+				} else {
+					
+					// Copy the example projects from the jar.
+					ZipInputStream inStream = new ZipInputStream(codeSource.getLocation().openStream());
+					
+					ZipEntry zipEntry;
+					while((zipEntry = inStream.getNextEntry()) != null) {
+						String name = zipEntry.getName();
+						if(name.startsWith("exampleprojects/standalone/")) {
+							File targetFile = new File(this.projectsDir
+									+ "/" + name.substring("exampleprojects/standalone/".length()));
+							if(name.endsWith("/")) {
+								targetFile.mkdir();
+							} else {
+								FileOutputStream outStream = new FileOutputStream(targetFile);
+								
+								int amount = 0;
+								byte[] buffer = new byte[1024];
+								while((amount = inStream.read(buffer)) != -1) {
+									outStream.write(buffer, 0, amount);
+								}
+								outStream.close();
 							}
-							outStream.close();
 						}
 					}
+					inStream.close();
 				}
-				inStream.close();
 			} else {
 				throw new NullPointerException("CodeSource is null.");
 			}

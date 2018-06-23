@@ -2,12 +2,15 @@ package io.github.pieter12345.javaloader.utils;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
+
+import com.google.common.io.Files;
 
 /**
  * Utils class.
@@ -36,6 +39,28 @@ public abstract class Utils {
 			}
 		}
 		return file.delete() && ret;
+	}
+	
+	/**
+	 * Copies toCopy to the target directory. If toCopy is a directory, its contents will also be copied.
+	 * WARNING: When the target location already exists, it will be overwritten. Also, copying a file to itself
+	 * causes a file to become empty.
+	 * Example invocation: copyFile(".../file", ".../dir2") would copy 'file' to 'dir2/file'.
+	 * @param toCopy - The file or directory to copy.
+	 * @param targetDir - The target directory to copy toCopy to.
+	 * @throws IOException When an I/O error occurs during copying. Some files might already be copied when
+	 * this is thrown.
+	 */
+	public static void copyFile(File toCopy, File targetDir) throws IOException {
+		File target = new File(targetDir.getAbsolutePath() + "/" + toCopy.getName());
+		if(toCopy.isDirectory()) {
+			target.mkdir();
+			for(File file : toCopy.listFiles()) {
+				copyFile(file, target);
+			}
+		} else if(toCopy.isFile()) {
+			Files.copy(toCopy, target);
+		}
 	}
 	
 	/**
