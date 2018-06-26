@@ -51,7 +51,7 @@ public class JavaLoaderStandalone {
 	private final File projectsDir;
 	private ProjectStateListener projectStateListener;
 	
-	private boolean enabled = true;
+	private boolean enabled = false;
 	
 	static {
 		// Get the version from the manifest.
@@ -87,10 +87,13 @@ public class JavaLoaderStandalone {
 				printFeedback("Projects unloaded.");
 			}
 		});
+		
+		// Start JavaLoader.
+		javaLoaderStandalone.start();
 	}
 	
 	/**
-	 * Starts the JavaLoader standalone version. The projects directory will be set to 'JavaProjects' in the same
+	 * Creates a JavaLoader standalone instance. The projects directory will be set to 'JavaProjects' in the same
 	 * directory as the JavaLoader jar file.
 	 */
 	public JavaLoaderStandalone() {
@@ -98,13 +101,19 @@ public class JavaLoaderStandalone {
 	}
 	
 	/**
-	 * Starts the JavaLoader standalone version.
+	 * Creates a JavaLoader standalone instance.
 	 * @param projectsDir - The directory which JavaLoader will use to search for project directories in.
 	 */
 	public JavaLoaderStandalone(File projectsDir) {
+		this.projectsDir = projectsDir;
+	}
+	
+	/**
+	 * Starts the JavaLoader standalone version.
+	 */
+	public void start() {
 		
 		// Set the projects directory.
-		this.projectsDir = projectsDir;
 		if(this.projectsDir.isFile()) {
 			throw new IllegalStateException("Projects directory path leads to an existing file (and not a directory): "
 					+ this.projectsDir.getAbsolutePath());
@@ -155,6 +164,9 @@ public class JavaLoaderStandalone {
 		printFeedback("JavaLoader " + VERSION + " started. " + loadAllResult.loadedProjects.size() + "/"
 				+ projects.length + " projects loaded.");
 		
+		// Set the enabled flag.
+		this.enabled = true;
+		
 		// Start the input reader on a new thread.
 		new Thread(() -> {
 			Scanner scanner = new Scanner(System.in);
@@ -176,7 +188,20 @@ public class JavaLoaderStandalone {
 		
 	}
 	
-	public void processCommand(String command, String[] args) {
+	/**
+	 * Unloads all projects and stops the System.in listener thread. If exceptions occur during project unloading,
+	 * they will be printed to the console.
+	 */
+	public void stop() {
+		this.projectManager.unloadAllProjects((UnloadException ex) -> {
+			printFeedback(PREFIX_ERROR + "An UnloadException occurred while unloading"
+					+ " java project \"" + ex.getProject().getName() + "\":"
+					+ (ex.getCause() == null ? " " + ex.getMessage() : "\n" + Utils.getStacktrace(ex)));
+		});
+		this.enabled = false;
+	}
+	
+	public void processCommand(String command, String... args) {
 		
 		switch(command.toLowerCase()) {
 			case "help":
@@ -561,12 +586,8 @@ public class JavaLoaderStandalone {
 				return;
 				
 			case "exit":
-				this.projectManager.unloadAllProjects((UnloadException ex) -> {
-					printFeedback(PREFIX_ERROR + "An UnloadException occurred while unloading"
-							+ " java project \"" + ex.getProject().getName() + "\":"
-							+ (ex.getCause() == null ? " " + ex.getMessage() : "\n" + Utils.getStacktrace(ex)));
-				});
-				this.enabled = false;
+				printFeedback("Unloading all projects.");
+				this.stop();
 				printFeedback("Stopping JavaLoader.");
 				return;
 				
@@ -648,7 +669,7 @@ public class JavaLoaderStandalone {
 	/**
 	 * getProject method.
 	 * @param name - The name of the JavaLoader project.
-	 * @return The JavaLoaderProject instance or null if no project with the given name exists.
+	 * @return The JavaLoaderProject instance or null if no project with the given name is loaded.
 	 */
 	public JavaLoaderProject getProject(String name) {
 		return this.projectManager.getProjectInstance(name);
