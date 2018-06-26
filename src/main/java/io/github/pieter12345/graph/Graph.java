@@ -22,9 +22,16 @@ public class Graph<T> implements Iterable<T> {
 	
 	private final Map<T, Node<T>> nodeMap = new HashMap<T, Node<T>>();
 	
+	/**
+	 * Creates an empty graph.
+	 */
 	public Graph() {
 	}
 	
+	/**
+	 * Creates a graph, containing the given nodes with no edges between them.
+	 * @param nodeValues - The initial nodes.
+	 */
 	public Graph(Iterable<T> nodeValues) {
 		
 		// Add the node values to the node map.
@@ -35,6 +42,12 @@ public class Graph<T> implements Iterable<T> {
 		}
 	}
 	
+	/**
+	 * Adds a node with the given value to the graph.
+	 * Does nothing if a node with an equal value was already added to the graph.
+	 * @param nodeVal - The value of the node to add.
+	 * @return True if the node was added, false if a node with the given value already exists in the graph.
+	 */
 	public boolean addNode(T nodeVal) {
 		if(!this.nodeMap.containsKey(nodeVal)) {
 			this.nodeMap.put(nodeVal, new Node<T>(nodeVal));
@@ -43,6 +56,11 @@ public class Graph<T> implements Iterable<T> {
 		return false;
 	}
 	
+	/**
+	 * Removes the node with the given value from the graph. All edges from and to this node will be removed as well.
+	 * @param nodeVal - The value of the node to remove.
+	 * @return True if the node was removed, false if a node with the given value did not exist in the graph.
+	 */
 	public boolean removeNode(T nodeVal) {
 		Node<T> node = this.nodeMap.get(nodeVal);
 		if(node != null) {
@@ -59,6 +77,14 @@ public class Graph<T> implements Iterable<T> {
 	}
 	
 	/**
+	 * Gets the value of all nodes in the graph.
+	 * @return The value of all nodes in the graph.
+	 */
+	public Set<T> getNodes() {
+		return new HashSet<T>(this.nodeMap.keySet());
+	}
+	
+	/**
 	 * Returns the number of nodes in this graph.
 	 * @return The number of nodes in this graph.
 	 */
@@ -66,10 +92,16 @@ public class Graph<T> implements Iterable<T> {
 		return this.nodeMap.size();
 	}
 	
+	/**
+	 * Adds a directed edge from the given node to the given node.
+	 * @param from - The from node value.
+	 * @param to - The to node value.
+	 * @return True if the edge was added, false if at least one node did not exist or if the edge already exists.
+	 */
 	public boolean addDirectedEdge(T from, T to) {
 		Node<T> fromNode = nodeMap.get(from);
 		Node<T> toNode = nodeMap.get(to);
-		if(fromNode != null && toNode != null) {
+		if(fromNode != null && toNode != null && !this.hasDirectedEdge(from, to)) {
 			fromNode.getChildren().add(toNode);
 			toNode.getParents().add(fromNode);
 			return true;
@@ -77,16 +109,27 @@ public class Graph<T> implements Iterable<T> {
 		return false;
 	}
 	
+	/**
+	 * Removes a directed edge from the given node to the given node.
+	 * @param from - The from node value.
+	 * @param to - The to node value.
+	 * @return True if the edge was removed, false if the edge did not exist.
+	 */
 	public boolean removeDirectedEdge(T from, T to) {
 		Node<T> fromNode = nodeMap.get(from);
 		Node<T> toNode = nodeMap.get(to);
 		if(fromNode != null && toNode != null) {
-			// Success if at least one reference was removed, even though there should always be two.
-			return fromNode.getChildren().remove(toNode) || toNode.getParents().remove(fromNode);
+			return fromNode.getChildren().remove(toNode) && toNode.getParents().remove(fromNode);
 		}
 		return false;
 	}
 	
+	/**
+	 * Returns whether a directed edge from the given node to the given node exists.
+	 * @param from - The from node value.
+	 * @param to - The to node value.
+	 * @return True if the edge exists, false otherwise.
+	 */
 	public boolean hasDirectedEdge(T from, T to) {
 		Node<T> fromNode = nodeMap.get(from);
 		Node<T> toNode = nodeMap.get(to);
