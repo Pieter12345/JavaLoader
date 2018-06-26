@@ -12,6 +12,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -41,6 +44,7 @@ import io.github.pieter12345.javaloader.exceptions.CompileException;
 import io.github.pieter12345.javaloader.exceptions.DepOrderViolationException;
 import io.github.pieter12345.javaloader.exceptions.LoadException;
 import io.github.pieter12345.javaloader.exceptions.UnloadException;
+import io.github.pieter12345.javaloader.utils.AnsiColor;
 import io.github.pieter12345.javaloader.utils.ReflectionUtils;
 import io.github.pieter12345.javaloader.utils.ReflectionUtils.Argument;
 import io.github.pieter12345.javaloader.utils.Utils;
@@ -59,6 +63,7 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 			ChatColor.GOLD + "[" + ChatColor.DARK_AQUA + "JavaLoader" + ChatColor.GOLD + "]" + ChatColor.GREEN + " ";
 	private static final String PREFIX_ERROR =
 			ChatColor.GOLD + "[" + ChatColor.DARK_AQUA + "JavaLoader" + ChatColor.GOLD + "]" + ChatColor.RED + " ";
+	private final Logger logger;
 	
 	private static final int COMPILER_FEEDBACK_LIMIT = 5; // The max amount of warnings/errors to print per recompile.
 	
@@ -83,6 +88,24 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 	
 	public JavaLoaderBukkitPlugin() {
 		// This runs when Bukkit creates JavaLoader. Use onEnable() for initialization on enable instead.
+		
+		// Create a logger that adds the plugin name as a colorized name tag and converts Minecraft colorcodes to ANSI.
+		this.logger = new Logger(JavaLoaderBukkitPlugin.class.getCanonicalName(), null) {
+			private final String prefix = JavaLoaderBukkitPlugin.this.getDescription().getPrefix();
+			private final String pluginName = ChatColor.GOLD + "[" + ChatColor.DARK_AQUA
+					+ (this.prefix != null ? this.prefix : JavaLoaderBukkitPlugin.this.getDescription().getName())
+					+ ChatColor.GOLD + "] ";
+			
+			@Override
+			public void log(LogRecord logRecord) {
+				logRecord.setMessage(AnsiColor.colorize(this.pluginName
+						+ (logRecord.getLevel().equals(Level.SEVERE) ? ChatColor.RED : ChatColor.GREEN)
+						+ logRecord.getMessage() + ChatColor.RESET, ChatColor.COLOR_CHAR));
+				super.log(logRecord);
+			}
+		};
+		this.logger.setParent(this.getServer().getLogger());
+		this.logger.setLevel(Level.ALL);
 	}
 	
 	@Override
@@ -91,8 +114,7 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 		// Check if a JDK is available, otherwise disable the plugin.
 		JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
 		if(compiler == null) {
-			Bukkit.getConsoleSender().sendMessage(PREFIX_ERROR
-					+ "No java compiler available. This plugin requires a JDK to run on. Disabling plugin.");
+			this.logger.severe("No java compiler available. This plugin requires a JDK to run on. Disabling plugin.");
 			this.setEnabled(false);
 			return;
 		}
@@ -250,14 +272,14 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 		
 		// Load all projects.
 		LoadAllResult loadAllResult = this.projectManager.loadAllProjects((LoadException ex) -> {
-			Bukkit.getConsoleSender().sendMessage(PREFIX_ERROR + "A LoadException occurred while loading"
+			logger.severe("A LoadException occurred while loading"
 					+ " java project \"" + ex.getProject().getName() + "\":"
 					+ (ex.getCause() == null ? " " + ex.getMessage() : "\n" + Utils.getStacktrace(ex)));
 		});
 		
 		// Print feedback.
 		JavaProject[] projects = this.projectManager.getProjects();
-		Bukkit.getConsoleSender().sendMessage("JavaLoader " + VERSION + " enabled. "
+		logger.info("JavaLoader " + VERSION + " enabled. "
 				+ loadAllResult.loadedProjects.size() + "/" + projects.length + " projects loaded.");
 		
 	}
@@ -267,14 +289,14 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 		
 		// Unload all loaded projects and remove them from the project manager.
 		this.projectManager.clear((UnloadException ex) -> {
-			Bukkit.getConsoleSender().sendMessage(PREFIX_ERROR + "An UnloadException occurred while unloading"
+			logger.severe("An UnloadException occurred while unloading"
 					+ " java project \"" + ex.getProject().getName() + "\":"
 					+ (ex.getCause() == null ? " " + ex.getMessage() : "\n" + Utils.getStacktrace(ex)));
 		});
 		this.projectManager = null;
 		
 		// Print feedback.
-		Bukkit.getConsoleSender().sendMessage("JavaLoader " + VERSION + " disabled.");
+		logger.info("JavaLoader " + VERSION + " disabled.");
 	}
 	
 	@Override
@@ -295,18 +317,21 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 				
 				// "/javaloader help [command]".
 				if(args.length == 1) {
-					sender.sendMessage(PREFIX_INFO + colorize("&aJavaLoader - Version: &8" + VERSION + "&a."
-							+ " Author:&8 Pieter12345/woesh0007&a."
+					List<String> authors = this.getDescription().getAuthors();
+					String authorsStr = "Author" + (authors.size() == 1 ? "" : "s") + ": &8"
+							+ (authors.size() == 0 ? "Unknown"
+							: Utils.glueIterable(authors, (String str) -> str, "&a, &8")) + "&a.";
+					sender.sendMessage((PREFIX_INFO + colorize("&aVersion: &8" + VERSION + "&a. " + authorsStr
 							+ "\n&6  - /javaloader help [subcommand]"
-							+ "\n&3	  Displays this page or information about the subcommand."
+							+ "\n&3    Displays this page or information about the subcommand."
 							+ "\n&6  - /javaloader list"
-							+ "\n&3   Displays a list of all projects and their status."
+							+ "\n&3    Displays a list of all projects and their status."
 							+ "\n&6  - /javaloader recompile [project]"
-							+ "\n&3	  Recompiles, unloads and loads the given or all projects."
+							+ "\n&3    Recompiles, unloads and loads the given or all projects."
 							+ "\n&6  - /javaloader unload [project]"
-							+ "\n&3	  Unloads the given or all projects."
+							+ "\n&3    Unloads the given or all projects."
 							+ "\n&6  - /javaloader load [project]"
-							+ "\n&3	  Loads the given or all projects."));
+							+ "\n&3    Loads the given or all projects.")).split("\n"));
 				} else if(args.length == 2) {
 					switch(args[1].toLowerCase()) {
 						case "help":
@@ -554,7 +579,7 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 					
 					// Unload all projects.
 					Set<JavaProject> unloadedProjects = this.projectManager.unloadAllProjects((UnloadException ex) -> {
-						Bukkit.getConsoleSender().sendMessage(PREFIX_ERROR + "An UnloadException occurred while"
+						this.logger.severe("An UnloadException occurred while"
 								+ " unloading java project \"" + ex.getProject().getName() + "\":"
 								+ (ex.getCause() == null ? " " + ex.getMessage() : "\n" + Utils.getStacktrace(ex)));
 					});
@@ -624,7 +649,7 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 					
 					// Load all projects.
 					LoadAllResult loadAllResult = this.projectManager.loadAllProjects((LoadException ex) -> {
-						Bukkit.getConsoleSender().sendMessage(PREFIX_ERROR + "A LoadException occurred while loading"
+						this.logger.severe("A LoadException occurred while loading"
 								+ " java project \"" + ex.getProject().getName() + "\":"
 								+ (ex.getCause() == null ? " " + ex.getMessage() : "\n" + Utils.getStacktrace(ex)));
 					});
@@ -771,7 +796,7 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 				}
 			}
 		} catch (Exception e) {
-			Bukkit.getConsoleSender().sendMessage(PREFIX_ERROR + "Failed to create example projects."
+			this.logger.severe("Failed to create example projects."
 					+ " Here's the stacktrace:\n" + Utils.getStacktrace(e));
 			return;
 		}
