@@ -1,7 +1,6 @@
 package io.github.pieter12345.javaloader;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.Writer;
@@ -80,8 +79,8 @@ public class JavaProject {
 		this.projectDir = projectDir;
 		this.binDir = new File(this.projectDir.getAbsolutePath() + "/bin");
 		this.srcDir = new File(this.projectDir.getAbsolutePath() + "/src");
-		this.stateListener = stateListener;
 		this.manager = manager;
+		this.stateListener = stateListener;
 	}
 	
 	/**
@@ -324,12 +323,10 @@ public class JavaProject {
 		}
 		
 		// Load dependencies if they have not been initialized yet.
-		if(this.dependencies == null) {
-			try {
-				this.initDependencies();
-			} catch (IOException | DependencyException e) {
-				throw new LoadException(this, e.getMessage());
-			}
+		try {
+			this.initDependencies();
+		} catch (IOException | DependencyException e) {
+			throw new LoadException(this, e.getMessage());
 		}
 		
 		// Get the INCLUDE dependency files for the classloader. Existence of files will be checked by the classloader,
@@ -375,20 +372,20 @@ public class JavaProject {
 		// Load all .class files in the bin directory and get the "main" class.
 		ArrayList<Class<?>> mainClasses = new ArrayList<Class<?>>();
 		Stack<File> dirStack = new Stack<File>();
-		Stack<String> packetStack = new Stack<String>();
+		Stack<String> packageStack = new Stack<String>();
 		dirStack.push(this.binDir);
-		packetStack.push("");
+		packageStack.push("");
 		while(!dirStack.isEmpty()) {
 			File[] localFiles = dirStack.pop().listFiles();
-			String packetStr = packetStack.pop();
+			String packageStr = packageStack.pop();
 			if(localFiles != null) {
 				for(File localFile : localFiles) {
 					if(localFile.isDirectory()) {
 						dirStack.push(localFile);
-						packetStack.push(packetStr + localFile.getName() + ".");
+						packageStack.push(packageStr + localFile.getName() + ".");
 					} else if(localFile.getName().endsWith(".class")) {
 						String className =
-								packetStr + localFile.getName().substring(0, localFile.getName().length() - 6);
+								packageStr + localFile.getName().substring(0, localFile.getName().length() - 6);
 						try {
 							Class<?> clazz = this.classLoader.loadClass(className);
 							if(JavaLoaderProject.class.isAssignableFrom(clazz)) {
@@ -632,6 +629,14 @@ public class JavaProject {
 	}
 	
 	/**
+	 * getSourceDir method.
+	 * @return The src directory of the project (used for .java files). This directory might not exist.
+	 */
+	public File getSourceDir() {
+		return this.srcDir;
+	}
+	
+	/**
 	 * getBinDir method.
 	 * @return The bin directory of the project (used for .class files). This directory might not exist.
 	 */
@@ -682,7 +687,7 @@ public class JavaProject {
 	}
 	
 	/**
-	 * Gets te dependencies that will be used to load this JavaProject. To get the dependencies that will be used for
+	 * Gets the dependencies that will be used to load this JavaProject. To get the dependencies that will be used for
 	 * the next compile, use the {@link #getSourceDependencies()} method.
 	 * @return The dependencies or null if no dependencies were defined.
 	 */
@@ -691,8 +696,8 @@ public class JavaProject {
 	}
 	
 	/**
-	 * Gets te dependencies that will be used to compile this JavaProject. To get the dependencies that will be used for
-	 * loading, use the {@link #getDependencies()} method.
+	 * Gets the dependencies that will be used to compile this JavaProject. To get the dependencies that will be used
+	 * for loading, use the {@link #getDependencies()} method.
 	 * This method reads the dependencies again for every call, since the user might change them between calls.
 	 * @return The dependencies or null if no dependencies were defined.
 	 * @throws DependencyException If a dependency description in the depencendies file is in an invalid format.
@@ -738,14 +743,10 @@ public class JavaProject {
 	 * @throws IOException If an I/O error occurred while reading the dependencyFile.
 	 */
 	private Dependency[] readDependencies(File dependencyFile) throws IOException, DependencyException {
-		if(!dependencyFile.isFile()) {
+		String dependencyFileContents = Utils.readFile(dependencyFile, StandardCharsets.UTF_8);
+		if(dependencyFileContents == null) {
 			return new Dependency[0]; // No dependencies available.
 		}
-		byte[] fileBytes = new byte[(int) dependencyFile.length()];
-		FileInputStream inStream = new FileInputStream(dependencyFile);
-		inStream.read(fileBytes);
-		inStream.close();
-		String dependencyFileContents = new String(fileBytes, StandardCharsets.UTF_8);
 		return this.parseDependencies(dependencyFileContents);
 	}
 	
@@ -755,7 +756,7 @@ public class JavaProject {
 	 * @return An array of dependencies.
 	 * @throws DependencyException If a dependency description is in an invalid format.
 	 */
-	private Dependency[] parseDependencies(String dependencyFileContents) throws DependencyException {
+	protected Dependency[] parseDependencies(String dependencyFileContents) throws DependencyException {
 		
 		// Replace cariage returns and tabs with whitespaces.
 		dependencyFileContents = dependencyFileContents.replaceAll("[\r\t]", " ");
@@ -789,7 +790,7 @@ public class JavaProject {
 			if(dependencyStrs[i].toLowerCase().startsWith("jar ")) {
 				String dependency = dependencyStrs[i].substring("jar ".length()).trim();
 				
-				// Validate the .jar prefix.
+				// Validate the .jar suffix.
 				if(!dependency.toLowerCase().endsWith(".jar")) {
 					throw new DependencyException("Dependency format invalid."
 							+ " Jar dependency does not have a .jar extension: " + dependencyStrs[i]);
@@ -800,10 +801,7 @@ public class JavaProject {
 				if(dependency.startsWith("-")) {
 					int ind = dependency.indexOf(' ');
 					String arg = (ind == -1 ? dependency.substring(1) : dependency.substring(1, ind));
-					if(ind + 1 < dependency.length()) {
-						dependency = dependency.substring(ind + 1);
-					}
-					dependency = dependency.substring(ind + 1);
+					dependency = dependency.substring(ind + 1); // 'ind + 1' always exists due to the ".jar" suffix.
 					switch(arg.toLowerCase()) {
 						case "include": {
 							scope = DependencyScope.INCLUDE;
@@ -825,6 +823,7 @@ public class JavaProject {
 				
 				// Get the dependency's file object, supporting relative paths.
 				// Relative paths start with a '.' and are relative to the project's directory.
+				// "dependency" has a ".jar" suffix, so some length checks here are redundant.
 				if(dependency.startsWith(".") && (dependency.length() == 1
 						|| dependency.charAt(1) == '/' || dependency.charAt(1) == '\\')) {
 					dependency = this.projectDir.getAbsolutePath() + dependency.substring(1);

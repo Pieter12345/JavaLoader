@@ -2,11 +2,14 @@ package io.github.pieter12345.javaloader.utils;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 
@@ -49,9 +52,10 @@ public abstract class Utils {
 	 * @param toCopy - The file or directory to copy.
 	 * @param targetDir - The target directory to copy toCopy to.
 	 * @throws IOException When an I/O error occurs during copying. Some files might already be copied when
+	 * @throws FileNotFoundException When the toCopy file does not exist.
 	 * this is thrown.
 	 */
-	public static void copyFile(File toCopy, File targetDir) throws IOException {
+	public static void copyFile(File toCopy, File targetDir) throws IOException, FileNotFoundException {
 		File target = new File(targetDir.getAbsolutePath() + "/" + toCopy.getName());
 		if(toCopy.isDirectory()) {
 			target.mkdir();
@@ -60,7 +64,38 @@ public abstract class Utils {
 			}
 		} else if(toCopy.isFile()) {
 			Files.copy(toCopy, target);
+		} else {
+			throw new FileNotFoundException("File to copy does not exist: " + toCopy.getAbsolutePath());
 		}
+	}
+	
+	/**
+	 * Reads the given file and returns its contents as a string, using the provided charset for conversion.
+	 * @param file - The file to read.
+	 * @param charset - The charset used to convert the file bytes to characters.
+	 * @return The file contents as a string, or null if the file does not exist.
+	 * @throws IOException If an I/O error occurs while reading the file.
+	 */
+	public static String readFile(File file, Charset charset) throws IOException {
+		if(!file.isFile()) {
+			return null;
+		}
+		byte[] fileBytes = new byte[(int) file.length()];
+		FileInputStream inStream = new FileInputStream(file);
+		inStream.read(fileBytes);
+		inStream.close();
+		return new String(fileBytes, charset);
+	}
+	
+	/**
+	 * Reads the given file and returns its contents as a string, using the
+	 * {@link StandardCharsets#UTF_8} for conversion.
+	 * @param file - The file to read.
+	 * @return The file contents as a string, or null if the file does not exist.
+	 * @throws IOException If an I/O error occurs while reading the file.
+	 */
+	public static String readFile(File file) throws IOException {
+		return readFile(file, StandardCharsets.UTF_8);
 	}
 	
 	/**

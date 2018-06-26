@@ -94,7 +94,7 @@ public class ProjectManager {
 	/**
 	 * getProjectInstance method.
 	 * @param name - The name of the JavaLoader project.
-	 * @return The JavaLoaderProject instance or null if no project with the given name exists.
+	 * @return The JavaLoaderProject instance or null if no project with the given name is loaded.
 	 */
 	public JavaLoaderProject getProjectInstance(String name) {
 		JavaProject project = this.projects.get(name);
