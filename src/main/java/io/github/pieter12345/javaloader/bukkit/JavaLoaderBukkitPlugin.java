@@ -200,7 +200,8 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 								+ " an Exception occurred in reflection code while creating a new PluginCommand.", e);
 					}
 					bukkitCmd.setDescription(command.getDescription());
-					bukkitCmd.setUsage(command.getUsageMessage());
+					String usageMessage = command.getUsageMessage();
+					bukkitCmd.setUsage(usageMessage == null ? "" : usageMessage); // Bukkit's default is empty string.
 					bukkitCmd.setPermission(command.getPermission());
 					bukkitCmd.setAliases(command.getAliases());
 					bukkitCmd.setExecutor(command.getExecutor());
