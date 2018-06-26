@@ -2,6 +2,7 @@ package io.github.pieter12345.javaloader.dependency;
 
 import java.io.File;
 import java.net.URL;
+import java.util.Objects;
 
 import io.github.pieter12345.javaloader.JavaProject;
 import io.github.pieter12345.javaloader.ProjectManager;
@@ -17,9 +18,8 @@ public class ProjectDependency implements FileDependency {
 	private final String projectName;
 	
 	public ProjectDependency(String projectName, ProjectManager manager) {
-		if(manager == null) {
-			throw new NullPointerException("Project manager may not be null.");
-		}
+		Objects.requireNonNull(projectName, "Project name may not be null.");
+		Objects.requireNonNull(manager, "Project manager may not be null.");
 		this.manager = manager;
 		this.projectName = projectName;
 	}
@@ -75,6 +75,20 @@ public class ProjectDependency implements FileDependency {
 	 */
 	public ProjectManager getProjectManager() {
 		return this.manager;
+	}
+	
+	@Override
+	public boolean equals(Object obj) {
+		return obj instanceof ProjectDependency
+				&& ((ProjectDependency) obj).projectName.equals(this.projectName)
+				&& ((ProjectDependency) obj).getScope().equals(this.getScope())
+				&& ((ProjectDependency) obj).manager.equals(this.manager);
+	}
+	
+	@Override
+	public String toString() {
+		return this.getClass().getName()
+				+ "{projectName=\"" + this.projectName + "\", projectManager=" + this.manager.toString() + "}";
 	}
 	
 }
