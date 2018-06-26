@@ -3,8 +3,6 @@ package io.github.pieter12345.javaloader.bukkit;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URLDecoder;
 import java.security.CodeSource;
@@ -43,6 +41,8 @@ import io.github.pieter12345.javaloader.exceptions.CompileException;
 import io.github.pieter12345.javaloader.exceptions.DepOrderViolationException;
 import io.github.pieter12345.javaloader.exceptions.LoadException;
 import io.github.pieter12345.javaloader.exceptions.UnloadException;
+import io.github.pieter12345.javaloader.utils.ReflectionUtils;
+import io.github.pieter12345.javaloader.utils.ReflectionUtils.Argument;
 import io.github.pieter12345.javaloader.utils.Utils;
 
 /**
@@ -133,7 +133,16 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 								+ bukkitProjectInstance.getClass().getName() + ".getCommands()."
 								+ " Is the project up to date?  Stacktrace:\n" + Utils.getStacktrace(e));
 					}
-					this.injectCommands(bukkitProjectPlugin, commands);
+					try {
+						this.injectCommands(bukkitProjectPlugin, commands);
+					} catch (Exception e) {
+						throw new LoadException(project, "An Exception occurred while injecting "
+								+ project.getName() + "'s commands into Bukkit. This means that JavaLoader is not"
+								+ " fully compatible with the current version of Bukkit. This is a bug in JavaLoader,"
+								+ " but you might be able to prevent this from triggering by altering what your "
+								+ bukkitProjectInstance.getClass().getName() + ".getCommands() method returns."
+								+ " Stacktrace:\n" + Utils.getStacktrace(e));
+					}
 					
 				} else {
 					project.getInstance().initialize(project);
@@ -141,64 +150,53 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 			}
 			
 			@Override
-			public void onUnload(JavaProject project) {
+			public void onUnload(JavaProject project) throws UnloadException {
 				if(project.getInstance() instanceof JavaLoaderBukkitProject) {
 					JavaLoaderBukkitProject bukkitProjectInstance = (JavaLoaderBukkitProject) project.getInstance();
 					bukkitProjectInstance.getPlugin().setEnabled(false); // Sync Bukkit Plugin state.
-					this.uninjectCommands(bukkitProjectInstance.getPlugin());
+					try {
+						this.uninjectCommands(bukkitProjectInstance.getPlugin());
+					} catch (Exception e) {
+						throw new UnloadException(project, "An Exception occurred while uninjecting "
+								+ project.getName() + "'s commands from Bukkit. This means that JavaLoader is not"
+								+ " fully compatible with the current version of Bukkit. This is a bug in JavaLoader,"
+								+ " but you might be able to prevent this from triggering by altering what your "
+								+ bukkitProjectInstance.getClass().getName() + ".getCommands() method returns."
+								+ " Stacktrace:\n" + Utils.getStacktrace(e));
+					}
 				}
 			}
 			
-			@SuppressWarnings("unchecked")
-			private void injectCommands(JavaLoaderBukkitProjectPlugin bukkitProjectPlugin, BukkitCommand[] commands) {
+			private void injectCommands(JavaLoaderBukkitProjectPlugin bukkitProjectPlugin, BukkitCommand[] commands)
+					throws SecurityException, IllegalAccessException, NoSuchFieldException,
+					NoSuchMethodException, InstantiationException, InvocationTargetException {
+				
+				// Return if no commands have to be registered.
 				if(commands == null || commands.length == 0) {
 					return;
 				}
 				
-				// Get the CommandMap.
-				final SimpleCommandMap cmdMap;
+				// Get the CommandMap from the SimplePluginManager.
 				final PluginManager pluginManager = Bukkit.getPluginManager();
-				if(pluginManager instanceof SimplePluginManager) {
-					try {
-						Field cmdMapField = SimplePluginManager.class.getDeclaredField("commandMap");
-						cmdMapField.setAccessible(true);
-						cmdMap = (SimpleCommandMap) cmdMapField.get(pluginManager);
-					} catch (NoSuchFieldException | SecurityException
-							| IllegalArgumentException | IllegalAccessException e) {
-						throw new RuntimeException("Could not inject Bukkit commands"
-								+ " because an Exception occurred in reflection code.", e);
-					}
-				} else {
+				if(!(pluginManager instanceof SimplePluginManager)) {
 					throw new RuntimeException("Could not inject Bukkit commands because Bukkit.getPluginManager()"
 							+ " was not an instance of " + SimplePluginManager.class.getName());
 				}
+				final SimpleCommandMap cmdMap = (SimpleCommandMap) ReflectionUtils.getField(
+						SimplePluginManager.class, "commandMap", (SimplePluginManager) pluginManager);
 				
 				// Get the currently known commands.
-				final Map<String, Command> knownCommands;
-				try {
-					Field knownCommandsField = SimpleCommandMap.class.getDeclaredField("knownCommands");
-					knownCommandsField.setAccessible(true);
-					knownCommands = (Map<String, Command>) knownCommandsField.get(cmdMap);
-				} catch (NoSuchFieldException | SecurityException
-						| IllegalArgumentException | IllegalAccessException e) {
-					throw new RuntimeException("Could not inject Bukkit commands because"
-							+ " the already existing commands could not be obtained.", e);
-				}
+				@SuppressWarnings("unchecked")
+				Map<String, Command> knownCommands = (Map<String, Command>) ReflectionUtils.getField(
+							SimpleCommandMap.class, "knownCommands", cmdMap);
 				
+				// Inject the commands, unregistering commands that will be overwritten.
 				for(BukkitCommand command : commands) {
 					
 					// Generate the new command.
-					PluginCommand bukkitCmd;
-					try {
-						Constructor<PluginCommand> constructor =
-								PluginCommand.class.getDeclaredConstructor(String.class, Plugin.class);
-						constructor.setAccessible(true);
-						bukkitCmd = constructor.newInstance(command.getName(), bukkitProjectPlugin);
-					} catch (NoSuchMethodException | SecurityException | InstantiationException
-							| IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-						throw new RuntimeException("Could not inject Bukkit commands because"
-								+ " an Exception occurred in reflection code while creating a new PluginCommand.", e);
-					}
+					final PluginCommand bukkitCmd = ReflectionUtils.newInstance(PluginCommand.class,
+								new Argument<String>(String.class, command.getName()),
+								new Argument<Plugin>(Plugin.class, bukkitProjectPlugin));
 					bukkitCmd.setDescription(command.getDescription());
 					String usageMessage = command.getUsageMessage();
 					bukkitCmd.setUsage(usageMessage == null ? "" : usageMessage); // Bukkit's default is empty string.
@@ -215,8 +213,6 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 					
 					// Register the new command.
 					if(!cmdMap.register(JavaLoaderBukkitPlugin.this.getDescription().getName(), bukkitCmd)) {
-//						Bukkit.getConsoleSender().sendMessage(PREFIX_ERROR + "Command \"/" + bukkitCmd.getName() + "\""
-//								+ " could not be registered.");
 						// Throw an Exception as this should never happen since the command is unregistered above.
 						throw new RuntimeException("Could not inject command because the command was already"
 								+ " registered and failed to unregister."
@@ -226,25 +222,17 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 				}
 			}
 			
-			private void uninjectCommands(JavaLoaderBukkitProjectPlugin plugin) {
+			private void uninjectCommands(JavaLoaderBukkitProjectPlugin plugin)
+					throws SecurityException, IllegalAccessException, NoSuchFieldException {
 				
 				// Get the CommandMap.
-				SimpleCommandMap cmdMap;
-				PluginManager pluginManager = Bukkit.getPluginManager();
-				if(pluginManager instanceof SimplePluginManager) {
-					try {
-						Field cmdMapField = SimplePluginManager.class.getDeclaredField("commandMap");
-						cmdMapField.setAccessible(true);
-						cmdMap = (SimpleCommandMap) cmdMapField.get(pluginManager);
-					} catch (NoSuchFieldException | SecurityException
-							| IllegalArgumentException | IllegalAccessException e) {
-						throw new RuntimeException("Could not uninject Bukkit commands"
-								+ " because an Exception occurred in reflection code.", e);
-					}
-				} else {
+				final PluginManager pluginManager = Bukkit.getPluginManager();
+				if(!(pluginManager instanceof SimplePluginManager)) {
 					throw new RuntimeException("Could not uninject Bukkit commands because Bukkit.getPluginManager()"
 							+ " was not an instance of " + SimplePluginManager.class.getName());
 				}
+				final SimpleCommandMap cmdMap = (SimpleCommandMap) ReflectionUtils.getField(
+						SimplePluginManager.class, "commandMap", (SimplePluginManager) pluginManager);
 				
 				// Unregister all commands owned by the given plugin.
 				Command[] registeredCommands = cmdMap.getCommands().toArray(new Command[0]);
