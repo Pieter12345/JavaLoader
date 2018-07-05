@@ -1,5 +1,6 @@
 # Generated files (maven).
 target/
+.checkstyle
 
 # Eclipse setup.
 .classpath

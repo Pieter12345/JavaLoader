@@ -11,11 +11,17 @@
 	
 	<!-- Supression filter to disable specified modules/checks for specified files -->
 	<module name="SuppressionFilter">
-		<property name="file" value="checkstyle_suppressions.xml"/>
+		<property name="file" value="${config_loc}/checkstyle_suppressions.xml"/>
 		<property name="optional" value="false"/>
 	</module>
 	
+	<!-- Allow "@SuppressWarnings(checkstyle:<CHECK>)" checkstyle violation suppression -->
+	<module name="SuppressWarningsFilter"/>
+	
 	<module name="TreeWalker">
+		
+		<!-- Enable usage of "@SuppressWarnings(checkstyle:<CHECK>)" to suppress checkstyle violations -->
+		<module name="SuppressWarningsHolder"/>
 		
 		<!-- Set tabWidth property for checks such as line length -->
 		<property name="tabWidth" value="4"/>
@@ -164,7 +170,7 @@
 			<property name="allowEmptyCatches" value="true"/>
 			<property name="tokens" value="ASSIGN, BAND, BAND_ASSIGN, BOR, BOR_ASSIGN, BSR, BSR_ASSIGN, BXOR,
 				BXOR_ASSIGN, COLON, DIV, DIV_ASSIGN, EQUAL, GE, GT, LAMBDA, LAND, LCURLY, LE, LITERAL_CATCH, LITERAL_DO,
-				LITERAL_ELSE, LITERAL_FINALLY, LITERAL_RETURN, LITERAL_TRY,
+				LITERAL_ELSE, LITERAL_FINALLY, LITERAL_RETURN,
 				LOR, LT, MINUS, MINUS_ASSIGN, MOD, MOD_ASSIGN, NOT_EQUAL, PLUS, PLUS_ASSIGN, QUESTION,
 				RCURLY, SL, SLIST, SL_ASSIGN, SR, SR_ASSIGN, STAR, STAR_ASSIGN, TYPE_EXTENSION_AND"/>
 		</module>
@@ -221,12 +227,6 @@
 		<!-- Disallow the "==" operator for string literals -->
 		<module name="StringLiteralEquality"/>
 		
-		<!-- Ensure that an overriding clone() method invokes super.clone() -->
-		<module name="SuperClone"/>
-		
-		<!-- Ensure that an overriding finalize() method invokes super.finalize() -->
-		<module name="SuperFinalize"/>
-		
 		<!-- Disallow whitespaces between type cast parenthesis (No whitespace at X: "(XObjectX) obj") -->
 		<module name="TypecastParenPad"/>
 		
@@ -253,6 +253,20 @@
 		<property name="severity" value="error"/>
 		<property name="format" value="(^|[^w\._])(if|for|while)[\s]+\("/>
 		<property name="message" value="Whitespace between if/for/while and '(' is not allowed."/>
+	</module>
+	
+	<!-- Ensure whitespace between try and '{' -->
+	<module name="RegexpSingleline">
+		<property name="severity" value="error"/>
+		<property name="format" value="(^|[^\w\._])try\{"/>
+		<property name="message" value="'try' is not followed by whitespace."/>
+	</module>
+	
+	<!-- Disallow whitespaces between try and '(' (try-with-resources) -->
+	<module name="RegexpSingleline">
+		<property name="severity" value="error"/>
+		<property name="format" value="(^|[^\w\._])try[\s]+\("/>
+		<property name="message" value="'try' with resources is followed by whitespace."/>
 	</module>
 	
 	<!-- Ensure that every file ends with a newline -->
