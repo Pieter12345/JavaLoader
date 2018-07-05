@@ -22,14 +22,13 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>
 	<build>
-		<sourceDirectory>${basedir}/src/main/java</sourceDirectory>
 		<plugins>
 			
 			<!-- Compile plugin (required for compilation) -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
-				<version>3.3</version>
+				<version>3.7.0</version>
 				<configuration>
 					<showDeprecation>true</showDeprecation>
 					<source>1.8</source>
@@ -41,18 +40,18 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-jar-plugin</artifactId>
-				<version>2.3.1</version>
+				<version>3.1.0</version>
 				<configuration>
-					<source>1.8</source>
-					<target>1.8</target>
 					<archive>
-						<addMavenDescriptor>true</addMavenDescriptor>
-						<pomPropertiesFile>true</pomPropertiesFile>
+						<addMavenDescriptor>false</addMavenDescriptor>
 						<manifest>
-							<addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
 							<addDefaultImplementationEntries>true</addDefaultImplementationEntries>
 							<mainClass>io.github.pieter12345.javaloader.standalone.JavaLoaderStandalone</mainClass>
 						</manifest>
+						<manifestEntries>
+							<Built-By>Anonymous</Built-By>
+							<License>GNU General Public License v3.0</License>
+						</manifestEntries>
 					</archive>
 				</configuration>
 			</plugin>
@@ -114,7 +113,7 @@
 	</build>
 	<licenses>
 		<license>
-			<name>No License</name>
+			<name>GNU General Public License v3.0</name>
 		</license>
 	</licenses>
 	<dependencies>
