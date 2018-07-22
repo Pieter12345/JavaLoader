@@ -3,6 +3,7 @@ main: io.github.pieter12345.javaloader.bukkit.JavaLoaderBukkitPlugin
 version: 0.0.1-SNAPSHOT
 author: Pieter12345/Woesh0007
 load: postworld
+api-version: 1.13
 commands:
     javaloader:
         description: This plugin can compile, load, unload and hotswap java projects in runtime.
