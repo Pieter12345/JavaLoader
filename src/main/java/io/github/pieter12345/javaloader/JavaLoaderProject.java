@@ -49,19 +49,22 @@ public abstract class JavaLoaderProject {
 		return this.project.isEnabled();
 	}
 	
-	// Abstract methods.
 	/**
 	 * onLoad method.
 	 * This method is called when the project is loaded.
 	 */
-	public abstract void onLoad();
-
+	public void onLoad() {
+	}
+	
 	/**
 	 * onUnload method.
 	 * This method is called when the project is unloaded.
 	 */
-	public abstract void onUnload();
-
+	public void onUnload() {
+	}
+	
+	// Abstract methods.
+	
 	/**
 	 * getVersion method.
 	 * @return The version. Example: "0.0.1-SNAPSHOT".
