@@ -771,6 +771,9 @@ public class JavaProject {
 		// Remove empty lines.
 		dependencyFileContents = dependencyFileContents.replaceAll("(?<=(^|\n))[\n]+(?!$)", "");
 		
+		// Replace backslash file seperators (since these are not guarenteed to work outside of Windows).
+		dependencyFileContents = dependencyFileContents.replace('\\', '/');
+		
 		// Split and add the dependencies.
 		if(dependencyFileContents.isEmpty()) {
 			return new Dependency[0];
@@ -824,8 +827,7 @@ public class JavaProject {
 				// Get the dependency's file object, supporting relative paths.
 				// Relative paths start with a '.' and are relative to the project's directory.
 				// "dependency" has a ".jar" suffix, so some length checks here are redundant.
-				if(dependency.startsWith(".") && (dependency.length() == 1
-						|| dependency.charAt(1) == '/' || dependency.charAt(1) == '\\')) {
+				if(dependency.startsWith(".") && (dependency.length() == 1 || dependency.charAt(1) == '/')) {
 					dependency = this.projectDir.getAbsolutePath() + dependency.substring(1);
 				}
 				File file = new File(dependency);
