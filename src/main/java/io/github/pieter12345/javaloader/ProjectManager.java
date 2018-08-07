@@ -747,15 +747,12 @@ public class ProjectManager {
 	 */
 	public JavaProject addProjectFromProjectDirectory(String projectName, ProjectStateListener projectStateListener) {
 		
-		// Return null if the project was already added.
-		if(this.projects.containsKey(projectName)) {
+		// Return null if the project was already added or if no projects directory is set.
+		if(this.projects.containsKey(projectName) || this.projectsDir == null) {
 			return null;
 		}
 		
 		// Get the project directory.
-		if(this.projectsDir != null) {
-			return null; // No projects directory set -> Project not found.
-		}
 		File projectDir = new File(this.projectsDir.getAbsolutePath() + "/" + projectName);
 		
 		// Validate that the projectName did not contain file path modifying characters.
