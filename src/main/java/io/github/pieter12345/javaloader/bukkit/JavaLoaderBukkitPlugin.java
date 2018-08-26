@@ -9,6 +9,7 @@ import java.security.CodeSource;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -256,11 +257,18 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 				final SimpleCommandMap cmdMap = (SimpleCommandMap) ReflectionUtils.getField(
 						SimplePluginManager.class, "commandMap", (SimplePluginManager) pluginManager);
 				
+				// Get the currently known commands.
+				@SuppressWarnings("unchecked")
+				Map<String, Command> knownCommands = (Map<String, Command>) ReflectionUtils.getField(
+							SimpleCommandMap.class, "knownCommands", cmdMap);
+				
 				// Unregister all commands owned by the given plugin.
-				Command[] registeredCommands = cmdMap.getCommands().toArray(new Command[0]);
-				for(Command command : registeredCommands) {
+				Iterator<Command> it = knownCommands.values().iterator();
+				while(it.hasNext()) {
+					Command command = it.next();
 					if(command instanceof PluginCommand && ((PluginCommand) command).getPlugin() == plugin) {
 						command.unregister(cmdMap);
+						it.remove();
 					}
 				}
 				
