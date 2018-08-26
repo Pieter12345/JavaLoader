@@ -10,3 +10,6 @@ target/
 # Intellij setup.
 .idea/
 *.iml
+
+# Project specific.
+JavaProjects/
