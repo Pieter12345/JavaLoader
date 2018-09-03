@@ -191,7 +191,7 @@ public class JavaProject {
 			// Get the complete classpath (including the binDir and passed classpath entries such as jar file paths).
 			String classpath = System.getProperty("java.class.path") + CLASSPATH_SEPERATOR + pluginJarFilePath;
 			for(File dependencyFile : dependencyFiles) {
-				classpath = classpath + ";" + dependencyFile.getAbsolutePath();
+				classpath = classpath + CLASSPATH_SEPERATOR + dependencyFile.getAbsolutePath();
 			}
 			
 			// Create the compiler options array.
