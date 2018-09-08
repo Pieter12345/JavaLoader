@@ -156,6 +156,13 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 								+ bukkitProjectInstance.getClass().getName() + ".getCommands()."
 								+ " Is the project up to date?  Stacktrace:\n" + Utils.getStacktrace(e));
 					}
+					for(BukkitCommand command : commands) {
+						if(command == null) {
+							throw new LoadException(project, "The BukkitCommand array returned by the "
+									+ bukkitProjectInstance.getClass().getName() + ".getCommands() method"
+									+ " must not contain null values.");
+						}
+					}
 					try {
 						this.injectCommands(bukkitProjectPlugin, commands);
 					} catch (Exception e) {
@@ -224,6 +231,7 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 					String usageMessage = command.getUsageMessage();
 					bukkitCmd.setUsage(usageMessage == null ? "" : usageMessage); // Bukkit's default is empty string.
 					bukkitCmd.setPermission(command.getPermission());
+					bukkitCmd.setPermissionMessage(command.getPermissionMessage());
 					bukkitCmd.setAliases(command.getAliases());
 					bukkitCmd.setExecutor(command.getExecutor());
 					bukkitCmd.setTabCompleter(command.getTabCompleter());

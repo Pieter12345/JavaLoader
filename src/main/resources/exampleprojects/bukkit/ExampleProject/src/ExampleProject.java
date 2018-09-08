@@ -40,7 +40,8 @@ public class ExampleProject extends JavaLoaderBukkitProject {
 		}, this.getPlugin());
 		
 		// Print feedback.
-		Bukkit.getConsoleSender().sendMessage(ChatColor.DARK_GREEN + "[DEBUG] ExampleProject project loaded." + ChatColor.RESET);
+		Bukkit.getConsoleSender().sendMessage(
+				ChatColor.DARK_GREEN + "[DEBUG] ExampleProject project loaded." + ChatColor.RESET);
 	}
 	
 	@Override
@@ -50,7 +51,8 @@ public class ExampleProject extends JavaLoaderBukkitProject {
 		HandlerList.unregisterAll(this.getPlugin());
 		
 		// Print feedback.
-		Bukkit.getConsoleSender().sendMessage(ChatColor.DARK_RED + "[DEBUG] ExampleProject project unloaded." + ChatColor.RESET);
+		Bukkit.getConsoleSender().sendMessage(
+				ChatColor.DARK_RED + "[DEBUG] ExampleProject project unloaded." + ChatColor.RESET);
 	}
 	
 	@Override
@@ -80,8 +82,13 @@ public class ExampleProject extends JavaLoaderBukkitProject {
 	@Override
 	public BukkitCommand[] getCommands() {
 		return new BukkitCommand[] {
-				new BukkitCommand("examplecommand", "An example command, defined in JavaLoader's example project.", "Usage: /examplecommand.",
-						"javaloader.exampleproject.examplecommand", new String[] {"examplecmd"}, this, this)
+				new BukkitCommand("examplecommand")
+						.setUsageMessage("An example command, defined in JavaLoader's example project.")
+						.setPermission("javaloader.exampleproject.examplecommand")
+						.setPermissionMessage("You do not have permission to use this command.")
+						.setAliases("examplecmd")
+						.setExecutor(this)
+						.setTabCompleter(this)
 			};
 	}
 }
