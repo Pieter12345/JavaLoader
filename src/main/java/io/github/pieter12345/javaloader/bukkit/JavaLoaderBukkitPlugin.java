@@ -156,22 +156,24 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 								+ bukkitProjectInstance.getClass().getName() + ".getCommands()."
 								+ " Is the project up to date?  Stacktrace:\n" + Utils.getStacktrace(e));
 					}
-					for(BukkitCommand command : commands) {
-						if(command == null) {
-							throw new LoadException(project, "The BukkitCommand array returned by the "
-									+ bukkitProjectInstance.getClass().getName() + ".getCommands() method"
-									+ " must not contain null values.");
+					if(commands != null && commands.length != 0) {
+						for(BukkitCommand command : commands) {
+							if(command == null) {
+								throw new LoadException(project, "The BukkitCommand array returned by the "
+										+ bukkitProjectInstance.getClass().getName() + ".getCommands() method"
+										+ " must not contain null values.");
+							}
 						}
-					}
-					try {
-						this.injectCommands(bukkitProjectPlugin, commands);
-					} catch (Exception e) {
-						throw new LoadException(project, "An Exception occurred while injecting "
-								+ project.getName() + "'s commands into Bukkit. This means that JavaLoader is not"
-								+ " fully compatible with the current version of Bukkit. This is a bug in JavaLoader,"
-								+ " but you might be able to prevent this from triggering by altering what your "
-								+ bukkitProjectInstance.getClass().getName() + ".getCommands() method returns."
-								+ " Stacktrace:\n" + Utils.getStacktrace(e));
+						try {
+							this.injectCommands(bukkitProjectPlugin, commands);
+						} catch (Exception e) {
+							throw new LoadException(project, "An Exception occurred while injecting "
+									+ project.getName() + "'s commands into Bukkit. This means that JavaLoader is not"
+									+ " fully compatible with the current version of Bukkit. This is a bug in"
+									+ " JavaLoader, but you might be able to prevent this from triggering by altering"
+									+ " what your " + bukkitProjectInstance.getClass().getName() + ".getCommands()"
+									+ " method returns. Stacktrace:\n" + Utils.getStacktrace(e));
+						}
 					}
 					
 				} else {
