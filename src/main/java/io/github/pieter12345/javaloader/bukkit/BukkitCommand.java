@@ -35,7 +35,7 @@ public final class BukkitCommand {
 	public BukkitCommand(String name) throws NullPointerException {
 		Objects.requireNonNull(name, "Name must not be null.");
 		this.name = name.toLowerCase(Locale.ENGLISH);
-		this.description = null;
+		this.description = "";
 		this.usageMessage = null;
 		this.permission = null;
 		this.permissionMessage = null;
@@ -68,7 +68,7 @@ public final class BukkitCommand {
 			List<String> aliases, CommandExecutor executor, TabCompleter completer) throws NullPointerException {
 		Objects.requireNonNull(name, "Name must not be null.");
 		this.name = name.toLowerCase(Locale.ENGLISH);
-		this.description = description;
+		this.description = (description == null ? "" : description);
 		this.usageMessage = usageMessage;
 		this.permission = permission;
 		this.permissionMessage = null;
@@ -125,6 +125,7 @@ public final class BukkitCommand {
 	 * @return This instance.
 	 */
 	public BukkitCommand setDescription(String description) {
+		Objects.requireNonNull(description, "Description must not be null.");
 		this.description = description;
 		return this;
 	}

@@ -161,7 +161,7 @@ class BukkitCommandTest {
 		
 		// Assert that the getters return the set values.
 		assertThat(command.getName()).isEqualTo(name.toLowerCase(Locale.ENGLISH)); // Name gets lowercased.
-		assertThat(command.getDescription()).isNull();
+		assertThat(command.getDescription()).isEmpty();
 		assertThat(command.getUsageMessage()).isNull();
 		assertThat(command.getPermission()).isNull();
 		assertThat(command.getAliases()).isEmpty();
@@ -182,7 +182,7 @@ class BukkitCommandTest {
 		
 		// Assert that the getters return the default values.
 		assertThat(command.getName()).isEqualTo(name.toLowerCase(Locale.ENGLISH)); // Name gets lowercased.
-		assertThat(command.getDescription()).isNull();
+		assertThat(command.getDescription()).isEmpty();
 		assertThat(command.getUsageMessage()).isNull();
 		assertThat(command.getPermission()).isNull();
 		assertThat(command.getAliases()).isEmpty();
