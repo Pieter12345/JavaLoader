@@ -59,7 +59,6 @@ import io.github.pieter12345.javaloader.utils.Utils;
 public class JavaLoaderBukkitPlugin extends JavaPlugin {
 	
 	// Variables & Constants.
-	private static final String VERSION;
 	private static final String PREFIX_INFO =
 			ChatColor.GOLD + "[" + ChatColor.DARK_AQUA + "JavaLoader" + ChatColor.GOLD + "]" + ChatColor.GREEN + " ";
 	private static final String PREFIX_ERROR =
@@ -71,21 +70,6 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 	private ProjectManager projectManager;
 	private final File projectsDir = new File(this.getDataFolder().getAbsolutePath() + "/JavaProjects");
 	private ProjectStateListener projectStateListener;
-	
-	static {
-		// Get the version from the manifest.
-		Package pack = JavaLoaderBukkitPlugin.class.getPackage();
-		versionScope: {
-			if(pack != null) {
-				String implementationVersion = pack.getImplementationVersion();
-				if(implementationVersion != null) {
-					VERSION = pack.getImplementationVersion(); // Expected format: "A.B.C-SNAPSHOT".
-					break versionScope;
-				}
-			}
-			VERSION = "Unknown";
-		}
-	}
 	
 	public JavaLoaderBukkitPlugin() {
 		// This runs when Bukkit creates JavaLoader. Use onEnable() for initialization on enable instead.
@@ -297,7 +281,7 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 		
 		// Print feedback.
 		JavaProject[] projects = this.projectManager.getProjects();
-		logger.info("JavaLoader " + VERSION + " enabled. "
+		logger.info("JavaLoader " + this.getDescription().getVersion() + " enabled. "
 				+ loadAllResult.loadedProjects.size() + "/" + projects.length + " projects loaded.");
 		
 	}
@@ -314,7 +298,7 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 		this.projectManager = null;
 		
 		// Print feedback.
-		logger.info("JavaLoader " + VERSION + " disabled.");
+		logger.info("JavaLoader " + this.getDescription().getVersion() + " disabled.");
 	}
 	
 	@Override
@@ -339,7 +323,8 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 					String authorsStr = "Author" + (authors.size() == 1 ? "" : "s") + ": &8"
 							+ (authors.size() == 0 ? "Unknown"
 							: Utils.glueIterable(authors, (String str) -> str, "&a, &8")) + "&a.";
-					sender.sendMessage((PREFIX_INFO + colorize("&aVersion: &8" + VERSION + "&a. " + authorsStr
+					sender.sendMessage((PREFIX_INFO + colorize(
+							"&aVersion: &8" + this.getDescription().getVersion() + "&a. " + authorsStr
 							+ "\n&6  - /javaloader help [subcommand]"
 							+ "\n&3    Displays this page or information about the subcommand."
 							+ "\n&6  - /javaloader list"
