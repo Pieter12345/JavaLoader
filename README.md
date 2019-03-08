@@ -22,7 +22,7 @@ Place the JavaLoader jar file in the `<server dir>/plugins` directory of your Bu
  - The JavaLoader jar file and the Bukkit API (including its implementation) are automatically included in the class path.
  - Additional dependencies can be added by creating the `<server dir>/plugins/JavaLoader/JavaProjects/<your project>/dependencies.txt` file with line-seperated dependency descriptors.
  - Jar dependencies can be included by adding the following line to the dependencies.txt file:
-`jar -scope path` where scope is optional and can be `provided` or `include` and path is the path to the .jar file. If the path starts with a dot, the relative path is taken from the project directory.
+`jar -scope path` where scope is optional and can be `provided` or `include` (defaults to `include`) and path is the path to the .jar file. If the path starts with a dot, the relative path is taken from the project directory.
  - JavaLoader project dependencies can be included by adding the following line to the dependencies.txt file:
 `project projectName` where projectName is the name of the project.
  - Circular project dependencies are now allowed.

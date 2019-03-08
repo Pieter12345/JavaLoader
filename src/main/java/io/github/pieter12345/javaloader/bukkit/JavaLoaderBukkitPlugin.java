@@ -68,7 +68,7 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 	private static final int COMPILER_FEEDBACK_LIMIT = 5; // The max amount of warnings/errors to print per recompile.
 	
 	private ProjectManager projectManager;
-	private final File projectsDir = new File(this.getDataFolder().getAbsolutePath() + "/JavaProjects");
+	private final File projectsDir = new File(this.getDataFolder().getAbsoluteFile(), "JavaProjects");
 	private ProjectStateListener projectStateListener;
 	
 	public JavaLoaderBukkitPlugin() {
@@ -338,8 +338,8 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 				} else if(args.length == 2) {
 					switch(args[1].toLowerCase()) {
 						case "help":
-							sender.sendMessage(PREFIX_INFO
-									+ colorize("&6/javaloader help &8-&3 Displays command help."));
+							sender.sendMessage(PREFIX_INFO + colorize(
+									"&6/javaloader help &8-&3 Displays command help."));
 							return true;
 						case "list":
 							sender.sendMessage(PREFIX_INFO + colorize(
@@ -742,6 +742,12 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 		return null;
 	}
 	
+	/**
+	 * Colorizes the given string by replacing color char '&' by {@link ChatColor#COLOR_CHAR} for
+	 * color idenfitiers 0-9a-fA-F.
+	 * @param str - The string to colorize.
+	 * @return The colorized string.
+	 */
 	private static String colorize(String str) {
 		return str.replaceAll("(?<!\\&)\\&(?=[0-9a-fA-F])", ChatColor.COLOR_CHAR + "");
 	}
@@ -779,8 +785,8 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 					while((zipEntry = inStream.getNextEntry()) != null) {
 						String name = zipEntry.getName();
 						if(name.startsWith("exampleprojects/bukkit/")) {
-							File targetFile = new File(this.projectsDir
-									+ "/" + name.substring("exampleprojects/bukkit/".length()));
+							File targetFile = new File(this.projectsDir,
+									name.substring("exampleprojects/bukkit/".length()));
 							if(name.endsWith("/")) {
 								targetFile.mkdir();
 							} else {

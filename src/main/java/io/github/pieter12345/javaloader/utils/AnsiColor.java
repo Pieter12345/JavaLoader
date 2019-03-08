@@ -30,7 +30,7 @@ public abstract class AnsiColor {
 	 * @return The colorized string or null when 'str' is null.
 	 * @throws FormatException When the colorize character is found in combination with an invalid color character.
 	 */
-	public static String colorize(String str) {
+	public static String colorize(String str) throws FormatException {
 		return colorize(str, '&');
 	}
 	
@@ -42,7 +42,7 @@ public abstract class AnsiColor {
 	 * @return The colorized string or null when 'str' is null.
 	 * @throws FormatException When the colorize character is found in combination with an invalid color character.
 	 */
-	public static String colorize(String str, char colorizeChar) {
+	public static String colorize(String str, char colorizeChar) throws FormatException {
 		if(str == null) {
 			return null;
 		}

@@ -9,4 +9,4 @@ commands:
         description: This plugin can compile, load, unload and hotswap java projects in runtime.
         usage: /javaloader <recompile, load, unload> [project]
         permission: javaloader.use
-        permission-message: You don't have permission to use this command.
+        permission-message: You do not have permission to use this command.
