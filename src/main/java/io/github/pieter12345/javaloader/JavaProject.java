@@ -50,21 +50,6 @@ public class JavaProject {
 	private final ProjectStateListener stateListener;
 	private final ProjectManager manager;
 	
-	private static final char CLASSPATH_SEPERATOR;
-	
-	static {
-		String os = System.getProperty("os.name").toLowerCase();
-		if(os.startsWith("win")) {
-			CLASSPATH_SEPERATOR = ';';
-		} else if(os.equals("linux") || os.equals("mac os x")) {
-			CLASSPATH_SEPERATOR = ':';
-		} else {
-			// Unknown OS. Default to ':' and hope it'll work.
-			CLASSPATH_SEPERATOR = ':';
-		}
-		
-	}
-	
 	/**
 	 * Creates a new JavaProject with the given parameters and loads its compiled dependencies if available.
 	 * @param projectName - The name of the project.
@@ -189,9 +174,9 @@ public class JavaProject {
 			String pluginJarFilePath = codeSource.getLocation().toURI().getPath();
 			
 			// Get the complete classpath (including the binDir and passed classpath entries such as jar file paths).
-			String classpath = System.getProperty("java.class.path") + CLASSPATH_SEPERATOR + pluginJarFilePath;
+			String classpath = System.getProperty("java.class.path") + File.pathSeparatorChar + pluginJarFilePath;
 			for(File dependencyFile : dependencyFiles) {
-				classpath = classpath + CLASSPATH_SEPERATOR + dependencyFile.getAbsolutePath();
+				classpath = classpath + File.pathSeparatorChar + dependencyFile.getAbsolutePath();
 			}
 			
 			// Create the compiler options array.
