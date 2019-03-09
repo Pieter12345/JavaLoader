@@ -62,8 +62,8 @@ public class JavaProject {
 			ProjectManager manager, ProjectStateListener stateListener) {
 		this.projectName = projectName;
 		this.projectDir = projectDir;
-		this.binDir = new File(this.projectDir.getAbsolutePath() + "/bin");
-		this.srcDir = new File(this.projectDir.getAbsolutePath() + "/src");
+		this.binDir = new File(this.projectDir.getAbsoluteFile(), "bin");
+		this.srcDir = new File(this.projectDir.getAbsoluteFile(), "src");
 		this.manager = manager;
 		this.stateListener = stateListener;
 	}
@@ -90,7 +90,7 @@ public class JavaProject {
 			
 			// Get the dependencies and validate their existence.
 			// For JavaLoader projects, also validate that the project exists in the project manger.
-			final File dependenciesFile = new File(this.projectDir.getAbsolutePath() + "/dependencies.txt");
+			final File dependenciesFile = new File(this.projectDir.getAbsoluteFile(), "dependencies.txt");
 			Dependency[] dependencies = this.readDependencies(dependenciesFile);
 			List<File> dependencyFiles = new ArrayList<File>();
 			for(Dependency dependency : dependencies) {
@@ -210,7 +210,7 @@ public class JavaProject {
 			// Compilation succeeded, so store the dependencies and copy them into the bin directory.
 			this.dependencies = dependencies;
 			if(dependenciesFile.exists()) {
-				Files.copy(dependenciesFile, new File(this.binDir.getAbsolutePath() + "/dependencies.txt"));
+				Files.copy(dependenciesFile, new File(this.binDir.getAbsoluteFile(), "dependencies.txt"));
 			}
 			
 		} catch (Exception e) {
@@ -636,7 +636,7 @@ public class JavaProject {
 	 */
 	public void setBinDirName(String binDirName) {
 		this.binDir =
-				new File(this.projectDir.getAbsolutePath() + "/" + binDirName.replaceAll("(\\.\\.|\\\\|\\/)", " "));
+				new File(this.projectDir.getAbsoluteFile(), binDirName.replaceAll("(\\.\\.|\\\\|\\/)", " "));
 	}
 	
 	/**
@@ -689,7 +689,7 @@ public class JavaProject {
 	 * @throws IOException If an I/O error occurred while reading the dependencies file.
 	 */
 	public Dependency[] getSourceDependencies() throws IOException, DependencyException {
-		return this.readDependencies(new File(this.projectDir.getAbsolutePath() + "/dependencies.txt"));
+		return this.readDependencies(new File(this.projectDir.getAbsoluteFile(), "dependencies.txt"));
 	}
 	
 	/**
@@ -706,7 +706,7 @@ public class JavaProject {
 		 * Dependency array.
 		 */
 		if(this.dependencies == null) {
-			File dependenciesFile = new File(this.binDir.getAbsolutePath() + "/dependencies.txt");
+			File dependenciesFile = new File(this.binDir.getAbsoluteFile(), "dependencies.txt");
 			try {
 				this.dependencies = this.readDependencies(dependenciesFile);
 			} catch (IOException e) {

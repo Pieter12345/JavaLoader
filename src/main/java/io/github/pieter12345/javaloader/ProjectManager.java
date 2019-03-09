@@ -753,7 +753,7 @@ public class ProjectManager {
 		}
 		
 		// Get the project directory.
-		File projectDir = new File(this.projectsDir.getAbsolutePath() + "/" + projectName);
+		File projectDir = new File(this.projectsDir.getAbsoluteFile(), projectName);
 		
 		// Validate that the projectName did not contain file path modifying characters.
 		if(!projectDir.getAbsoluteFile().getParent().equals(this.projectsDir.getAbsolutePath())

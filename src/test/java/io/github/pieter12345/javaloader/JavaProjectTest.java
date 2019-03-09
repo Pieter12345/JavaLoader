@@ -37,7 +37,8 @@ class JavaProjectTest {
 		
 		// Create a new JavaProject.
 		this.projectName = "projectName";
-		this.projectDir = new File(new File("").getAbsolutePath() + "/tempJavaProjects/unexistingProject");
+		this.projectDir = new File(new File("").getAbsoluteFile(),
+				"tempJavaProjects" + File.separator + "unexistingProject");
 		this.manager = mock(ProjectManager.class);
 		this.projectStateListener = mock(ProjectStateListener.class);
 		this.project = new JavaProject(this.projectName, this.projectDir, this.manager, this.projectStateListener);
@@ -54,8 +55,8 @@ class JavaProjectTest {
 		// Assert that the getters return the same objects/values as the ones that were set.
 		assertThat(this.project.getName()).isEqualTo(this.projectName);
 		assertThat(this.project.getProjectDir()).isEqualTo(this.projectDir);
-		assertThat(this.project.getBinDir()).isEqualTo(new File(this.projectDir.getAbsolutePath() + "/bin"));
-		assertThat(this.project.getSourceDir()).isEqualTo(new File(this.projectDir.getAbsolutePath() + "/src"));
+		assertThat(this.project.getBinDir()).isEqualTo(new File(this.projectDir.getAbsoluteFile(), "bin"));
+		assertThat(this.project.getSourceDir()).isEqualTo(new File(this.projectDir.getAbsoluteFile(), "src"));
 		assertThat(this.project.getProjectManager()).isSameAs(this.manager);
 		
 	}
@@ -70,28 +71,28 @@ class JavaProjectTest {
 	void testParseDependenciesSingleJarDep() throws DependencyException {
 		Dependency[] dependencies = this.project.parseDependencies("jar " + BASE_DIR_PATH + "/path/to/myJar.jar");
 		assertThat(dependencies).containsExactly(new JarDependency(
-				new File(BASE_DIR_PATH + "/path/to/myJar.jar"), INCLUDE));
+				new File(BASE_DIR_PATH, "path/to/myJar.jar"), INCLUDE));
 	}
 	
 	@Test
 	void testParseDependenciesSingleRelativeJarDep() throws DependencyException {
 		Dependency[] dependencies = this.project.parseDependencies("jar ./../../path/to/myJar.jar");
 		assertThat(dependencies).containsExactly(new JarDependency(
-				new File(BASE_DIR_PATH + "/path/to/myJar.jar"), INCLUDE));
+				new File(BASE_DIR_PATH, "path/to/myJar.jar"), INCLUDE));
 	}
 	
 	@Test
 	void testParseDependenciesSingleRelativeJarDep2() throws DependencyException {
 		Dependency[] dependencies = this.project.parseDependencies("jar ./path/to/myJar.jar");
 		assertThat(dependencies).containsExactly(new JarDependency(
-				new File(this.projectDir.getAbsolutePath() + "/path/to/myJar.jar"), INCLUDE));
+				new File(this.projectDir.getAbsoluteFile(), "path/to/myJar.jar"), INCLUDE));
 	}
 	
 	@Test
 	void testParseDependenciesSingleRelativeJarDep3() throws DependencyException {
 		Dependency[] dependencies = this.project.parseDependencies("jar .\\path\\to\\myJar.jar");
 		assertThat(dependencies).containsExactly(new JarDependency(
-				new File(this.projectDir.getAbsolutePath() + "/path/to/myJar.jar"), INCLUDE));
+				new File(this.projectDir.getAbsoluteFile(), "path/to/myJar.jar"), INCLUDE));
 	}
 	
 	@Test
@@ -99,7 +100,7 @@ class JavaProjectTest {
 		Dependency[] dependencies = this.project.parseDependencies(
 				"jar -include " + BASE_DIR_PATH + "/path/to/myJar.jar");
 		assertThat(dependencies).containsExactly(new JarDependency(
-				new File(BASE_DIR_PATH + "/path/to/myJar.jar"), INCLUDE));
+				new File(BASE_DIR_PATH, "path/to/myJar.jar"), INCLUDE));
 	}
 	
 	@Test
@@ -107,7 +108,7 @@ class JavaProjectTest {
 		Dependency[] dependencies = this.project.parseDependencies(
 				"jar -IncLUdE " + BASE_DIR_PATH + "/path/to/myJar.jar");
 		assertThat(dependencies).containsExactly(new JarDependency(
-				new File(BASE_DIR_PATH + "/path/to/myJar.jar"), INCLUDE));
+				new File(BASE_DIR_PATH, "path/to/myJar.jar"), INCLUDE));
 	}
 	
 	@Test
@@ -115,7 +116,7 @@ class JavaProjectTest {
 		Dependency[] dependencies = this.project.parseDependencies(
 				"jar -provided " + BASE_DIR_PATH + "/path/to/myJar.jar");
 		assertThat(dependencies).containsExactly(new JarDependency(
-				new File(BASE_DIR_PATH + "/path/to/myJar.jar"), PROVIDED));
+				new File(BASE_DIR_PATH, "path/to/myJar.jar"), PROVIDED));
 	}
 	
 	@Test
@@ -164,9 +165,9 @@ class JavaProjectTest {
 				+ "\nproject project2";
 		Dependency[] dependencies = this.project.parseDependencies(input);
 		assertThat(dependencies).containsExactly(
-				new JarDependency(new File(this.projectDir.getAbsolutePath() + "/myJar.jar"), INCLUDE),
-				new JarDependency(new File(this.projectDir.getAbsolutePath() + "/myJarInc.jar"), INCLUDE),
-				new JarDependency(new File(this.projectDir.getAbsolutePath() + "/myJarProv.jar"), PROVIDED),
+				new JarDependency(new File(this.projectDir.getAbsoluteFile(), "myJar.jar"), INCLUDE),
+				new JarDependency(new File(this.projectDir.getAbsoluteFile(), "myJarInc.jar"), INCLUDE),
+				new JarDependency(new File(this.projectDir.getAbsoluteFile(), "myJarProv.jar"), PROVIDED),
 				new ProjectDependency("project1", this.manager),
 				new ProjectDependency("project2", this.manager));
 	}

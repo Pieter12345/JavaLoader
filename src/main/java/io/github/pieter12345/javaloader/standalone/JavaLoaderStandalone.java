@@ -97,7 +97,7 @@ public class JavaLoaderStandalone {
 	 * directory as the JavaLoader jar file.
 	 */
 	public JavaLoaderStandalone() {
-		this(new File(new File("").getAbsolutePath() + "/JavaProjects"));
+		this(new File(new File("").getAbsoluteFile(), "JavaProjects"));
 	}
 	
 	/**
@@ -607,12 +607,12 @@ public class JavaLoaderStandalone {
 			if(codeSource != null) {
 				
 				// Select a source to copy from (directory (IDE) or jar (production)).
-				if(codeSource.getLocation().getPath().endsWith("/")) {
+				if(codeSource.getLocation().getPath().endsWith("/")) { // Has a '/' separator regardless of the OS.
 					
 					// The code is being ran from a non-jar source. Get the projects base directory.
 					File exampleProjectsBaseDir = new File(
 							URLDecoder.decode(codeSource.getLocation().getPath(), "UTF-8")
-							+ "exampleprojects/standalone");
+							+ "exampleprojects" + File.separator + "standalone");
 					
 					// Validate that the projects base directory exists.
 					if(!exampleProjectsBaseDir.isDirectory()) {
@@ -634,8 +634,8 @@ public class JavaLoaderStandalone {
 					while((zipEntry = inStream.getNextEntry()) != null) {
 						String name = zipEntry.getName();
 						if(name.startsWith("exampleprojects/standalone/")) {
-							File targetFile = new File(this.projectsDir
-									+ "/" + name.substring("exampleprojects/standalone/".length()));
+							File targetFile = new File(this.projectsDir,
+									name.substring("exampleprojects/standalone/".length()));
 							if(name.endsWith("/")) {
 								targetFile.mkdir();
 							} else {

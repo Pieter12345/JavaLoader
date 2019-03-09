@@ -19,7 +19,7 @@ import io.github.pieter12345.javaloader.utils.Utils;
  */
 class JavaLoaderStandaloneSystemTest {
 
-	private static final File PROJECTS_DIR = new File(new File("").getAbsolutePath() + "/tempJavaProjects");
+	private static final File PROJECTS_DIR = new File(new File("").getAbsoluteFile(), "tempJavaProjects");
 	
 	private JavaLoaderStandalone javaLoader;
 	

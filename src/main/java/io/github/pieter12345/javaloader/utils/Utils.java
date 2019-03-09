@@ -56,7 +56,7 @@ public abstract class Utils {
 	 * this is thrown.
 	 */
 	public static void copyFile(File toCopy, File targetDir) throws IOException, FileNotFoundException {
-		File target = new File(targetDir.getAbsolutePath() + "/" + toCopy.getName());
+		File target = new File(targetDir.getAbsoluteFile(), toCopy.getName());
 		if(toCopy.isDirectory()) {
 			target.mkdir();
 			for(File file : toCopy.listFiles()) {

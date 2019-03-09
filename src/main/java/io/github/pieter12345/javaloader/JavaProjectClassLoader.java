@@ -106,7 +106,7 @@ public class JavaProjectClassLoader extends URLClassLoader {
 		}
 		
 		// Check if the classfile exists in the projects bin directory.
-		File classFile = new File(this.binDir + "/" + name.replace(".", "/") + ".class");
+		File classFile = new File(this.binDir, name.replace(".", "/") + ".class");
 		if(classFile.isFile()) {
 			try {
 				FileInputStream fis = new FileInputStream(classFile);

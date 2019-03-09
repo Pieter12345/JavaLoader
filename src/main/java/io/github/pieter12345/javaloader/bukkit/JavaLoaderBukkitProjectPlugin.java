@@ -65,7 +65,7 @@ public class JavaLoaderBukkitProjectPlugin extends PluginBase {
 		PluginDescriptionFile pluginDesc = new PluginDescriptionFile(project.getName(), project.getVersion(), null);
 		Server server = Bukkit.getServer();
 		this.init(new BukkitPluginLoader(server), server, pluginDesc,
-				new File(project.getProjectDir() + "/" + project.getName()), (File) null, project.getClassLoader());
+				new File(project.getProjectDir(), project.getName()), (File) null, project.getClassLoader());
 	}
 	
 //	public JavaLoaderProjectPlugin() {
