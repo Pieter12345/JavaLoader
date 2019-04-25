@@ -5,7 +5,7 @@
 	<artifactId>JavaLoader</artifactId>
 	<version>0.0.2-SNAPSHOT</version>
 	<name>JavaLoader</name>
-	<description>A plugin for CraftBukkit based MineCraft servers that allows you to compile, enable, disable and hotswap java projects in runtime.</description>
+	<description>A plugin for Bukkit based Minecraft servers that allows you to compile, enable, disable and hotswap Java projects in runtime.</description>
 	<developers>
 		<developer>
 			<id>Pieter12345</id>
