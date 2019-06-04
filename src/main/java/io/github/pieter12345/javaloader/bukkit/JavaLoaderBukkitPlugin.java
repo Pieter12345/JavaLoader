@@ -296,6 +296,7 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 					+ (ex.getCause() == null ? " " + ex.getMessage() : "\n" + Utils.getStacktrace(ex)));
 		});
 		this.projectManager = null;
+		this.projectStateListener = null;
 		
 		// Print feedback.
 		logger.info("JavaLoader " + this.getDescription().getVersion() + " disabled.");
