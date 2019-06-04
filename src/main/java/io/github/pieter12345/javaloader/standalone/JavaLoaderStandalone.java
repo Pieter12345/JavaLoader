@@ -76,15 +76,11 @@ public class JavaLoaderStandalone {
 		Runtime.getRuntime().addShutdownHook(new Thread() {
 			@Override
 			public void run() {
-				printFeedback("The JVM is being terminated. Unloading all projects.");
-				if(javaLoaderStandalone.projectManager != null) {
-					javaLoaderStandalone.projectManager.unloadAllProjects((UnloadException ex) -> {
-						printFeedback(PREFIX_ERROR + "An UnloadException occurred while unloading"
-								+ " java project \"" + ex.getProject().getName() + "\":"
-								+ (ex.getCause() == null ? " " + ex.getMessage() : "\n" + Utils.getStacktrace(ex)));
-					});
+				if(javaLoaderStandalone.enabled) {
+					printFeedback("The JVM is being terminated. Unloading all projects.");
+					javaLoaderStandalone.stop();
+					printFeedback("Projects unloaded.");
 				}
-				printFeedback("Projects unloaded.");
 			}
 		});
 		
