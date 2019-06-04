@@ -67,7 +67,6 @@ class JavaLoaderStandaloneSystemTest {
 		
 		// Assert that an example project was added.
 		assertThat(this.javaLoader.getProjectNames()).isNotEmpty();
-		
 	}
 	
 	/**
@@ -90,7 +89,6 @@ class JavaLoaderStandaloneSystemTest {
 		
 		// Assert that no example project was added.
 		assertThat(this.javaLoader.getProjectNames()).isEmpty();
-		
 	}
 	
 	/**
@@ -121,8 +119,8 @@ class JavaLoaderStandaloneSystemTest {
 		assertThat(this.javaLoader.getProject(projectName)).isNull();
 		
 		// Compile and load the project.
-		this.javaLoader.processCommand("recompile", projectName);
-		this.javaLoader.processCommand("load", projectName);
+		this.javaLoader.executeCommand("recompile " + projectName);
+		this.javaLoader.executeCommand("load " + projectName);
 		
 		// Assert that the project has been loaded and enabled.
 		JavaLoaderProject project = this.javaLoader.getProject(projectName);
@@ -130,16 +128,14 @@ class JavaLoaderStandaloneSystemTest {
 		assertThat(project.isEnabled()).isTrue();
 		
 		// Unload the project and assert that it was unloaded.
-		this.javaLoader.processCommand("unload", projectName);
+		this.javaLoader.executeCommand("unload " + projectName);
 		assertThat(this.javaLoader.getProject(projectName)).isNull();
 		assertThat(project.isEnabled()).isFalse();
 		
 		// Load the project again and assert that it has been loaded and enabled.
-		this.javaLoader.processCommand("load", projectName);
+		this.javaLoader.executeCommand("load " + projectName);
 		project = this.javaLoader.getProject(projectName);
 		assertThat(project).isNotNull();
 		assertThat(project.isEnabled()).isTrue();
-		
 	}
-	
 }
