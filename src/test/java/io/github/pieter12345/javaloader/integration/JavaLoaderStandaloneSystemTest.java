@@ -9,9 +9,9 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import io.github.pieter12345.javaloader.JavaLoaderProject;
+import io.github.pieter12345.javaloader.core.JavaLoaderProject;
+import io.github.pieter12345.javaloader.core.utils.Utils;
 import io.github.pieter12345.javaloader.standalone.JavaLoaderStandalone;
-import io.github.pieter12345.javaloader.utils.Utils;
 
 /**
  * Tests system behaviour using the {@link JavaLoaderStandalone} class.

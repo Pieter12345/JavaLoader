@@ -1,5 +1,5 @@
-import io.github.pieter12345.javaloader.JavaLoaderProject;
-import io.github.pieter12345.javaloader.utils.AnsiColor;
+import io.github.pieter12345.javaloader.core.JavaLoaderProject;
+import io.github.pieter12345.javaloader.core.utils.AnsiColor;
 
 /**
  * ExampleProjectStandalone class.

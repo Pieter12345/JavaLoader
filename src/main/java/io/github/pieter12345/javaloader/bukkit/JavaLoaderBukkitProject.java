@@ -7,8 +7,8 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 
-import io.github.pieter12345.javaloader.JavaLoaderProject;
-import io.github.pieter12345.javaloader.JavaProject;
+import io.github.pieter12345.javaloader.core.JavaLoaderProject;
+import io.github.pieter12345.javaloader.core.JavaProject;
 
 /**
  * JavaLoaderBukkitProject class.

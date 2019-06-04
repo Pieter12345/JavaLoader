@@ -28,7 +28,7 @@ import org.bukkit.plugin.PluginLogger;
 
 import com.google.common.base.Charsets;
 
-import io.github.pieter12345.javaloader.JavaProject;
+import io.github.pieter12345.javaloader.core.JavaProject;
 
 /**
  * Represents a Java plugin for a JavaLoader project.

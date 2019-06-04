@@ -30,20 +30,20 @@ import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.SimplePluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import io.github.pieter12345.javaloader.JavaLoaderProject;
-import io.github.pieter12345.javaloader.JavaProject;
-import io.github.pieter12345.javaloader.ProjectManager;
-import io.github.pieter12345.javaloader.ProjectManager.LoadAllResult;
-import io.github.pieter12345.javaloader.ProjectStateListener;
 import io.github.pieter12345.javaloader.core.CommandExecutor;
+import io.github.pieter12345.javaloader.core.JavaLoaderProject;
+import io.github.pieter12345.javaloader.core.JavaProject;
+import io.github.pieter12345.javaloader.core.ProjectManager;
+import io.github.pieter12345.javaloader.core.ProjectStateListener;
 import io.github.pieter12345.javaloader.core.CommandExecutor.CommandSender;
 import io.github.pieter12345.javaloader.core.CommandExecutor.MessageType;
-import io.github.pieter12345.javaloader.exceptions.LoadException;
-import io.github.pieter12345.javaloader.exceptions.UnloadException;
-import io.github.pieter12345.javaloader.utils.AnsiColor;
-import io.github.pieter12345.javaloader.utils.ReflectionUtils;
-import io.github.pieter12345.javaloader.utils.ReflectionUtils.Argument;
-import io.github.pieter12345.javaloader.utils.Utils;
+import io.github.pieter12345.javaloader.core.ProjectManager.LoadAllResult;
+import io.github.pieter12345.javaloader.core.exceptions.LoadException;
+import io.github.pieter12345.javaloader.core.exceptions.UnloadException;
+import io.github.pieter12345.javaloader.core.utils.AnsiColor;
+import io.github.pieter12345.javaloader.core.utils.ReflectionUtils;
+import io.github.pieter12345.javaloader.core.utils.Utils;
+import io.github.pieter12345.javaloader.core.utils.ReflectionUtils.Argument;
 
 /**
  * JavaLoaderBukkitPlugin class.

@@ -5,19 +5,16 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
-import io.github.pieter12345.javaloader.JavaProject;
-import io.github.pieter12345.javaloader.JavaProject.UnloadMethod;
-import io.github.pieter12345.javaloader.ProjectManager;
-import io.github.pieter12345.javaloader.ProjectManager.LoadAllResult;
-import io.github.pieter12345.javaloader.ProjectManager.RecompileAllResult;
-import io.github.pieter12345.javaloader.ProjectManager.RecompileFeedbackHandler;
-import io.github.pieter12345.javaloader.ProjectStateListener;
-import io.github.pieter12345.javaloader.exceptions.CompileException;
-import io.github.pieter12345.javaloader.exceptions.DepOrderViolationException;
-import io.github.pieter12345.javaloader.exceptions.LoadException;
-import io.github.pieter12345.javaloader.exceptions.UnloadException;
-import io.github.pieter12345.javaloader.utils.Utils;
-import io.github.pieter12345.javaloader.utils.AnsiColor.FormatException;
+import io.github.pieter12345.javaloader.core.JavaProject.UnloadMethod;
+import io.github.pieter12345.javaloader.core.ProjectManager.LoadAllResult;
+import io.github.pieter12345.javaloader.core.ProjectManager.RecompileAllResult;
+import io.github.pieter12345.javaloader.core.ProjectManager.RecompileFeedbackHandler;
+import io.github.pieter12345.javaloader.core.exceptions.CompileException;
+import io.github.pieter12345.javaloader.core.exceptions.DepOrderViolationException;
+import io.github.pieter12345.javaloader.core.exceptions.LoadException;
+import io.github.pieter12345.javaloader.core.exceptions.UnloadException;
+import io.github.pieter12345.javaloader.core.utils.Utils;
+import io.github.pieter12345.javaloader.core.utils.AnsiColor.FormatException;
 
 /**
  * Handles JavaLoader command execution.
