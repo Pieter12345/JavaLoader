@@ -582,7 +582,7 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 					
 					// Unload all projects.
 					Set<JavaProject> unloadedProjects = this.projectManager.unloadAllProjects((UnloadException ex) -> {
-						this.logger.severe("An UnloadException occurred while"
+						sender.sendMessage(PREFIX_ERROR + "An UnloadException occurred while"
 								+ " unloading java project \"" + ex.getProject().getName() + "\":"
 								+ (ex.getCause() == null ? " " + ex.getMessage() : "\n" + Utils.getStacktrace(ex)));
 					});
@@ -652,7 +652,7 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 					
 					// Load all projects.
 					LoadAllResult loadAllResult = this.projectManager.loadAllProjects((LoadException ex) -> {
-						this.logger.severe("A LoadException occurred while loading"
+						sender.sendMessage(PREFIX_ERROR + "A LoadException occurred while loading"
 								+ " java project \"" + ex.getProject().getName() + "\":"
 								+ (ex.getCause() == null ? " " + ex.getMessage() : "\n" + Utils.getStacktrace(ex)));
 					});
