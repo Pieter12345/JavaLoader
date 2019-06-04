@@ -190,14 +190,19 @@ public class JavaLoaderStandalone {
 	
 	/**
 	 * Unloads all projects and stops the System.in listener thread. If exceptions occur during project unloading,
-	 * they will be printed to the console.
+	 * they will be printed to the console. Does nothing if {@link JavaLoaderStandalone} is not running.
 	 */
 	public void stop() {
+		if(!this.enabled) {
+			return;
+		}
 		this.projectManager.unloadAllProjects((UnloadException ex) -> {
 			printFeedback(PREFIX_ERROR + "An UnloadException occurred while unloading"
 					+ " java project \"" + ex.getProject().getName() + "\":"
 					+ (ex.getCause() == null ? " " + ex.getMessage() : "\n" + Utils.getStacktrace(ex)));
 		});
+		this.projectManager = null;
+		this.projectStateListener = null;
 		this.enabled = false;
 	}
 	
