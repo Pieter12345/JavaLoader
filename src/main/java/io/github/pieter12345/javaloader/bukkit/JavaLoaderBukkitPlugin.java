@@ -539,8 +539,7 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 								+ " occurred in java project \"" + e.getProject().getName() + "\":\n"
 								+ Utils.getStacktrace(e)));
 					} catch (IllegalArgumentException e) {
-						throw new InternalError(
-								"Project is obtained from this manager, so this should be impossible.", e);
+						throw new Error("Project is obtained from this manager, so this should be impossible.", e);
 					}
 					
 					// Give compiler feedback.

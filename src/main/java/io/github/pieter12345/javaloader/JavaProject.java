@@ -200,7 +200,7 @@ public class JavaProject {
 				fileManager.close();
 			} catch (IOException e) {
 				// Never happens.
-				throw new InternalError(e);
+				throw new Error(e);
 			}
 			boolean success = compileTask.call();
 			if(!success) {
@@ -341,8 +341,7 @@ public class JavaProject {
 				} else {
 					// Even though dependencies marked as PROVIDED could be ignored, this will force us to review
 					// this part of the code when adding a new dependency implementation.
-					throw new InternalError(
-							"Unsupported dependency implementation: " + dependency.getClass().getName());
+					throw new Error("Unsupported dependency implementation: " + dependency.getClass().getName());
 				}
 			}
 		}

@@ -479,7 +479,7 @@ public class ProjectManager {
 			} catch (UnloadException e) {
 				// This exception should never be thrown due to using the IGNORE_DEPENDENTS unload method.
 				Utils.removeFile(newBinDir);
-				throw new InternalError(e);
+				throw new Error(e);
 			}
 		}
 		
@@ -644,7 +644,7 @@ public class ProjectManager {
 				// Validate that a project is either in ErrorProjects or has its binary directory renamed.
 				// Fail the hard way if this is not the case, so that we can be sure to never mess up file removal.
 				if(!project.getBinDir().getName().equals("bin_new")) {
-					throw new InternalError("A non-error project did not have its binary directory renamed."
+					throw new Error("A non-error project did not have its binary directory renamed."
 							+ " This should be impossible.");
 				}
 				
@@ -672,7 +672,7 @@ public class ProjectManager {
 		// Note that we can only know this due to the earlier validation check in this method.
 		for(JavaProject project : this.projects.values()) {
 			if(!project.getBinDir().getName().equals("bin")) {
-				throw new InternalError("All projects are known to have their binary directory name set to"
+				throw new Error("All projects are known to have their binary directory name set to"
 						+ " \"bin\" at this point. Yet, project \"" + project.getName() + "\" has a binary directory"
 						+ " named: \"" + project.getBinDir().getName() + "\".");
 			}
@@ -831,7 +831,7 @@ public class ProjectManager {
 					unloadedProjects = project.unload(UnloadMethod.UNLOAD_DEPENDENTS, exHandler);
 				} catch (UnloadException e) {
 					// This exception should never be thrown due to using the UNLOAD_DEPENDENTS unload method.
-					throw new InternalError(e);
+					throw new Error(e);
 				}
 			} else {
 				unloadedProjects = Collections.emptyList();
