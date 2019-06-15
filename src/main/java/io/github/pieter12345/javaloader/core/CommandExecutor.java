@@ -88,11 +88,11 @@ public class CommandExecutor {
 									+ (this.commandPrefix.isEmpty() ? "" : "sub") + "command."
 							+ "\n&6  - " + this.commandPrefix + "list"
 							+ "\n&3    Displays a list of all projects and their status."
-							+ "\n&6  - " + this.commandPrefix + "recompile [project]"
+							+ "\n&6  - " + this.commandPrefix + "recompile <project, *>"
 							+ "\n&3    Recompiles, unloads and loads the given or all projects."
-							+ "\n&6  - " + this.commandPrefix + "unload [project]"
+							+ "\n&6  - " + this.commandPrefix + "unload <project, *>"
 							+ "\n&3    Unloads the given or all projects."
-							+ "\n&6  - " + this.commandPrefix + "load [project]"
+							+ "\n&6  - " + this.commandPrefix + "load <project, *>"
 							+ "\n&3    Loads the given or all projects."
 							+ (this.exitCommandHandler == null ? ""
 									: "\n&6  - " + this.commandPrefix + "exit"
@@ -109,22 +109,22 @@ public class CommandExecutor {
 							return;
 						case "recompile":
 							sender.sendMessage(MessageType.INFO, this.colorizer.colorize("&6" + this.commandPrefix
-									+ "recompile [project] &8-&3"
-									+ " Recompiles, unloads and loads the given project or all projects when no project"
+									+ "recompile <project, *> &8-&3"
+									+ " Recompiles, unloads and loads the given project or all projects when '*'"
 									+ " is given. Recompiling happens before projects are unloaded, so the old project"
 									+ " will stay loaded when a recompile Exception occurs."));
 							return;
 						case "load":
 							sender.sendMessage(MessageType.INFO, this.colorizer.colorize("&6" + this.commandPrefix
-									+ "load [project] &8-&3 Loads the"
-									+ " given project or all projects when no project is given. To load a project, only"
+									+ "load <project, *> &8-&3 Loads the"
+									+ " given project or all projects when '*' is given. To load a project, only"
 									+ " the .class files in the project folder have to be valid."
 									+ " This will also load newly added projects."));
 							return;
 						case "unload":
 							sender.sendMessage(MessageType.INFO, this.colorizer.colorize("&6" + this.commandPrefix
-									+ "unload [project] &8-&3 Unloads the"
-									+ " given project or all projects when no project is given."
+									+ "unload <project, *> &8-&3 Unloads the"
+									+ " given project or all projects when '*' is given."
 									+ " Projects that no longer exist will be removed."));
 							return;
 						case "exit":
@@ -144,7 +144,7 @@ public class CommandExecutor {
 					sender.sendMessage(MessageType.ERROR, "Too many arguments.");
 				}
 				return;
-				
+			
 			case "list":
 				
 				// "<prefix> list".
@@ -171,11 +171,47 @@ public class CommandExecutor {
 					sender.sendMessage(MessageType.ERROR, "Too many arguments.");
 				}
 				return;
-				
+			
 			case "recompile":
-				
-				// "<prefix> recompile".
-				if(cmdParts.length == 1) {
+				this.handleRecompileCommand(sender, cmdParts);
+				return;
+			
+			case "unload":
+				this.handleUnloadCommand(sender, cmdParts);
+				return;
+			
+			case "load":
+				this.handleLoadCommand(sender, cmdParts);
+				return;
+			
+			case "exit":
+				if(this.exitCommandHandler != null) {
+					this.exitCommandHandler.onExitCommand();
+					return;
+				}
+				// Intended fall through to default case.
+			default:
+				sender.sendMessage(MessageType.ERROR,
+						"Unknown " + (this.commandPrefix.isEmpty() ? "" : "sub") + "command: " + cmdParts[0]);
+				return;
+		}
+	}
+	
+	private void handleRecompileCommand(final CommandSender sender, String[] cmdParts) {
+		assert cmdParts.length > 0 && cmdParts[0].equalsIgnoreCase("recompile");
+		switch(cmdParts.length) {
+			
+			// "<prefix> recompile".
+			case 1: {
+				sender.sendMessage(MessageType.ERROR, "Not enough arguments."
+						+ " Syntax: " + this.commandPrefix + cmdParts[0].toLowerCase() + " <project, *>");
+				return;
+			}
+			
+			// "<prefix> recompile <project, *>".
+			case 2: {
+				final String projectName = cmdParts[1];
+				if(projectName.equals("*")) {
 					
 					// Recompile all projects.
 					final List<String> messages = new ArrayList<String>();
@@ -240,12 +276,7 @@ public class CommandExecutor {
 						"    Projects loaded: " + result.loadedProjects.size(),
 						"    Projects with errors: " + result.errorProjects.size()
 					});
-					return;
-				}
-				
-				// "<prefix> recompile <projectName>".
-				if(cmdParts.length == 2) {
-					final String projectName = cmdParts[1];
+				} else {
 					
 					// Get the project. Attempt to add it from the file system if it does not yet exist in the
 					// project manager.
@@ -341,16 +372,31 @@ public class CommandExecutor {
 					// Send feedback.
 					sender.sendMessage(MessageType.INFO,
 							"Recompile complete" + (success ? "" : " (with errors)") + ".");
-					
-				} else {
-					sender.sendMessage(MessageType.ERROR, "Too many arguments.");
 				}
 				return;
-				
-			case "unload":
-				
-				// "<prefix> unload".
-				if(cmdParts.length == 1) {
+			}
+			default: {
+				sender.sendMessage(MessageType.ERROR, "Too many arguments.");
+				return;
+			}
+		}
+	}
+	
+	private void handleUnloadCommand(final CommandSender sender, String[] cmdParts) {
+		assert cmdParts.length > 0 && cmdParts[0].equalsIgnoreCase("unload");
+		switch(cmdParts.length) {
+			
+			// "<prefix> unload".
+			case 1: {
+				sender.sendMessage(MessageType.ERROR, "Not enough arguments."
+						+ " Syntax: " + this.commandPrefix + cmdParts[0].toLowerCase() + " <project, *>");
+				return;
+			}
+			
+			// "<prefix> unload <project, *>".
+			case 2: {
+				final String projectName = cmdParts[1];
+				if(projectName.equals("*")) {
 					
 					// Unload all projects.
 					Set<JavaProject> unloadedProjects = this.projectManager.unloadAllProjects((UnloadException ex) -> {
@@ -370,12 +416,7 @@ public class CommandExecutor {
 								+ " project" + (removedProjects.size() == 1 ? "" : "s")
 								+ " due to their project directory no longer existing.");
 					}
-					return;
-				}
-				
-				// "<prefix> unload <projectName>".
-				if(cmdParts.length == 2) {
-					String projectName = cmdParts[1];
+				} else {
 					JavaProject project = this.projectManager.getProject(projectName);
 					
 					// Check if the project exists.
@@ -409,15 +450,31 @@ public class CommandExecutor {
 						sender.sendMessage(MessageType.INFO,
 								"Removed project due to its project directory no longer existing: " + projectName);
 					}
-					
-				} else {
-					sender.sendMessage(MessageType.ERROR, "Too many arguments.");
 				}
 				return;
-			case "load":
-				
-				// "<prefix> load".
-				if(cmdParts.length == 1) {
+			}
+			default: {
+				sender.sendMessage(MessageType.ERROR, "Too many arguments.");
+				return;
+			}
+		}
+	}
+	
+	private void handleLoadCommand(final CommandSender sender, String[] cmdParts) {
+		assert cmdParts.length > 0 && cmdParts[0].equalsIgnoreCase("load");
+		switch(cmdParts.length) {
+			
+			// "<prefix> load".
+			case 1: {
+				sender.sendMessage(MessageType.ERROR, "Not enough arguments."
+						+ " Syntax: " + this.commandPrefix + cmdParts[0].toLowerCase() + " <project, *>");
+				return;
+			}
+			
+			// "<prefix> load <project, *>".
+			case 2: {
+				final String projectName = cmdParts[1];
+				if(projectName.equals("*")) {
 					
 					// Add new projects (happens when a new project directory is created).
 					this.projectManager.addProjectsFromProjectDirectory(this.projectStateListener);
@@ -432,12 +489,7 @@ public class CommandExecutor {
 					// Send feedback.
 					sender.sendMessage(MessageType.INFO, "Loaded " + loadAllResult.loadedProjects.size()
 							+ " project" + (loadAllResult.loadedProjects.size() == 1 ? "" : "s") + ".");
-					return;
-				}
-				
-				// "<prefix> load <projectName>".
-				if(cmdParts.length == 2) {
-					String projectName = cmdParts[1];
+				} else {
 					JavaProject project = this.projectManager.getProject(projectName);
 					
 					// Check if the project exists. Add the project from the filesystem if it was added.
@@ -468,21 +520,13 @@ public class CommandExecutor {
 					} else {
 						sender.sendMessage(MessageType.ERROR, "Project already loaded: " + projectName);
 					}
-					
-				} else {
-					sender.sendMessage(MessageType.ERROR, "Too many arguments.");
 				}
 				return;
-			case "exit":
-				if(this.exitCommandHandler != null) {
-					this.exitCommandHandler.onExitCommand();
-					return;
-				}
-				// Intended fall through to default case.
-			default:
-				sender.sendMessage(MessageType.ERROR,
-						"Unknown " + (this.commandPrefix.isEmpty() ? "" : "sub") + "command: " + cmdParts[0]);
+			}
+			default: {
+				sender.sendMessage(MessageType.ERROR, "Too many arguments.");
 				return;
+			}
 		}
 	}
 	
