@@ -68,7 +68,7 @@ public class ProjectManager {
 	 * @return True if the project was removed, false otherwise.
 	 */
 	protected boolean removeProject(JavaProject project) throws IllegalStateException {
-		if(project.isEnabled()) {
+		if(project.isLoaded()) {
 			throw new IllegalStateException("Cannot remove a loaded project.");
 		}
 		return this.projects.remove(project.getName(), project);
@@ -152,7 +152,7 @@ public class ProjectManager {
 		// Create a set of unloaded projects.
 		Set<JavaProject> projects = new HashSet<JavaProject>();
 		for(JavaProject project : this.projects.values()) {
-			if(!project.isEnabled()) {
+			if(!project.isLoaded()) {
 				projects.add(project);
 			}
 		}
@@ -263,7 +263,7 @@ public class ProjectManager {
 		// Create a set of loaded projects.
 		Set<JavaProject> projects = new HashSet<JavaProject>();
 		for(JavaProject project : this.projects.values()) {
-			if(project.isEnabled()) {
+			if(project.isLoaded()) {
 				projects.add(project);
 			}
 		}
@@ -438,7 +438,7 @@ public class ProjectManager {
 		}
 		
 		// Prevent a recompile if this and at least one of the dependents of this project are loaded.
-		if(project.isEnabled()) {
+		if(project.isLoaded()) {
 			Set<JavaProject> loadedDependents = this.getLoadedDependents(project);
 			if(!loadedDependents.isEmpty()) {
 				List<JavaProject> loadedDependentsList = new ArrayList<JavaProject>(loadedDependents.size());
@@ -473,7 +473,7 @@ public class ProjectManager {
 		
 		// Unload the project if it was loaded. The IGNORE_DEPENDENTS unload method is used because we already
 		// checked that none of the dependents are enabled.
-		if(project.isEnabled()) {
+		if(project.isLoaded()) {
 			try {
 				project.unload(UnloadMethod.IGNORE_DEPENDENTS, unloadExHandler);
 			} catch (UnloadException e) {
@@ -505,7 +505,7 @@ public class ProjectManager {
 	private Set<JavaProject> getLoadedDependents(JavaProject project) {
 		Set<JavaProject> dependingProjects = new HashSet<JavaProject>();
 		for(JavaProject p : this.getProjects()) {
-			if(p.isEnabled() && p != project) {
+			if(p.isLoaded() && p != project) {
 				for(Dependency dep : p.getDependencies()) {
 					if(dep instanceof ProjectDependency
 							&& ((ProjectDependency) dep).getProject() == project) {
@@ -782,7 +782,7 @@ public class ProjectManager {
 		Set<JavaProject> removedProjects = new HashSet<JavaProject>();
 		for(Iterator<JavaProject> it = this.projects.values().iterator(); it.hasNext(); ) {
 			JavaProject project = it.next();
-			if(!project.isEnabled() && !project.getProjectDir().exists()) {
+			if(!project.isLoaded() && !project.getProjectDir().exists()) {
 				it.remove();
 				removedProjects.add(project);
 			}
@@ -798,7 +798,7 @@ public class ProjectManager {
 	 */
 	public JavaProject removeUnloadedProjectIfDeleted(String projectName) {
 		JavaProject project = this.projects.get(projectName);
-		if(project != null && !project.isEnabled() && !project.getProjectDir().exists()) {
+		if(project != null && !project.isLoaded() && !project.getProjectDir().exists()) {
 			this.projects.remove(projectName);
 			return project;
 		}
@@ -826,7 +826,7 @@ public class ProjectManager {
 			
 			// Attempt to unload the project if it is loaded.
 			List<JavaProject> unloadedProjects;
-			if(project.isEnabled()) {
+			if(project.isLoaded()) {
 				try {
 					unloadedProjects = project.unload(UnloadMethod.UNLOAD_DEPENDENTS, exHandler);
 				} catch (UnloadException e) {

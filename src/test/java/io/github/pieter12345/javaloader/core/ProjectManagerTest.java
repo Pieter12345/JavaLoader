@@ -424,7 +424,7 @@ class ProjectManagerTest {
 		// Set return values for methods that will be called.
 		when(project.getName()).thenReturn(projectName);
 		when(project.getProjectManager()).thenReturn(manager);
-		when(project.isEnabled()).thenReturn(isEnabled);
+		when(project.isLoaded()).thenReturn(isEnabled);
 		when(project.getDependencies()).thenReturn(dependencies);
 		
 		// Prevent load(), unload() and compile() from executing.

@@ -163,7 +163,7 @@ public class CommandExecutor {
 					
 					// Construct and send the feedback message for >=1 projects available.
 					String projectsStr = Utils.glueIterable(sortedProjects, (JavaProject project) ->
-							(project.isEnabled() ? "&2" : "&c") + project.getName(),
+							(project.isLoaded() ? "&2" : "&c") + project.getName(),
 							"&a" + ", ");
 					sender.sendMessage(MessageType.INFO,
 							this.colorizer.colorize("Projects (&2loaded&a/&cunloaded&a): " + projectsStr + "."));
@@ -426,7 +426,7 @@ public class CommandExecutor {
 					}
 					
 					// Unload the project if it was loaded.
-					if(project.isEnabled()) {
+					if(project.isLoaded()) {
 						try {
 							project.unload(UnloadMethod.EXCEPTION_ON_LOADED_DEPENDENTS, (UnloadException e) -> {
 								sender.sendMessage(MessageType.ERROR, "An UnloadException occurred while unloading"
@@ -508,7 +508,7 @@ public class CommandExecutor {
 					}
 					
 					// Load the project if it wasn't loaded.
-					if(!project.isEnabled()) {
+					if(!project.isLoaded()) {
 						try {
 							project.load();
 							sender.sendMessage(MessageType.INFO, "Project loaded: " + projectName);

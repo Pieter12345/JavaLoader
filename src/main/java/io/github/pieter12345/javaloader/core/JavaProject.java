@@ -45,7 +45,7 @@ public class JavaProject {
 	private JavaProjectClassLoader classLoader = null;
 	private JavaLoaderProject projectInstance = null;
 	private Dependency[] dependencies = null;
-	private boolean enabled = false;
+	private boolean isLoaded = false;
 	private String version = null;
 	private final ProjectStateListener stateListener;
 	private final ProjectManager manager;
@@ -298,7 +298,7 @@ public class JavaProject {
 	 * @throws LoadException If an Exception occurs while loading the project.
 	 */
 	public void load() throws LoadException {
-		if(this.enabled) {
+		if(this.isLoaded) {
 			return;
 		}
 		
@@ -443,7 +443,7 @@ public class JavaProject {
 		// Start the project.
 		try {
 			this.projectInstance.onLoad();
-			this.enabled = true;
+			this.isLoaded = true;
 		} catch (Exception e) {
 			throw new LoadException(this, "An Exception occurred in " + this.projectDir.getName() + "'s "
 					+ this.projectInstance.getClass().getName() + ".onLoad(). Is the project up to date?"
@@ -473,7 +473,7 @@ public class JavaProject {
 	 */
 	public List<JavaProject> unload(UnloadMethod method,
 			UnloadExceptionHandler exHandler) throws UnloadException, NullPointerException {
-		if(!this.enabled) {
+		if(!this.isLoaded) {
 			return Collections.emptyList();
 		}
 		
@@ -554,8 +554,8 @@ public class JavaProject {
 		}
 		this.classLoader = null;
 		
-		// Mark the project as disabled.
-		this.enabled = false;
+		// Mark the project as unloaded.
+		this.isLoaded = false;
 		this.version = null;
 		this.dependencies = null; // The user could swap binaries and load again, so reset them.
 		
@@ -591,9 +591,19 @@ public class JavaProject {
 	/**
 	 * isEnabled method.
 	 * @return True is the java project is loaded. False otherwise.
+	 * @deprecated Use the {@link #isLoaded()} method instead.
 	 */
+	@Deprecated
 	public boolean isEnabled() {
-		return this.enabled;
+		return this.isLoaded();
+	}
+	
+	/**
+	 * isLoaded method.
+	 * @return {@code true} if the project is loaded, {@code false} otherwise.
+	 */
+	public boolean isLoaded() {
+		return this.isLoaded;
 	}
 	
 	/**
