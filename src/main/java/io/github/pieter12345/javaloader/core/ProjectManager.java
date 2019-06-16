@@ -142,17 +142,17 @@ public class ProjectManager {
 	}
 	
 	/**
-	 * Loads all projects in this project manager which are not currently loaded.
+	 * Loads all projects in this project manager which are not currently loaded or disabled.
 	 * @param exHandler - An exception handler for load exceptions that occur during loading.
 	 * @return A LoadAllResult containing a set of loaded projects by this method and a set of error projects.
 	 * These sets do not overlap.
 	 */
 	public LoadAllResult loadAllProjects(LoadExceptionHandler exHandler) {
 		
-		// Create a set of unloaded projects.
+		// Create a set of unloaded enabled projects.
 		Set<JavaProject> projects = new HashSet<JavaProject>();
 		for(JavaProject project : this.projects.values()) {
-			if(!project.isLoaded()) {
+			if(!project.isLoaded() && !project.isDisabled()) {
 				projects.add(project);
 			}
 		}
@@ -518,10 +518,10 @@ public class ProjectManager {
 	}
 	
 	/**
-	 * Recompiles, unloads and loads all projects. Exceptions and compiler feedback is passed to the given
-	 * feedbackHandler. If compilation fails for a project, that project will be reloaded using its old binaries if
-	 * possible. This method will add new projects from the file system and remove any projects that no longer exist
-	 * in the file system.
+	 * Recompiles, unloads and loads all projects that are not disabled. Exceptions and compiler feedback is passed to
+	 * the given feedbackHandler. If compilation fails for a project, that project will be reloaded using its old
+	 * binaries if possible. This method will add new projects from the file system and remove any projects that no
+	 * longer exist in the file system.
 	 * @param feedbackHandler - The project feedback handler which will receive all thrown exceptions and feedback that
 	 * occur during the recompile.
 	 * @param projectStateListener - The listener that will be set in newly added projects from the file system.
@@ -534,11 +534,19 @@ public class ProjectManager {
 	public RecompileAllResult recompileAllProjects(RecompileFeedbackHandler feedbackHandler,
 			ProjectStateListener projectStateListener) throws IllegalStateException {
 		
+		// Create a set of enabled projects.
+		Set<JavaProject> projects = new HashSet<JavaProject>();
+		for(JavaProject project : this.projects.values()) {
+			if(!project.isDisabled()) {
+				projects.add(project);
+			}
+		}
+		
 		// Add new projects from the file system.
 		Set<JavaProject> addedProjects = this.addProjectsFromProjectDirectory(projectStateListener);
 		
 		// Validate that all binary directories are set to "bin" as we use this assumption below.
-		for(JavaProject project : this.projects.values()) {
+		for(JavaProject project : projects) {
 			if(!project.getBinDir().getName().equals("bin")) {
 				throw new IllegalStateException("All projects are expected to have their binary directory name set to"
 						+ " \"bin\". But project \"" + project.getName() + "\" had a binary directory named:"
@@ -547,7 +555,7 @@ public class ProjectManager {
 		}
 		
 		// Generate a graph, representing the projects and how they depend on eachother (dependencies as children).
-		GraphGenerationResult result = this.generateDependencyGraph(this.projects.values(), true);
+		GraphGenerationResult result = this.generateDependencyGraph(projects, true);
 		Graph<JavaProject> graph = result.graph;
 		Set<JavaProject> errorProjects = new HashSet<JavaProject>();
 		for(JavaProjectException ex : result.exceptions) {
@@ -638,7 +646,7 @@ public class ProjectManager {
 		Set<JavaProject> removedProjects = this.removeUnloadedProjectsIfDeleted();
 		
 		// Replace all binary directories with the new ones for non-error projects.
-		for(JavaProject project : this.projects.values()) {
+		for(JavaProject project : projects) {
 			if(!errorProjects.contains(project)) {
 				
 				// Validate that a project is either in ErrorProjects or has its binary directory renamed.
@@ -670,7 +678,7 @@ public class ProjectManager {
 		
 		// Validate that all binary directories are set back to "bin" here.
 		// Note that we can only know this due to the earlier validation check in this method.
-		for(JavaProject project : this.projects.values()) {
+		for(JavaProject project : projects) {
 			if(!project.getBinDir().getName().equals("bin")) {
 				throw new Error("All projects are known to have their binary directory name set to"
 						+ " \"bin\" at this point. Yet, project \"" + project.getName() + "\" has a binary directory"

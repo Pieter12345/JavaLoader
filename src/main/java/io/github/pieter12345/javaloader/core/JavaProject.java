@@ -46,6 +46,7 @@ public class JavaProject {
 	private JavaLoaderProject projectInstance = null;
 	private Dependency[] dependencies = null;
 	private boolean isLoaded = false;
+	private boolean isDisabled;
 	private String version = null;
 	private final ProjectStateListener stateListener;
 	private final ProjectManager manager;
@@ -64,6 +65,7 @@ public class JavaProject {
 		this.projectDir = projectDir;
 		this.binDir = new File(this.projectDir.getAbsoluteFile(), "bin");
 		this.srcDir = new File(this.projectDir.getAbsoluteFile(), "src");
+		this.isDisabled = new File(this.srcDir, ".disabled").exists();
 		this.manager = manager;
 		this.stateListener = stateListener;
 	}
@@ -86,6 +88,12 @@ public class JavaProject {
 	 * @throws CompileException If an Exception occurs while compiling the project.
 	 */
 	public void compile(Writer feedbackWriter) throws CompileException {
+		
+		// Disallow compiling if the project is disabled.
+		if(this.isDisabled) {
+			throw new CompileException(this, "Project is disabled.");
+		}
+		
 		try {
 			
 			// Get the dependencies and validate their existence.
@@ -300,6 +308,11 @@ public class JavaProject {
 	public void load() throws LoadException {
 		if(this.isLoaded) {
 			return;
+		}
+		
+		// Disallow loading if the project is disabled.
+		if(this.isDisabled) {
+			throw new LoadException(this, "Project is disabled.");
 		}
 		
 		// Validate that at least the binary directory exists.
@@ -617,6 +630,40 @@ public class JavaProject {
 	 */
 	public boolean isLoaded() {
 		return this.isLoaded;
+	}
+	
+	/**
+	 * isDisabled method.
+	 * Returns whether the project is disabled or not. When a project is disabled, it cannot be compiled or loaded.
+	 * @return {@code true} if the project is disabled, {@code false} otherwise.
+	 */
+	public boolean isDisabled() {
+		return this.isDisabled;
+	}
+	
+	/**
+	 * setDisabled method.
+	 * Sets this project's disabled state. When a project is disabled, it cannot be compiled or loaded.
+	 * This disabled state persists over restarts.
+	 * @param disabled - {@code true} to disable the project, {@code false} otherwise.
+	 * @throws IllegalStateException If the project is loaded and disabled is {@code true}.
+	 * @throws IOException If an I/O errors occurs while setting the persistent disabled state.
+	 */
+	public void setDisabled(boolean disabled) throws IllegalStateException, IOException {
+		if(disabled && this.isLoaded) {
+			throw new IllegalStateException("Cannot disable a loaded project.");
+		}
+		File disabledFile = new File(this.srcDir, ".disabled");
+		if(disabledFile.exists() != disabled) {
+			if(disabled) {
+				disabledFile.createNewFile();
+			} else {
+				if(!disabledFile.delete()) {
+					throw new IOException("Could not remove file: " + disabledFile.getName());
+				}
+			}
+		}
+		this.isDisabled = disabled;
 	}
 	
 	/**
