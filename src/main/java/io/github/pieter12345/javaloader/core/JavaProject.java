@@ -589,6 +589,19 @@ public class JavaProject {
 	}
 	
 	/**
+	 * Cleans the JavaProject, meaning that all its generated binaries will be removed.
+	 * @return {@code true} if the project was cleaned or did not have any generated binaries.
+	 * {@code false} if one or more generated binaries could not be removed.
+	 * @throws IllegalStateException If the project is loaded.
+	 */
+	public boolean clean() throws IllegalStateException {
+		if(this.isEnabled()) {
+			throw new IllegalStateException("Cannot clean a loaded project.");
+		}
+		return Utils.removeFile(this.binDir);
+	}
+	
+	/**
 	 * isEnabled method.
 	 * @return True is the java project is loaded. False otherwise.
 	 * @deprecated Use the {@link #isLoaded()} method instead.
