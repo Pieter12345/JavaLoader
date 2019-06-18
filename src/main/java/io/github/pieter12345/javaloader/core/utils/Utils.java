@@ -11,9 +11,9 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.Iterator;
-
-import com.google.common.io.Files;
 
 /**
  * Utils class.
@@ -63,7 +63,8 @@ public abstract class Utils {
 				copyFile(file, target);
 			}
 		} else if(toCopy.isFile()) {
-			Files.copy(toCopy, target);
+			Files.copy(toCopy.toPath(), target.toPath(),
+					StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.COPY_ATTRIBUTES);
 		} else {
 			throw new FileNotFoundException("File to copy does not exist: " + toCopy.getAbsolutePath());
 		}

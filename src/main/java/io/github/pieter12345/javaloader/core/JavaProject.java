@@ -5,6 +5,8 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -15,8 +17,6 @@ import javax.tools.JavaCompiler;
 import javax.tools.JavaCompiler.CompilationTask;
 import javax.tools.StandardJavaFileManager;
 import javax.tools.ToolProvider;
-
-import com.google.common.io.Files;
 
 import io.github.pieter12345.javaloader.core.dependency.Dependency;
 import io.github.pieter12345.javaloader.core.dependency.DependencyScope;
@@ -218,7 +218,9 @@ public class JavaProject {
 			// Compilation succeeded, so store the dependencies and copy them into the bin directory.
 			this.dependencies = dependencies;
 			if(dependenciesFile.exists()) {
-				Files.copy(dependenciesFile, new File(this.binDir.getAbsoluteFile(), "dependencies.txt"));
+				Files.copy(dependenciesFile.toPath(),
+						new File(this.binDir.getAbsoluteFile(), "dependencies.txt").toPath(),
+						StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.COPY_ATTRIBUTES);
 			}
 			
 		} catch (Exception e) {
