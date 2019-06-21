@@ -1,4 +1,4 @@
-# JavaLoader
+# JavaLoader ![Travis CI status](https://travis-ci.org/Pieter12345/JavaLoader.svg?branch=master)
 A Bukkit plugin which allows loading, unloading and compiling java projects in runtime.
 
 ## Permissions
