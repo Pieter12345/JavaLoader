@@ -25,7 +25,7 @@ Place the JavaLoader jar file in the `<server dir>/plugins` directory of your Bu
 `jar -scope path` where scope is optional and can be `provided` or `include` (defaults to `include`) and path is the path to the .jar file. If the path starts with a dot, the relative path is taken from the project directory.
  - JavaLoader project dependencies can be included by adding the following line to the dependencies.txt file:
 `project projectName` where projectName is the name of the project.
- - Circular project dependencies are now allowed.
+ - Circular project dependencies are not allowed.
  - In bulk load/unload/compile operations, an order is ensured in which all loaded projects can be certain that their children are loaded as well. So if A depends on B, then B would load before A and A would unload before B.
 
 ## Contributing
