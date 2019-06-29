@@ -27,6 +27,7 @@ Place the JavaLoader jar file in the `<server dir>/plugins` directory of your Bu
 `project projectName` where projectName is the name of the project.
  - Circular project dependencies are not allowed.
  - In bulk load/unload/compile operations, an order is ensured in which all loaded projects can be certain that their children are loaded as well. So if A depends on B, then B would load before A and A would unload before B.
+ - When a class is defined in multiple places, the first found definition is used. The classloading search order is: `current project` > `dependencies of current project (including their dependencies)` > `JavaLoader classloader (Bukkit classes and other Bukkit plugin classes)`.
 
 ## Contributing
 You can contribute to this project by reporting bugs using the issue tracker on GitHub. Pull requests will not be accepted at this time.
