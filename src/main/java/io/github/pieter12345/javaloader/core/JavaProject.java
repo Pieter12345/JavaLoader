@@ -340,7 +340,7 @@ public class JavaProject {
 					// Validate that JavaProject dependencies that are marked as PROVIDED are loaded.
 					ProjectDependency projectDependency = (ProjectDependency) dependency;
 					if(projectDependency.getScope() == DependencyScope.PROVIDED
-							&& !projectDependency.getProject().isEnabled()) {
+							&& !projectDependency.getProject().isLoaded()) {
 						throw new LoadException(this,
 								"Dependency project not loaded: " + projectDependency.getProject().getName());
 					}
@@ -503,7 +503,7 @@ public class JavaProject {
 		if(method != UnloadMethod.IGNORE_DEPENDENTS) {
 			List<JavaProject> dependingProjects = new ArrayList<JavaProject>(0);
 			for(JavaProject project : this.manager.getProjects()) {
-				if(project.isEnabled() && project != this) {
+				if(project.isLoaded() && project != this) {
 					for(Dependency dep : project.getDependencies()) {
 						if(dep instanceof ProjectDependency
 								&& ((ProjectDependency) dep).getProject() == this) {
@@ -610,7 +610,7 @@ public class JavaProject {
 	 * @throws IllegalStateException If the project is loaded.
 	 */
 	public boolean clean() throws IllegalStateException {
-		if(this.isEnabled()) {
+		if(this.isLoaded()) {
 			throw new IllegalStateException("Cannot clean a loaded project.");
 		}
 		return Utils.removeFile(this.binDir);
