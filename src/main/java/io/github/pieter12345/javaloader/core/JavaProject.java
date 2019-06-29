@@ -332,18 +332,27 @@ public class JavaProject {
 		// Get the INCLUDE dependency files for the classloader. Existence of files will be checked by the classloader,
 		// but we will validate that JavaProject dependencies that are marked as PROVIDED are loaded here.
 		List<File> dependencyFiles = new ArrayList<File>();
+		List<ClassLoader> dependencyProjectClassLoaders = new ArrayList<ClassLoader>();
 		if(this.dependencies != null) {
 			for(int i = 0; i < this.dependencies.length; i++) {
 				Dependency dependency = this.dependencies[i];
 				if(dependency instanceof ProjectDependency) {
 					
-					// Validate that JavaProject dependencies that are marked as PROVIDED are loaded.
+					// Get the project.
 					ProjectDependency projectDependency = (ProjectDependency) dependency;
-					if(projectDependency.getScope() == DependencyScope.PROVIDED
-							&& !projectDependency.getProject().isLoaded()) {
-						throw new LoadException(this,
-								"Dependency project not loaded: " + projectDependency.getProject().getName());
+					JavaProject project = projectDependency.getProject();
+					
+					// Assert that the project dependency has scope PROVIDED.
+					assert projectDependency.getScope() == DependencyScope.PROVIDED : "Expecting project"
+							+ " dependencies to have scope PROVIDED, but found " + projectDependency.getScope();
+					
+					// Validate that the project dependency is loaded.
+					if(!project.isLoaded()) {
+						throw new LoadException(this, "Dependency project not loaded: " + project.getName());
 					}
+					
+					// Add the dependency's classloader.
+					dependencyProjectClassLoaders.add(project.getClassLoader());
 					
 				} else if(dependency instanceof FileDependency) {
 					
@@ -363,7 +372,7 @@ public class JavaProject {
 		
 		// Define the classloader.
 		try {
-			this.classLoader = new JavaProjectClassLoader(this.binDir, dependencyFiles);
+			this.classLoader = new JavaProjectClassLoader(this.binDir, dependencyFiles, dependencyProjectClassLoaders);
 		} catch (FileNotFoundException e) {
 			throw new LoadException(this, e.getMessage()); // Dependency file does not exist.
 		}

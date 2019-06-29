@@ -7,6 +7,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URLClassLoader;
 import java.security.ProtectionDomain;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
@@ -22,6 +23,7 @@ public class JavaProjectClassLoader extends URLClassLoader {
 	
 	// Variables & Constants.
 	private HashMap<String, Class<?>> classMap = new HashMap<String, Class<?>>();
+	private List<ClassLoader> dependencyClassLoaders;
 	private final File binDir;
 	private final ProtectionDomain protectionDomain;
 	
@@ -46,12 +48,27 @@ public class JavaProjectClassLoader extends URLClassLoader {
 	 * Constructor.
 	 * Creates a new JavaProjectClassLoader with the given bin directory and dependency files.
 	 * @param binDir - The directory containing the package directories and .class files.
-	 * @param dependencies - An array of bin directories, .class files or .jar files.
+	 * @param dependencies - A list of bin directories, .class files or .jar files.
 	 * @throws FileNotFoundException If a dependency file does not exist.
 	 */
-	public JavaProjectClassLoader(File binDir, File[] dependencies) throws FileNotFoundException {
+	public JavaProjectClassLoader(File binDir, List<File> dependencies) throws FileNotFoundException {
+		this(binDir, dependencies, null);
+	}
+	
+	/**
+	 * Constructor.
+	 * Creates a new JavaProjectClassLoader with the given bin directory and dependency files.
+	 * @param binDir - The directory containing the package directories and .class files.
+	 * @param dependencies - A list of bin directories, .class files or .jar files.
+	 * @param dependencyClassLoaders - A list of classloaders from dependencies.
+	 * @throws FileNotFoundException If a dependency file does not exist.
+	 */
+	public JavaProjectClassLoader(File binDir, List<File> dependencies,
+			List<ClassLoader> dependencyClassLoaders) throws FileNotFoundException {
 		super(new java.net.URL[] {Utils.fileToURL(binDir)});
 		this.binDir = binDir;
+		this.dependencyClassLoaders = (dependencyClassLoaders == null
+				? null : new ArrayList<ClassLoader>(dependencyClassLoaders));
 		
 		// Add dependencies.
 		if(dependencies != null) {
@@ -69,17 +86,6 @@ public class JavaProjectClassLoader extends URLClassLoader {
 		java.security.Permissions permissions = new java.security.Permissions();
 		permissions.add(new java.security.AllPermission());
 		this.protectionDomain = new java.security.ProtectionDomain(codeSource, permissions);
-	}
-	
-	/**
-	 * Constructor.
-	 * Creates a new JavaProjectClassLoader with the given bin directory and dependency files.
-	 * @param binDir - The directory containing the package directories and .class files.
-	 * @param dependencies - A list of bin directories, .class files or .jar files.
-	 * @throws FileNotFoundException If a dependency file does not exist.
-	 */
-	public JavaProjectClassLoader(File binDir, List<File> dependencies) throws FileNotFoundException {
-		this(binDir, dependencies.toArray(new File[dependencies.size()]));
 	}
 	
 	/**
@@ -137,9 +143,22 @@ public class JavaProjectClassLoader extends URLClassLoader {
 			// Ignore.
 		}
 		
-		// Check if the class can be loaded using the ClassLoader that loaded this class.
+		// Attempt to load the class using classloaders from dependencies.
+		if(this.dependencyClassLoaders != null) {
+			for(ClassLoader classLoader : this.dependencyClassLoaders) {
+				try {
+					Class<?> definedClass = classLoader.loadClass(name);
+					this.classMap.put(name, definedClass);
+					return definedClass;
+				} catch (ClassNotFoundException e) {
+					// Ignore.
+				}
+			}
+		}
+		
+		// Check if the class can be loaded using the ClassLoader that loaded this ClassLoader.
 		try {
-			Class<?> definedClass = JavaProject.class.getClassLoader().loadClass(name);
+			Class<?> definedClass = JavaProjectClassLoader.class.getClassLoader().loadClass(name);
 			this.classMap.put(name, definedClass);
 			return definedClass;
 		} catch (ClassNotFoundException e) {
@@ -174,6 +193,7 @@ public class JavaProjectClassLoader extends URLClassLoader {
 		if(this.classMap != null) {
 			this.classMap.clear();
 			this.classMap = null;
+			this.dependencyClassLoaders = null;
 		}
 		super.close();
 	}
