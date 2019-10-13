@@ -15,6 +15,7 @@ import org.mockito.InOrder;
 
 import io.github.pieter12345.javaloader.core.JavaProject.UnloadMethod;
 import io.github.pieter12345.javaloader.core.dependency.ProjectDependency;
+import io.github.pieter12345.javaloader.core.dependency.ProjectDependencyParser;
 import io.github.pieter12345.javaloader.core.exceptions.JavaProjectException;
 import io.github.pieter12345.javaloader.core.exceptions.LoadException;
 import io.github.pieter12345.javaloader.core.exceptions.UnloadException;
@@ -28,11 +29,13 @@ class ProjectManagerTest {
 	
 	private ProjectManager manager;
 	private File projectsDirMock;
+	private ProjectDependencyParser dependencyParserMock;
 	
 	@BeforeEach
 	void init() {
 		this.projectsDirMock = mock(File.class);
-		this.manager = new ProjectManager(this.projectsDirMock);
+		this.dependencyParserMock = mock(ProjectDependencyParser.class);
+		this.manager = new ProjectManager(this.projectsDirMock, this.dependencyParserMock);
 	}
 	
 	/**

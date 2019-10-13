@@ -18,6 +18,7 @@ import io.github.pieter12345.javaloader.core.JavaProject.CompilerFeedbackHandler
 import io.github.pieter12345.javaloader.core.JavaProject.UnloadMethod;
 import io.github.pieter12345.javaloader.core.dependency.Dependency;
 import io.github.pieter12345.javaloader.core.dependency.ProjectDependency;
+import io.github.pieter12345.javaloader.core.dependency.ProjectDependencyParser;
 import io.github.pieter12345.javaloader.core.exceptions.CompileException;
 import io.github.pieter12345.javaloader.core.exceptions.DepOrderViolationException;
 import io.github.pieter12345.javaloader.core.exceptions.DependencyException;
@@ -36,11 +37,18 @@ import io.github.pieter12345.javaloader.core.utils.Utils;
 public class ProjectManager {
 	
 	// Variables & Constants.
-	private final HashMap<String, JavaProject> projects = new HashMap<String, JavaProject>();;
+	private final HashMap<String, JavaProject> projects = new HashMap<String, JavaProject>();
 	private final File projectsDir;
+	private final ProjectDependencyParser dependencyParser;
 	
-	public ProjectManager(File projectsDir) {
+	/**
+	 * Creates a new {@link ProjectManager}.
+	 * @param projectsDir - The directory containing the projects.
+	 * @param dependencyParser - The parser used to parse project dependencies.
+	 */
+	public ProjectManager(File projectsDir, ProjectDependencyParser dependencyParser) {
 		this.projectsDir = projectsDir;
+		this.dependencyParser = dependencyParser;
 	}
 	
 	/**
@@ -735,7 +743,7 @@ public class ProjectManager {
 					if(projectDir.isDirectory() && !projectDir.getName().toLowerCase().endsWith(".disabled")
 							&& !this.projects.containsKey(projectDir.getName())) {
 						JavaProject project = new JavaProject(
-								projectDir.getName(), projectDir, this, projectStateListener);
+								projectDir.getName(), projectDir, this, this.dependencyParser, projectStateListener);
 						this.projects.put(project.getName(), project);
 						newProjects.add(project);
 					}
@@ -772,7 +780,8 @@ public class ProjectManager {
 		// Create the project if it was found.
 		if(projectDir.getName().equals(projectName) && projectDir.isDirectory()
 				&& !projectDir.getName().toLowerCase().endsWith(".disabled")) {
-			JavaProject project = new JavaProject(projectDir.getName(), projectDir, this, projectStateListener);
+			JavaProject project = new JavaProject(
+					projectDir.getName(), projectDir, this, this.dependencyParser, projectStateListener);
 			this.projects.put(project.getName(), project);
 			return project;
 		}

@@ -30,6 +30,7 @@ import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.SimplePluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import io.github.pieter12345.javaloader.bukkit.dependency.BukkitProjectDependencyParser;
 import io.github.pieter12345.javaloader.core.CommandExecutor;
 import io.github.pieter12345.javaloader.core.JavaLoaderProject;
 import io.github.pieter12345.javaloader.core.JavaProject;
@@ -112,7 +113,7 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 		}
 		
 		// Create the project manager.
-		this.projectManager = new ProjectManager(this.projectsDir);
+		this.projectManager = new ProjectManager(this.projectsDir, new BukkitProjectDependencyParser());
 		
 		// Initialize project state listener.
 		this.projectStateListener = new ProjectStateListener() {

@@ -21,8 +21,8 @@ import javax.tools.ToolProvider;
 import io.github.pieter12345.javaloader.core.dependency.Dependency;
 import io.github.pieter12345.javaloader.core.dependency.DependencyScope;
 import io.github.pieter12345.javaloader.core.dependency.FileDependency;
-import io.github.pieter12345.javaloader.core.dependency.JarDependency;
 import io.github.pieter12345.javaloader.core.dependency.ProjectDependency;
+import io.github.pieter12345.javaloader.core.dependency.ProjectDependencyParser;
 import io.github.pieter12345.javaloader.core.exceptions.CompileException;
 import io.github.pieter12345.javaloader.core.exceptions.DependencyException;
 import io.github.pieter12345.javaloader.core.exceptions.LoadException;
@@ -48,25 +48,28 @@ public class JavaProject {
 	private boolean isLoaded = false;
 	private boolean isDisabled;
 	private String version = null;
-	private final ProjectStateListener stateListener;
 	private final ProjectManager manager;
+	private final ProjectDependencyParser dependencyParser;
+	private final ProjectStateListener stateListener;
 	
 	/**
 	 * Creates a new JavaProject with the given parameters and loads its compiled dependencies if available.
 	 * @param projectName - The name of the project.
 	 * @param projectDir - The project directory (containing the src directory).
 	 * @param manager - The project manager used to resolve project dependencies.
+	 * @param dependencyParser - The {@link ProjectDependencyParser} used to parse this project's dependencies file.
 	 * @param stateListener - The ProjectStateListener which will be called on load/unload. This can be used to
 	 * execute Minecraft server implementation dependent code such as injecting and removing commands and listeners.
 	 */
 	public JavaProject(String projectName, File projectDir,
-			ProjectManager manager, ProjectStateListener stateListener) {
+			ProjectManager manager, ProjectDependencyParser dependencyParser, ProjectStateListener stateListener) {
 		this.projectName = projectName;
 		this.projectDir = projectDir;
 		this.binDir = new File(this.projectDir.getAbsoluteFile(), "bin");
 		this.srcDir = new File(this.projectDir.getAbsoluteFile(), "src");
 		this.isDisabled = new File(this.srcDir, ".disabled").exists();
 		this.manager = manager;
+		this.dependencyParser = dependencyParser;
 		this.stateListener = stateListener;
 	}
 	
@@ -75,9 +78,11 @@ public class JavaProject {
 	 * @param projectName - The name of the project.
 	 * @param projectDir - The project directory (containing the src directory).
 	 * @param manager - The project manager used to resolve project dependencies.
+	 * @param dependencyParser - The {@link ProjectDependencyParser} used to parse this project's dependencies file.
 	 */
-	public JavaProject(String projectName, File projectDir, ProjectManager manager) {
-		this(projectName, projectDir, manager, null);
+	public JavaProject(String projectName, File projectDir,
+			ProjectManager manager, ProjectDependencyParser dependencyParser) {
+		this(projectName, projectDir, manager, dependencyParser, null);
 	}
 	
 	/**
@@ -812,102 +817,7 @@ public class JavaProject {
 		if(dependencyFileContents == null) {
 			return new Dependency[0]; // No dependencies available.
 		}
-		return this.parseDependencies(dependencyFileContents);
-	}
-	
-	/**
-	 * Parses the given dependencies string and returns the resulting Dependency objects.
-	 * @param dependencyFileContents - The dependencies file contents to parse.
-	 * @return An array of dependencies.
-	 * @throws DependencyException If a dependency description is in an invalid format.
-	 */
-	protected Dependency[] parseDependencies(String dependencyFileContents) throws DependencyException {
-		
-		// Replace cariage returns and tabs with whitespaces.
-		dependencyFileContents = dependencyFileContents.replaceAll("[\r\t]", " ");
-		
-		// Remove leading and trailing whitespaces.
-		dependencyFileContents = dependencyFileContents.replaceAll("(?<=(^|\n))[ ]+(?! )", "");
-		dependencyFileContents = dependencyFileContents.replaceAll("(?<! )[ ]+(?=(\n|$))", "");
-		
-		// Remove comments starting with "//" or "#".
-		dependencyFileContents = dependencyFileContents.replaceAll("(\\/\\/|\\#)[^$\n]*(?=(\n|$))", "");
-		
-		// Remove empty lines.
-		dependencyFileContents = dependencyFileContents.replaceAll("(?<=(^|\n))[\n]+(?!$)", "");
-		
-		// Replace backslash file seperators (since these are not guarenteed to work outside of Windows).
-		dependencyFileContents = dependencyFileContents.replace('\\', '/');
-		
-		// Split and add the dependencies.
-		if(dependencyFileContents.isEmpty()) {
-			return new Dependency[0];
-		}
-		String[] dependencyStrs = dependencyFileContents.split("\n");
-		Dependency[] dependencies = new Dependency[dependencyStrs.length];
-		for(int i = 0; i < dependencyStrs.length; i++) {
-			
-			// Handle JavaProject dependencies ("project projectName").
-			if(dependencyStrs[i].toLowerCase().startsWith("project ")) {
-				String projectName = dependencyStrs[i].substring("project ".length()).trim();
-				dependencies[i] = new ProjectDependency(projectName, this.manager);
-				continue;
-			}
-			
-			// Handle .jar file dependencies ("jar -provided ./rel/path/to/dep.jar" or "jar C:/path/to/dep.jar").
-			if(dependencyStrs[i].toLowerCase().startsWith("jar ")) {
-				String dependency = dependencyStrs[i].substring("jar ".length()).trim();
-				
-				// Validate the .jar suffix.
-				if(!dependency.toLowerCase().endsWith(".jar")) {
-					throw new DependencyException("Dependency format invalid."
-							+ " Jar dependency does not have a .jar extension: " + dependencyStrs[i]);
-				}
-				
-				// Get the dependency scope (include or provided).
-				DependencyScope scope;
-				if(dependency.startsWith("-")) {
-					int ind = dependency.indexOf(' ');
-					String arg = (ind == -1 ? dependency.substring(1) : dependency.substring(1, ind));
-					dependency = dependency.substring(ind + 1); // 'ind + 1' always exists due to the ".jar" suffix.
-					switch(arg.toLowerCase()) {
-						case "include": {
-							scope = DependencyScope.INCLUDE;
-							break;
-						}
-						case "provided": {
-							scope = DependencyScope.PROVIDED;
-							break;
-						}
-						default: {
-							throw new DependencyException("Dependency format invalid."
-									+ " Expected option \"INCLUDE\" or \"PROVIDED\" in syntax:"
-									+ " \"jar -option pathToJar\",  but received option: \"" + arg + "\".");
-						}
-					}
-				} else {
-					scope = DependencyScope.INCLUDE;
-				}
-				
-				// Get the dependency's file object, supporting relative paths.
-				// Relative paths start with a '.' and are relative to the project's directory.
-				// "dependency" has a ".jar" suffix, so some length checks here are redundant.
-				if(dependency.startsWith(".") && (dependency.length() == 1 || dependency.charAt(1) == '/')) {
-					dependency = this.projectDir.getAbsolutePath() + dependency.substring(1);
-				}
-				File file = new File(dependency);
-				
-				// Add the dependency to the array.
-				dependencies[i] = new JarDependency(file, scope);
-				continue;
-			}
-			
-			// Dependency format not recognised.
-			throw new DependencyException("Dependency format invalid: " + dependencyStrs[i]);
-		}
-		
-		// Return the dependencies.
-		return dependencies;
+		return this.dependencyParser.parseDependencies(this, dependencyFileContents);
 	}
 	
 }

@@ -19,6 +19,7 @@ import io.github.pieter12345.javaloader.core.JavaLoaderProject;
 import io.github.pieter12345.javaloader.core.JavaProject;
 import io.github.pieter12345.javaloader.core.ProjectManager;
 import io.github.pieter12345.javaloader.core.ProjectStateListener;
+import io.github.pieter12345.javaloader.core.dependency.ProjectDependencyParser;
 import io.github.pieter12345.javaloader.core.CommandExecutor.CommandSender;
 import io.github.pieter12345.javaloader.core.CommandExecutor.MessageType;
 import io.github.pieter12345.javaloader.core.ProjectManager.LoadAllResult;
@@ -127,7 +128,7 @@ public class JavaLoaderStandalone {
 		}
 		
 		// Create the project manager.
-		this.projectManager = new ProjectManager(this.projectsDir);
+		this.projectManager = new ProjectManager(this.projectsDir, new ProjectDependencyParser());
 		
 		// Initialize project state listener.
 		this.projectStateListener = new ProjectStateListener() {
