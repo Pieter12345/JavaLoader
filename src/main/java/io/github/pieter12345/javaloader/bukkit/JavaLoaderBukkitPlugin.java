@@ -4,13 +4,16 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.URLDecoder;
 import java.security.CodeSource;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
@@ -22,6 +25,7 @@ import javax.tools.ToolProvider;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.Server;
 import org.bukkit.command.Command;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.command.SimpleCommandMap;
@@ -68,6 +72,11 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 	private ProjectStateListener projectStateListener;
 	
 	private CommandExecutor commandExecutor;
+	
+	private boolean commandSyncCheckRequired; // True if injected project commands might be out of sync with clients.
+	private Set<String> injectedCommands;
+	private Set<String> syncedCommands;
+	private boolean commandSyncErrored = false;
 	
 	public JavaLoaderBukkitPlugin() {
 		// This runs when Bukkit creates JavaLoader. Use onEnable() for initialization on enable instead.
@@ -116,6 +125,10 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 		
 		// Create the project manager.
 		this.projectManager = new ProjectManager(this.projectsDir, new BukkitProjectDependencyParser());
+		
+		// Initialize injected and synced commands set.
+		this.injectedCommands = new HashSet<String>();
+		this.syncedCommands = new HashSet<String>();
 		
 		// Initialize project state listener.
 		this.projectStateListener = new ProjectStateListener() {
@@ -236,6 +249,9 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 								+ " The command that failed to register was: \"/" + bukkitCmd.getName() + "\"");
 					}
 					
+					// Update injected commands set and set command sync check flag.
+					JavaLoaderBukkitPlugin.this.injectedCommands.add(bukkitCmd.getName());
+					JavaLoaderBukkitPlugin.this.commandSyncCheckRequired = true;
 				}
 			}
 			
@@ -263,6 +279,10 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 					if(command instanceof PluginCommand && ((PluginCommand) command).getPlugin() == plugin) {
 						command.unregister(cmdMap);
 						it.remove();
+						
+						// Update injected commands set and set command sync check flag.
+						JavaLoaderBukkitPlugin.this.injectedCommands.remove(command.getName());
+						JavaLoaderBukkitPlugin.this.commandSyncCheckRequired = true;
 					}
 				}
 				
@@ -289,6 +309,9 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 		logger.info("JavaLoader " + this.getDescription().getVersion() + " enabled. "
 				+ loadAllResult.loadedProjects.size() + "/" + projects.length + " projects loaded.");
 		
+		// Command sync is not required here since Bukkit does this in a later startup stage.
+		this.syncedCommands.addAll(this.injectedCommands);
+		this.commandSyncCheckRequired = false;
 	}
 	
 	@Override
@@ -301,6 +324,8 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 					+ (ex.getCause() == null ? " " + ex.getMessage() : "\n" + Utils.getStacktrace(ex)));
 		});
 		this.projectManager = null;
+		this.injectedCommands = null;
+		this.syncedCommands = null;
 		this.projectStateListener = null;
 		this.commandExecutor = null;
 		
@@ -341,7 +366,41 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 				}
 			}
 		}, args);
+		
+		// Sync injected commands with clients if necessary.
+		if(this.commandSyncCheckRequired && !this.injectedCommands.equals(this.syncedCommands)) {
+			this.syncCommands();
+		}
+		
 		return true;
+	}
+	
+	/**
+	 * Synchronizes the commands known by Bukkit and the commands known by clients by calling the
+	 * {@code CraftServer.syncCommands()} method through reflection.
+	 */
+	private void syncCommands() {
+		Server server = Bukkit.getServer();
+		try {
+			Method syncCommandsMethod = server.getClass().getDeclaredMethod("syncCommands");
+			syncCommandsMethod.setAccessible(true);
+			syncCommandsMethod.invoke(server);
+			this.commandSyncErrored = false;
+		} catch (NoSuchMethodException | SecurityException
+				| IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+			if(!this.commandSyncErrored) {
+				this.logger.warning("Command synchronization failed."
+						+ " This means that command and tab-completion might not work or update correctly for clients."
+						+ " This warning will be disabled until the server is restarted or a successful sync happens."
+						+ " Here's the stacktrace:\n" + Utils.getStacktrace(e));
+				this.commandSyncErrored = true;
+			}
+			return;
+		}
+		
+		this.syncedCommands.clear();
+		this.syncedCommands.addAll(this.injectedCommands);
+		this.commandSyncCheckRequired = false;
 	}
 	
 	@Override
