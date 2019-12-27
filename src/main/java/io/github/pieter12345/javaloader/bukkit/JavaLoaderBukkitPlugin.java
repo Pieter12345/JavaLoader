@@ -81,9 +81,11 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 			
 			@Override
 			public void log(LogRecord logRecord) {
+				Level logLevel = logRecord.getLevel();
+				ChatColor textColor = (logLevel.equals(Level.SEVERE) ? ChatColor.RED
+						: (logLevel.equals(Level.WARNING) ? ChatColor.GOLD : ChatColor.GREEN));
 				logRecord.setMessage(AnsiColor.colorize(this.pluginName
-						+ (logRecord.getLevel().equals(Level.SEVERE) ? ChatColor.RED : ChatColor.GREEN)
-						+ logRecord.getMessage() + ChatColor.RESET, ChatColor.COLOR_CHAR));
+						+ textColor + logRecord.getMessage() + ChatColor.RESET, ChatColor.COLOR_CHAR));
 				super.log(logRecord);
 			}
 		};
