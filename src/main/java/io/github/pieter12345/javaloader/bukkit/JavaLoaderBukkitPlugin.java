@@ -9,10 +9,12 @@ import java.net.URLDecoder;
 import java.security.CodeSource;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
@@ -73,9 +75,9 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 	
 	private CommandExecutor commandExecutor;
 	
-	private boolean commandSyncCheckRequired; // True if injected project commands might be out of sync with clients.
-	private Set<String> injectedCommands;
-	private Set<String> syncedCommands;
+	private Set<String> commandSyncCheckRequired; // Projects where injected commands might need sync with clients.
+	private Map<String, Set<Command>> injectedCommandsMap;
+	private Map<String, Set<Command>> syncedCommandsMap;
 	private boolean commandSyncErrored = false;
 	
 	public JavaLoaderBukkitPlugin() {
@@ -127,8 +129,9 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 		this.projectManager = new ProjectManager(this.projectsDir, new BukkitProjectDependencyParser());
 		
 		// Initialize injected and synced commands set.
-		this.injectedCommands = new HashSet<String>();
-		this.syncedCommands = new HashSet<String>();
+		this.injectedCommandsMap = new HashMap<String, Set<Command>>();
+		this.syncedCommandsMap = new HashMap<String, Set<Command>>();
+		this.commandSyncCheckRequired = new HashSet<String>();
 		
 		// Initialize project state listener.
 		this.projectStateListener = new ProjectStateListener() {
@@ -250,8 +253,14 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 					}
 					
 					// Update injected commands set and set command sync check flag.
-					JavaLoaderBukkitPlugin.this.injectedCommands.add(bukkitCmd.getName());
-					JavaLoaderBukkitPlugin.this.commandSyncCheckRequired = true;
+					String pluginName = bukkitProjectPlugin.getName();
+					Set<Command> injectedCommands = JavaLoaderBukkitPlugin.this.injectedCommandsMap.get(pluginName);
+					if(injectedCommands == null) {
+						injectedCommands = new HashSet<Command>();
+						JavaLoaderBukkitPlugin.this.injectedCommandsMap.put(pluginName, injectedCommands);
+					}
+					injectedCommands.add(bukkitCmd);
+					JavaLoaderBukkitPlugin.this.commandSyncCheckRequired.add(bukkitProjectPlugin.getName());
 				}
 			}
 			
@@ -281,8 +290,14 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 						it.remove();
 						
 						// Update injected commands set and set command sync check flag.
-						JavaLoaderBukkitPlugin.this.injectedCommands.remove(command.getName());
-						JavaLoaderBukkitPlugin.this.commandSyncCheckRequired = true;
+						// Commands that were injected for this plugin through some custom method are simply ignored.
+						String pluginName = plugin.getName();
+						Set<Command> injectedCommands = JavaLoaderBukkitPlugin.this.injectedCommandsMap.get(pluginName);
+						if(injectedCommands != null) {
+							if(injectedCommands.remove(command)) {
+								JavaLoaderBukkitPlugin.this.commandSyncCheckRequired.add(plugin.getName());
+							}
+						}
 					}
 				}
 				
@@ -310,8 +325,10 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 				+ loadAllResult.loadedProjects.size() + "/" + projects.length + " projects loaded.");
 		
 		// Command sync is not required here since Bukkit does this in a later startup stage.
-		this.syncedCommands.addAll(this.injectedCommands);
-		this.commandSyncCheckRequired = false;
+		for(Entry<String, Set<Command>> entry : this.injectedCommandsMap.entrySet()) {
+			this.syncedCommandsMap.put(entry.getKey(), new HashSet<Command>(entry.getValue()));
+		}
+		this.commandSyncCheckRequired.clear();
 	}
 	
 	@Override
@@ -324,8 +341,9 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 					+ (ex.getCause() == null ? " " + ex.getMessage() : "\n" + Utils.getStacktrace(ex)));
 		});
 		this.projectManager = null;
-		this.injectedCommands = null;
-		this.syncedCommands = null;
+		this.injectedCommandsMap = null;
+		this.syncedCommandsMap = null;
+		this.commandSyncCheckRequired = null;
 		this.projectStateListener = null;
 		this.commandExecutor = null;
 		
@@ -368,10 +386,42 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 		}, args);
 		
 		// Sync injected commands with clients if necessary.
-		if(this.commandSyncCheckRequired && !this.injectedCommands.equals(this.syncedCommands)) {
-			this.syncCommands();
+		for(String project : this.commandSyncCheckRequired) {
+			Set<Command> injectedCommands = this.injectedCommandsMap.get(project);
+			Set<Command> syncedCommands = this.syncedCommandsMap.get(project);
+			if(!commandSetEquals(injectedCommands, syncedCommands)) {
+				this.syncCommands();
+				break;
+			}
 		}
 		
+		return true;
+	}
+	
+	/**
+	 * Checks whether two {@link Command} sets are equal in the sense that their name, aliases and permission matches.
+	 * @param set1
+	 * @param set2
+	 * @return {@code true} if the sets are considered equal, {@code} false otherwise.
+	 */
+	private static boolean commandSetEquals(Set<Command> set1, Set<Command> set2) {
+		if(set1 == set2) {
+			return true;
+		}
+		if(set1 == null || set2 == null || set1.size() != set2.size()) {
+			return false;
+		}
+		for(Command cmd1 : set1) {
+			for(Command cmd2 : set2) {
+				if(cmd1.getName().equals(cmd2.getName())) {
+					if(!cmd1.getAliases().equals(cmd2.getAliases())
+							|| (cmd1.getPermission() != cmd2.getPermission() && cmd1.getPermission() != null
+									&& !cmd1.getPermission().equals(cmd2.getPermission()))) {
+						return false;
+					}
+				}
+			}
+		}
 		return true;
 	}
 	
@@ -398,9 +448,11 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 			return;
 		}
 		
-		this.syncedCommands.clear();
-		this.syncedCommands.addAll(this.injectedCommands);
-		this.commandSyncCheckRequired = false;
+		this.syncedCommandsMap.clear();
+		for(Entry<String, Set<Command>> entry : this.injectedCommandsMap.entrySet()) {
+			this.syncedCommandsMap.put(entry.getKey(), new HashSet<Command>(entry.getValue()));
+		}
+		this.commandSyncCheckRequired.clear();
 	}
 	
 	@Override
