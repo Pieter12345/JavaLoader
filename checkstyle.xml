@@ -23,14 +23,6 @@
 		<!-- Enable usage of "@SuppressWarnings(checkstyle:<CHECK>)" to suppress checkstyle violations -->
 		<module name="SuppressWarningsHolder"/>
 		
-		<!-- Set tabWidth property for checks such as line length -->
-		<property name="tabWidth" value="4"/>
-		
-		<!-- Line length <= 120 characters -->
-		<module name="LineLength">
-			<property name="max" value="120"/>
-		</module>
-		
 		<!-- Indent must use tab characters -->
 		<module name="RegexpSinglelineJava">
 			<property name="format" value="^\t* ([^\*]|$)"/> <!-- Javadoc and multiline comments have a single leading whitespace, so allow " *" -->
@@ -239,6 +231,12 @@
 		<!-- Ensure that long constants are defined using an 'L', rather than an 'l' -->
 		<module name="UpperEll"/>
 		
+	</module>
+	
+	<!-- Line length <= 120 characters -->
+	<module name="LineLength">
+		<property name="max" value="120"/>
+		<property name="tabWidth" value="4"/>
 	</module>
 	
 	<!-- Disallow trailing whitespaces/tabs, excluding "^\t+$". -->
