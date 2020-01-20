@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>io.github.pieter12345</groupId>
 	<artifactId>JavaLoader</artifactId>
-	<version>0.0.4-SNAPSHOT</version>
+	<version>0.0.4</version>
 	<name>JavaLoader</name>
 	<description>A plugin for Bukkit based Minecraft servers that allows you to compile, enable, disable and hotswap Java projects in runtime.</description>
 	<developers>
