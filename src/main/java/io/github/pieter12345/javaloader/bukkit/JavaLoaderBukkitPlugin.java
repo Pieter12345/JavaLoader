@@ -110,7 +110,9 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 		// Check if a JDK is available, otherwise disable the plugin.
 		JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
 		if(compiler == null) {
-			this.logger.severe("No java compiler available. This plugin requires a JDK to run on. Disabling plugin.");
+			this.logger.severe("No java compiler available."
+					+ " This plugin requires the server to be started from a JDK version (Java Development Kit),"
+					+ " rather than a JRE version (Java Runtime Environment). Disabling plugin.");
 			this.setEnabled(false);
 			return;
 		}
