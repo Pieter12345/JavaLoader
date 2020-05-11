@@ -184,7 +184,7 @@ public class JavaProject {
 				throw new CompileException(this, "Unable to include this"
 						+ " plugins .jar file to the classpath because the CodeSource returned null.");
 			}
-			String pluginJarFilePath = codeSource.getLocation().toURI().getPath();
+			String pluginJarFilePath = new File(codeSource.getLocation().toURI()).getAbsolutePath();
 			
 			// Get the complete classpath (including the binDir and passed classpath entries such as jar file paths).
 			String classpath = System.getProperty("java.class.path") + File.pathSeparatorChar + pluginJarFilePath;
