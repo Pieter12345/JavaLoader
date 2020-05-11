@@ -314,14 +314,14 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 		
 		// Load all projects.
 		LoadAllResult loadAllResult = this.projectManager.loadAllProjects((LoadException ex) -> {
-			logger.severe("A LoadException occurred while loading"
+			this.logger.severe("A LoadException occurred while loading"
 					+ " java project \"" + ex.getProject().getName() + "\":"
 					+ (ex.getCause() == null ? " " + ex.getMessage() : "\n" + Utils.getStacktrace(ex)));
 		});
 		
 		// Print feedback.
 		JavaProject[] projects = this.projectManager.getProjects();
-		logger.info("JavaLoader " + this.getDescription().getVersion() + " enabled. "
+		this.logger.info("JavaLoader " + this.getDescription().getVersion() + " enabled. "
 				+ loadAllResult.loadedProjects.size() + "/" + projects.length + " projects loaded.");
 		
 		// Command sync is not required here since Bukkit does this in a later startup stage.
@@ -348,7 +348,7 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 		this.commandExecutor = null;
 		
 		// Print feedback.
-		logger.info("JavaLoader " + this.getDescription().getVersion() + " disabled.");
+		this.logger.info("JavaLoader " + this.getDescription().getVersion() + " disabled.");
 	}
 	
 	@Override
