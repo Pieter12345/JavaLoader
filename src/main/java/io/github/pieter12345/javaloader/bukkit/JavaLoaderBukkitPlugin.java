@@ -335,11 +335,13 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 	public void onDisable() {
 		
 		// Unload all loaded projects and remove them from the project manager.
-		this.projectManager.clear((UnloadException ex) -> {
-			logger.severe("An UnloadException occurred while unloading"
-					+ " java project \"" + ex.getProject().getName() + "\":"
-					+ (ex.getCause() == null ? " " + ex.getMessage() : "\n" + Utils.getStacktrace(ex)));
-		});
+		if(this.projectManager != null) {
+			this.projectManager.clear((UnloadException ex) -> {
+				this.logger.severe("An UnloadException occurred while unloading"
+						+ " java project \"" + ex.getProject().getName() + "\":"
+						+ (ex.getCause() == null ? " " + ex.getMessage() : "\n" + Utils.getStacktrace(ex)));
+			});
+		}
 		this.projectManager = null;
 		this.injectedCommandsMap = null;
 		this.syncedCommandsMap = null;
