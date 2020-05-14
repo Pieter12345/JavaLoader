@@ -14,8 +14,8 @@ Place the JavaLoader jar file in the `<server dir>/plugins` directory of your Bu
 #### JavaLoader project properties:
  - The projects main class (and only that class) extends `io.github.pieter12345.javaloader.bukkit.JavaLoaderBukkitProject`. The usual `org.bukkit.plugin.java.JavaPlugin` class functionalities from Bukkit are implemented in the `io.github.pieter12345.javaloader.bukkit.JavaLoaderBukkitProjectPlugin` class which can be obtained using `JavaLoaderBukkitProject`'s `getPlugin()` method.
  - The projects main class has no constructors defined or has the empty constructor defined and is publicly accessible.
- - The projects main class implements `public void onLoad()` and `public void onUnload()`, which are called when the project is being loaded and unloaded respectively.
- - The projects main class implements `public String getVersion()`, which should return the version of your project (e.g. "0.0.1-SNAPSHOT"). This command is invoked before the `onLoad()` method is invoked and it is advised to hard-code this.
+ - The projects main class can (but does not have to) override `public void onLoad()` and `public void onUnload()`, which are called when the project is being loaded and unloaded respectively.
+ - The projects main class implements `public String getVersion()`, which should return the version of your project (e.g. "0.0.1-SNAPSHOT"). This method is invoked before the `onLoad()` method is invoked and it is advised to hard-code this.
 
 #### Adding commands:
  - The projects main class can override the empty implementation of Bukkit's `CommandExecutor` and `TabCompleter` interfaces for command handling and tab complete handling.
