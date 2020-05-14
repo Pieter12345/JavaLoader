@@ -1,6 +1,9 @@
 # JavaLoader ![Travis CI status](https://travis-ci.org/Pieter12345/JavaLoader.svg?branch=master)
 A Bukkit plugin which allows loading, unloading and compiling java projects in runtime.
 
+## Discord ![Discord](https://img.shields.io/discord/709884147044188321)
+Click [here](https://discord.gg/sGgXTfC) to join our Discord server.
+
 ## Permissions
 | Permission     | Description |
 |----------------|-------------|
