@@ -416,6 +416,10 @@ public class JavaProject {
 						} catch (NoClassDefFoundError e) {
 							throw new LoadException(this, "Unable to load class (NoClassDefFoundError,"
 									+ " class contains a reference to an undefined class): " + className);
+						} catch (UnsupportedClassVersionError e) {
+							throw new LoadException(this, "This project was compiled using a different (likely newer)"
+									+ " version of Java, and cannot be loaded by this version of Java. You can solve"
+									+ " this by recompiling the project.");
 						}
 					}
 				}
