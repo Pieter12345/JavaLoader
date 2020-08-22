@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import io.github.pieter12345.javaloader.core.JavaProject.UnloadMethod;
 import io.github.pieter12345.javaloader.core.ProjectManager.LoadAllResult;
@@ -88,7 +89,7 @@ public class CommandExecutor {
 									+ (this.commandPrefix.isEmpty() ? "" : "sub") + "command."
 							+ "\n&6  - " + this.commandPrefix + "list"
 							+ "\n&3    Displays a list of all projects and their status."
-							+ "\n&6  - " + this.commandPrefix + "recompile <project, *>"
+							+ "\n&6  - " + this.commandPrefix + "recompile [dependentsHandling] <project, *>"
 							+ "\n&3    Recompiles, unloads and loads the given or all projects."
 							+ "\n&6  - " + this.commandPrefix + "unload <project, *>"
 							+ "\n&3    Unloads the given or all projects."
@@ -109,10 +110,14 @@ public class CommandExecutor {
 							return;
 						case "recompile":
 							sender.sendMessage(MessageType.INFO, this.colorizer.colorize("&6" + this.commandPrefix
-									+ "recompile <project, *> &8-&3"
+									+ "recompile [dependentsHandling] <project, *> &8-&3"
 									+ " Recompiles, unloads and loads the given project or all projects when '*'"
 									+ " is given. Recompiling happens before projects are unloaded, so the old project"
-									+ " will stay loaded when a recompile Exception occurs."));
+									+ " will stay loaded when a recompile Exception occurs. When dependents of the"
+									+ " project are loaded, the dependentsHandling is used to specify how to handle"
+									+ " those projects. Possible values are: 'none' (give an error), 'reload' (reload"
+									+ " dependents) or 'recompile' (recompile and reload dependents)."
+									+ " DependentsHandling defaults to 'none'."));
 							return;
 						case "load":
 							sender.sendMessage(MessageType.INFO, this.colorizer.colorize("&6" + this.commandPrefix
@@ -204,13 +209,31 @@ public class CommandExecutor {
 			// "<prefix> recompile".
 			case 1: {
 				sender.sendMessage(MessageType.ERROR, "Not enough arguments."
-						+ " Syntax: " + this.commandPrefix + cmdParts[0].toLowerCase() + " <project, *>");
+						+ " Syntax: " + this.commandPrefix + cmdParts[0].toLowerCase()
+						+ "[dependentsHandling] <project, *>");
 				return;
 			}
 			
-			// "<prefix> recompile <project, *>".
-			case 2: {
-				final String projectName = cmdParts[1];
+			// "<prefix> recompile [dependentsHandling] <project, *>".
+			case 2:
+			case 3: {
+				DependentsHandling dependentsHandling;
+				final String projectName = cmdParts[cmdParts.length - 1];
+				if(cmdParts.length == 3) {
+					dependentsHandling = DependentsHandling.valueOf(cmdParts[1]);
+					if(dependentsHandling == null) {
+						sender.sendMessage(MessageType.ERROR, "Invalid DependentsHandling: " + cmdParts[1] + "."
+								+ "Allowed values: none, reload and recompile.");
+						return;
+					}
+					if(projectName.equals("*") && dependentsHandling != DependentsHandling.RECOMPILE) {
+						sender.sendMessage(MessageType.ERROR, "Cannot provide DependentsHandling"
+								+ " other than 'recompile' when recompiling all projects.");
+						return;
+					}
+				} else {
+					dependentsHandling = DependentsHandling.NONE;
+				}
 				if(projectName.equals("*")) {
 					
 					// Recompile all projects.
@@ -317,29 +340,45 @@ public class CommandExecutor {
 					}
 					
 					// Recompile the project.
-					boolean success = false;
+					AtomicBoolean success = new AtomicBoolean(true);
 					final List<String> messages = new ArrayList<String>();
 					try {
-						this.projectManager.recompile(project,
-								(String compilerFeedback) -> messages.add(compilerFeedback),
-								(UnloadException e) -> sender.sendMessage(MessageType.ERROR, (e.getCause() == null
-										? "UnloadException: " + e.getMessage() : "An UnloadException occurred in java"
-										+ " project \"" + e.getProject().getName() + "\":\n"
-										+ Utils.getStacktrace(e))));
-						success = true;
-					} catch (CompileException e) {
+						this.projectManager.recompile(project, dependentsHandling, new RecompileFeedbackHandler() {
+							@Override
+							public void handleUnloadException(UnloadException e) {
+								sender.sendMessage(MessageType.ERROR, "An UnloadException occurred while unloading"
+										+ " java project \"" + e.getProject().getName() + "\":"
+										+ (e.getCause() == null
+											? " " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
+								success.set(false);
+							}
+							@Override
+							public void handleLoadException(LoadException e) {
+								sender.sendMessage(MessageType.ERROR, "A LoadException occurred while loading"
+										+ " java project \"" + e.getProject().getName() + "\":"
+										+ (e.getCause() == null
+											? " " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
+								success.set(false);
+							}
+							@Override
+							public void handleCompileException(CompileException e) {
+								sender.sendMessage(MessageType.ERROR, "A CompileException occurred while compiling"
+										+ " java project \"" + e.getProject().getName() + "\":"
+										+ (e.getCause() == null
+											? " " + e.getMessage() : "\n" + Utils.getStacktrace(e)));
+								success.set(false);
+							}
+							@Override
+							public void compilerFeedback(String feedback) {
+								messages.add(feedback);
+							}
+						});
+					} catch (CompileException | DepOrderViolationException e) {
 						sender.sendMessage(MessageType.ERROR, (e.getCause() == null
-								? "CompileException: " + e.getMessage() : "A CompileException occurred in java"
-								+ " project \"" + e.getProject().getName() + "\":\n" + Utils.getStacktrace(e)));
-					} catch (LoadException e) {
-						sender.sendMessage(MessageType.ERROR, (e.getCause() == null
-								? "LoadException: " + e.getMessage() : "A LoadException occurred in java"
-								+ " project \"" + e.getProject().getName() + "\":\n" + Utils.getStacktrace(e)));
-					} catch (DepOrderViolationException e) {
-						sender.sendMessage(MessageType.ERROR, (e.getCause() == null
-								? "DepOrderViolationException: " + e.getMessage() : "A DepOrderViolationException"
+								? "CompileException: " + e.getMessage() : "A " + e.getClass().getSimpleName()
 								+ " occurred in java project \"" + e.getProject().getName() + "\":\n"
 								+ Utils.getStacktrace(e)));
+						success.set(false);
 					} catch (IllegalArgumentException e) {
 						throw new Error("Project is obtained from this manager, so this should be impossible.", e);
 					}
@@ -371,7 +410,7 @@ public class CommandExecutor {
 					
 					// Send feedback.
 					sender.sendMessage(MessageType.INFO,
-							"Recompile complete" + (success ? "" : " (with errors)") + ".");
+							"Recompile complete" + (success.get() ? "" : " (with errors)") + ".");
 				}
 				return;
 			}

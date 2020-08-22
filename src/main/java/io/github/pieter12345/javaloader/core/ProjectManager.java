@@ -3,6 +3,7 @@ package io.github.pieter12345.javaloader.core;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -10,6 +11,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.Stack;
 
 import io.github.pieter12345.graph.Graph;
 import io.github.pieter12345.graph.Graph.ChildBeforeParentGraphIterator;
@@ -165,7 +167,7 @@ public class ProjectManager {
 			}
 		}
 		
-		// Generate a graph, representing the projects and how they depend on eachother (dependencies as children).
+		// Generate a graph, representing the projects and how they depend on each other (dependencies as children).
 		GraphGenerationResult result = this.generateDependencyGraph(projects, false);
 		Graph<JavaProject> graph = result.graph;
 		Set<JavaProject> errorProjects = new HashSet<JavaProject>();
@@ -276,7 +278,7 @@ public class ProjectManager {
 			}
 		}
 		
-		// Generate a graph, representing the projects and how they depend on eachother (dependencies as children).
+		// Generate a graph, representing the projects and how they depend on each other (dependencies as children).
 		GraphGenerationResult result = this.generateDependencyGraph(projects, false);
 		Graph<JavaProject> graph = result.graph;
 		for(JavaProjectException ex : result.exceptions) {
@@ -321,7 +323,7 @@ public class ProjectManager {
 			Collection<JavaProject> projects, boolean useSourceDependencies) throws IllegalArgumentException {
 		final List<JavaProjectException> exceptions = new ArrayList<JavaProjectException>();
 		
-		// Create a graph, representing the projects and how they depend on eachother.
+		// Create a graph, representing the projects and how they depend on each other.
 		final Graph<JavaProject> graph = new Graph<JavaProject>(projects);
 		for(JavaProject project : projects) {
 			
@@ -420,23 +422,22 @@ public class ProjectManager {
 	/**
 	 * Compiles, unloads (if loaded) and loads the given project. Compilation happens in a temporary directory, so
 	 * if a CompileException occurs, the temporary directory is simply removed and the project will stay loaded if
-	 * it was loaded.
+	 * it was loaded. Direct and indirect loaded dependents of the project will be handled according to the given
+	 * {@link DependentsHandling} option.
 	 * @param project - The project to compile, unload and load.
-	 * @param compilerFeedbackHandler - The compiler feedback handler which will receive all java compiler feedback.
-	 * @param unloadExHandler - If this project was loaded and an unload caused exceptions, they are passed to this
-	 * handler.
+	 * @param dependentsHandling - The way to handle loaded dependents of the project.
+	 * @param feedbackHandler - The project feedback handler which will receive all thrown exceptions and feedback that
+	 * occur during the recompile.
 	 * @throws CompileException If an exception occurred during compilation.
 	 * If this is thrown, the new binaries have not yet been applied and the project has not been unloaded.
-	 * @throws LoadException If an exception occurred during the loading of the new compiled binaries.
-	 * If this is thrown, the new binaries have been applied and the project has been unloaded, but not reloaded due
-	 * to the reason given in this exception.
-	 * @throws DepOrderViolationException When the given project is loaded and at least one of its dependents is loaded.
+	 * @throws DepOrderViolationException If the given project is loaded and at least one of its dependents is loaded
+	 * and {@link DependentsHandling#NONE} is provided.
 	 * @throws IllegalArgumentException When {@link project#getProjectManager()} != this or when project is not known
 	 * in this project manager.
 	 */
-	public void recompile(JavaProject project, CompilerFeedbackHandler compilerFeedbackHandler,
-			UnloadExceptionHandler unloadExHandler) throws
-			CompileException, LoadException, DepOrderViolationException, IllegalArgumentException {
+	public void recompile(JavaProject project, DependentsHandling dependentsHandling,
+			RecompileFeedbackHandler feedbackHandler) throws
+			CompileException, DepOrderViolationException, IllegalArgumentException {
 		
 		// Validate that the project is part of this project manager.
 		if(project.getProjectManager() != this) {
@@ -445,69 +446,255 @@ public class ProjectManager {
 			throw new IllegalArgumentException("The given project has not been added to this project manager.");
 		}
 		
-		// Prevent a recompile if this and at least one of the dependents of this project are loaded.
+		// Get dependents unload, load and recompile order if at least one of the dependents of this project are loaded.
+		Iterator<JavaProject> unloadIterator;
+		Iterator<JavaProject> recompileIterator;
+		Iterator<JavaProject> loadIterator;
 		if(project.isLoaded()) {
-			Set<JavaProject> loadedDependents = this.getLoadedDependents(project);
-			if(!loadedDependents.isEmpty()) {
-				List<JavaProject> loadedDependentsList = new ArrayList<JavaProject>(loadedDependents.size());
-				loadedDependentsList.addAll(loadedDependents);
-				// Throw an exception about the dependents being enabled and therefore being unable to recompile.
+			Set<JavaProject> loadedDirectDependents = this.getLoadedDependents(project);
+			if(loadedDirectDependents.isEmpty()) {
 				
-				loadedDependentsList.sort((JavaProject p1, JavaProject p2) -> p1.getName().compareTo(p2.getName()));
-				throw new DepOrderViolationException(project,
-						"Project cannot be recompiled while there are projects enabled that depend on it."
-						+ " Depending project" + (loadedDependentsList.size() == 1 ? "" : "s") + ": "
-						+ Utils.glueIterable(loadedDependentsList, (JavaProject p) -> p.getName(), ", ") + ".");
+				// The project does not depend on other projects, so handle only this project.
+				unloadIterator = Arrays.asList(project).iterator();
+				recompileIterator = Arrays.asList(project).iterator();
+				loadIterator = Arrays.asList(project).iterator();
+			} else {
+				if(dependentsHandling == DependentsHandling.NONE) {
+					
+					// Throw an exception about the dependents being enabled and therefore being unable to recompile.
+					List<JavaProject> loadedDependentsList = new ArrayList<JavaProject>(loadedDirectDependents.size());
+					loadedDependentsList.addAll(loadedDirectDependents);
+					loadedDependentsList.sort((JavaProject p1, JavaProject p2) -> p1.getName().compareTo(p2.getName()));
+					throw new DepOrderViolationException(project,
+							"Project cannot be recompiled while there are projects enabled that depend on it."
+							+ " Depending project" + (loadedDependentsList.size() == 1 ? "" : "s") + ": "
+							+ Utils.glueIterable(loadedDependentsList, (JavaProject p) -> p.getName(), ", ") + ".");
+				} else {
+					
+					// Create a set of loaded projects.
+					Set<JavaProject> loadedProjects = new HashSet<>();
+					for(JavaProject proj : this.projects.values()) {
+						if(proj.isLoaded()) {
+							loadedProjects.add(proj);
+						}
+					}
+					
+					// Create a dependency graph of loaded projects.
+					Graph<JavaProject> loadedProjectsGraph;
+					{
+						GraphGenerationResult result = this.generateDependencyGraph(loadedProjects, false);
+						loadedProjectsGraph = result.graph;
+						for(JavaProjectException ex : result.exceptions) {
+							feedbackHandler.handleCompileException(
+									new CompileException(ex.getProject(), ex.getMessage()));
+						}
+						if(!result.exceptions.isEmpty()) {
+							throw new CompileException(project, "Project cannot be"
+									+ " recompiled because of problems with runtime dependencies of loaded projects.");
+						}
+					}
+					
+					// Create a set of loaded (in)direct dependents.
+					Set<JavaProject> loadedDependents = new HashSet<>();
+					{
+						Stack<JavaProject> projStack = new Stack<>();
+						projStack.add(project);
+						while(!projStack.isEmpty()) {
+							JavaProject proj = projStack.pop();
+							for(JavaProject dependent : loadedProjectsGraph.getDescendents(proj)) {
+								if(loadedDependents.add(dependent)) {
+									projStack.push(dependent);
+								}
+							}
+						}
+					}
+					
+					// Create a dependency graph of loaded (in)direct dependents.
+					Graph<JavaProject> loadedDependentsGraph;
+					{
+						GraphGenerationResult result = this.generateDependencyGraph(loadedDependents, false);
+						loadedDependentsGraph = result.graph;
+						for(JavaProjectException ex : result.exceptions) {
+							feedbackHandler.handleCompileException(
+									new CompileException(ex.getProject(), ex.getMessage()));
+						}
+						if(!result.exceptions.isEmpty()) {
+							throw new CompileException(project, "Project cannot be"
+									+ " recompiled because of problems with runtime dependencies of loaded projects.");
+						}
+					}
+					
+					// Create an iterator for unloading projects.
+					unloadIterator = loadedDependentsGraph.childBeforeParentIterator();
+					
+					// Create an iterator for recompiling projects, if they should be recompiled.
+					if(dependentsHandling == DependentsHandling.RECOMPILE) {
+						GraphGenerationResult result = this.generateDependencyGraph(loadedDependents, true);
+						Graph<JavaProject> graph = result.graph;
+						for(JavaProjectException ex : result.exceptions) {
+							feedbackHandler.handleCompileException(
+									new CompileException(ex.getProject(), ex.getMessage()));
+						}
+						if(!result.exceptions.isEmpty()) {
+							throw new CompileException(project, "Project cannot be"
+									+ " recompiled because of problems with source dependencies of loaded projects.");
+						}
+						recompileIterator = graph.parentBeforeChildIterator();
+						loadIterator = graph.parentBeforeChildIterator();
+						
+						// Check for cycles (Projects that depend on themselves are included).
+						Set<Set<JavaProject>> cycles = getGraphCycles(graph);
+						for(Set<JavaProject> cycle : cycles) {
+							assert(cycle.size() != 0);
+							if(cycle.size() > 1) {
+								
+								// Add an exception to all projects in the cycle.
+								String projectsStr = Utils.glueIterable(cycle,
+										(JavaProject proj) -> proj.getName(), ", ");
+								for(JavaProject proj : cycle) {
+									feedbackHandler.handleCompileException(new CompileException(proj,
+											"Circular dependency detected including projects: " + projectsStr + "."));
+								}
+								
+								// Add an exception to all ancestors of the cycle.
+								for(JavaProject proj : graph.getAncestors(cycle.iterator().next())) {
+									if(!cycle.contains(proj)) {
+										feedbackHandler.handleCompileException(new CompileException(proj,
+												"Project depends directly or indirectly on (but is not part of)"
+												+ " a circular dependency including projects: " + projectsStr + "."));
+									}
+								}
+								
+							} else if(cycle.size() == 1) {
+								
+								// Add an exception about the project depending on itself.
+								JavaProject proj = cycle.iterator().next();
+								feedbackHandler.handleCompileException(new CompileException(proj,
+										"Project depends on itself (circular dependency): " + proj.getName() + "."));
+								
+							}
+						}
+						if(!cycles.isEmpty()) {
+							throw new CompileException(project, "Project cannot be"
+									+ " recompiled because of problems with source dependencies of loaded projects.");
+						}
+					} else {
+						recompileIterator = Arrays.asList(project).iterator();
+						loadIterator = loadedDependentsGraph.parentBeforeChildIterator();
+					}
+				}
+			}
+		} else {
+			
+			// The project is not loaded, so handle only this project.
+			unloadIterator = Collections.emptyIterator();
+			recompileIterator = Arrays.asList(project).iterator();
+			loadIterator = Arrays.asList(project).iterator();
+		}
+		
+		// Recompile the project and its (in)direct dependents.
+		List<JavaProject> recompiledProjects = new ArrayList<>();
+		boolean success = true;
+		for(Iterator<JavaProject> it = recompileIterator; it.hasNext(); ) {
+			JavaProject p = it.next();
+			if(!p.getBinDir().getName().equals("bin")) {
+				throw new IllegalStateException("All projects are expected to have their binary directory name set"
+						+ " to \"bin\". But project \"" + p.getName() + "\" had a binary directory named:"
+						+ " \"" + p.getBinDir().getName() + "\".");
+			}
+			p.setBinDirName("bin_new");
+			try {
+				p.compile(feedbackHandler);
+				recompiledProjects.add(p);
+			} catch (CompileException e) {
+				success = false;
+				
+				// Remove the newly created binary directory and set the project back to the default bin directory.
+				Utils.removeFile(p.getBinDir());
+				p.setBinDirName("bin");
+				
+				// Pass the exception to the handler.
+				feedbackHandler.handleCompileException(e);
+				
+				// Remove this project and all projects that depend on it from the recompile process.
+				if(it instanceof ChildBeforeParentGraphIterator) {
+					List<JavaProject> removedProjects =
+							((ChildBeforeParentGraphIterator<JavaProject>) it).removeAncestors();
+					assert(removedProjects != null && removedProjects.get(0) == p);
+					
+					// Add an exception for all skipped dependents.
+					for(int i = 1; i < removedProjects.size(); i++) {
+						feedbackHandler.handleCompileException(new CompileException(removedProjects.get(i),
+								"Indirect or direct dependency project was not successfully compiled: "
+								+ p.getName()));
+					}
+				}
 			}
 		}
-		
-		// Compile the project in the "bin_new" directory.
-		project.setBinDirName("bin_new");
-		try {
-			project.compile(compilerFeedbackHandler);
-		} catch (CompileException e) {
+		if(!success) {
 			
-			// Remove the newly created bin directory and set it back to the old one.
-			Utils.removeFile(project.getBinDir());
-			project.setBinDirName("bin");
+			// Remove all newly created binary directories and set the projects back to their default bin directory.
+			for(JavaProject p : recompiledProjects) {
+				Utils.removeFile(p.getBinDir());
+				p.setBinDirName("bin");
+			}
 			
-			// Rethrow, compilation failed.
-			throw e;
+			// Throw an exception since compilation has failed.
+			throw new CompileException(project, "Compilation has failed.");
 		}
 		
-		// Set the project bin directory back to the old one.
-		File newBinDir = project.getBinDir();
-		project.setBinDirName("bin");
-		
-		// Unload the project if it was loaded. The IGNORE_DEPENDENTS unload method is used because we already
-		// checked that none of the dependents are enabled.
-		if(project.isLoaded()) {
+		// Unload the project and its (in)direct dependents.
+		for(Iterator<JavaProject> it = unloadIterator; it.hasNext(); ) {
+			JavaProject p = it.next();
+			
+			// Attempt to unload the project. Use IGNORE_DEPENDENTS since we know that the dependents have been handled.
 			try {
-				project.unload(UnloadMethod.IGNORE_DEPENDENTS, unloadExHandler);
+				p.unload(UnloadMethod.IGNORE_DEPENDENTS, feedbackHandler);
 			} catch (UnloadException e) {
-				// This exception should never be thrown due to using the IGNORE_DEPENDENTS unload method.
-				Utils.removeFile(newBinDir);
+				// Never happens due to using the IGNORE_DEPENDENTS method.
 				throw new Error(e);
 			}
 		}
 		
-		// Replace the current "bin" directory with "bin_new" and remove "bin_new".
-		if(project.getBinDir().exists() && !Utils.removeFile(project.getBinDir())) {
-			throw new CompileException(project,
-					"Failed to rename \"bin_new\" to \"bin\" because the \"bin\""
-					+ " directory could not be removed for project \"" + project.getName() + "\"."
-					+ " This can be fixed manually or by attempting another recompile. The project has"
-					+ " already been disabled and some files of the \"bin\" directory might be removed.");
-		}
-		if(!newBinDir.renameTo(project.getBinDir())) {
-			throw new CompileException(project,
-					"Failed to rename \"bin_new\" to \"bin\" for project \"" + project.getName() + "\"."
-					+ " This can be fixed manually or by attempting another recompile."
-					+ " The project has already been disabled and the \"bin\" directory has been removed.");
+		// Replace all binary directories with the new ones.
+		for(JavaProject p : recompiledProjects) {
+			
+			// Validate that a project has its binary directory renamed.
+			// Fail the hard way if this is not the case, so that we can be sure to never mess up file removal.
+			if(!p.getBinDir().getName().equals("bin_new")) {
+				throw new Error("A project did not have its binary directory renamed. This should be impossible.");
+			}
+			
+			// Replace the current binary directory with the new one and remove the new one.
+			File newBinDir = p.getBinDir();
+			p.setBinDirName("bin");
+			if(p.getBinDir().exists() && !Utils.removeFile(p.getBinDir())) {
+				feedbackHandler.handleCompileException(new CompileException(p,
+						"Failed to replace the old binary directory with the new binary directory because the old"
+						+ " binary directory could not be removed for project \"" + p.getName() + "\"."
+						+ " This can be fixed manually or by attempting another recompile. The project has already"
+						+ " been disabled and some files of the current binary directory might be removed."));
+			}
+			if(!newBinDir.renameTo(p.getBinDir())) {
+				feedbackHandler.handleCompileException(new CompileException(p,
+						"Failed to rename the new binary directory to the default binary directory for project \""
+						+ p.getName() + "\". This can be fixed manually or by attempting another recompile."
+						+ " The project has already been disabled and the current binary directory has been"
+						+ " removed."));
+			}
 		}
 		
-		// Load the project.
-		project.load();
+		// Load the project and its (in)direct dependents.
+		for(Iterator<JavaProject> it = loadIterator; it.hasNext(); ) {
+			JavaProject p = it.next();
+			
+			// Attempt to load the project.
+			try {
+				p.load();
+			} catch (LoadException e) {
+				feedbackHandler.handleLoadException(e);
+			}
+		}
 	}
 	
 	private Set<JavaProject> getLoadedDependents(JavaProject project) {
@@ -516,7 +703,7 @@ public class ProjectManager {
 			if(p.isLoaded() && p != project) {
 				for(Dependency dep : p.getDependencies()) {
 					if(dep instanceof ProjectDependency
-							&& ((ProjectDependency) dep).getProject() == project) {
+							&& ((ProjectDependency) dep).getProjectName().equals(project.getName())) {
 						dependingProjects.add(p);
 					}
 				}
@@ -562,7 +749,7 @@ public class ProjectManager {
 			}
 		}
 		
-		// Generate a graph, representing the projects and how they depend on eachother (dependencies as children).
+		// Generate a graph, representing the projects and how they depend on each other (dependencies as children).
 		GraphGenerationResult result = this.generateDependencyGraph(projects, true);
 		Graph<JavaProject> graph = result.graph;
 		Set<JavaProject> errorProjects = new HashSet<JavaProject>();
@@ -880,5 +1067,4 @@ public class ProjectManager {
 	 */
 	public static interface RecompileFeedbackHandler extends ProjectExceptionHandler, CompilerFeedbackHandler {
 	}
-	
 }
