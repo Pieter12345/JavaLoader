@@ -181,6 +181,13 @@ public class JavaLoaderStandalone {
 					}
 					this.executeCommand(command);
 				}
+				
+				// Sleep for a short while to ease the CPU when reading System.in does not block.
+				try {
+					Thread.sleep(10);
+				} catch (InterruptedException e) {
+					// Ignore.
+				}
 			}
 			scanner.close();
 		}).start();
