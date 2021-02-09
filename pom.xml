@@ -3,9 +3,15 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>io.github.pieter12345</groupId>
 	<artifactId>JavaLoader</artifactId>
-	<version>0.0.6-SNAPSHOT</version>
+	<version>${revision}</version>
 	<name>JavaLoader</name>
-	<description>A plugin for Bukkit based Minecraft servers that allows you to compile, enable, disable and hotswap Java projects in runtime.</description>
+	<description>Software that allows you to compile, enable, disable and hotswap Java projects in runtime,
+			intended to be wrapped in Java software with less flexible plugin systems.</description>
+	<packaging>pom</packaging>
+	<properties>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<revision>0.0.6-SNAPSHOT</revision>
+	</properties>
 	<developers>
 		<developer>
 			<id>Pieter12345</id>
@@ -19,183 +25,13 @@
 			<timezone>GMT+1</timezone>
 		</developer>
 	</developers>
-	<properties>
-		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-	</properties>
-	<build>
-		<plugins>
-			
-			<!-- Compile plugin (required for compilation) -->
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-compiler-plugin</artifactId>
-				<version>3.7.0</version>
-				<configuration>
-					<showDeprecation>true</showDeprecation>
-					<source>1.8</source>
-					<target>1.8</target>
-				</configuration>
-			</plugin>
-			
-			<!-- Jar creation plugin (creates a jar without dependencies) -->
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-jar-plugin</artifactId>
-				<version>3.1.0</version>
-				<configuration>
-					<archive>
-						<addMavenDescriptor>false</addMavenDescriptor>
-						<manifest>
-							<addDefaultImplementationEntries>true</addDefaultImplementationEntries>
-							<mainClass>io.github.pieter12345.javaloader.standalone.JavaLoaderStandalone</mainClass>
-						</manifest>
-						<manifestEntries>
-							<Built-By>Anonymous</Built-By>
-							<License>GNU General Public License v3.0</License>
-						</manifestEntries>
-					</archive>
-				</configuration>
-			</plugin>
-			
-			<!-- Surfire plugin (override to force JUnit5 usage) -->
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-surefire-plugin</artifactId>
-				<version>2.19.1</version>
-				<dependencies>
-					<dependency>
-						<groupId>org.junit.platform</groupId>
-						<artifactId>junit-platform-surefire-provider</artifactId>
-						<version>1.1.0</version>
-					</dependency>
-					<dependency>
-						<groupId>org.junit.jupiter</groupId>
-						<artifactId>junit-jupiter-engine</artifactId>
-						<version>5.1.0</version>
-					</dependency>
-				</dependencies>
-			</plugin>
-			
-			<!-- Checkstyle plugin -->
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-checkstyle-plugin</artifactId>
-				<version>3.1.0</version>
-				<executions>
-					<execution>
-						<id>checkstyle</id>
-						<phase>test</phase>
-						<configuration>
-							<sourceDirectories>${project.compileSourceRoots}</sourceDirectories>
-							<testSourceDirectories>${project.testCompileSourceRoots}</testSourceDirectories>
-							<includeTestSourceDirectory>true</includeTestSourceDirectory>
-							<configLocation>${basedir}/checkstyle.xml</configLocation>
-							<propertyExpansion>config_loc=${basedir}</propertyExpansion>
-							<encoding>UTF-8</encoding>
-							<consoleOutput>true</consoleOutput>
-							<failsOnError>true</failsOnError>
-							<linkXRef>false</linkXRef>
-						</configuration>
-						<goals>
-							<goal>check</goal>
-						</goals>
-					</execution>
-				</executions>
-				<dependencies>
-					<dependency>
-						<groupId>com.puppycrawl.tools</groupId>
-						<artifactId>checkstyle</artifactId>
-						<version>8.29</version>
-					</dependency>
-				</dependencies>
-			</plugin>
-			
-		</plugins>
-		
-		<resources>
-			
-			<!-- Filter "plugin.yml" (replaces ${tags}) -->
-			<resource>
-				<directory>src/main/resources</directory>
-				<filtering>true</filtering>
-				<includes>
-					<include>plugin.yml</include>
-				</includes>
-			</resource>
-			<resource>
-				<directory>src/main/resources</directory>
-				<filtering>false</filtering>
-			</resource>
-			
-		</resources>
-		
-	</build>
+	<modules>
+		<module>JavaLoader-Core</module>
+		<module>JavaLoader-Bukkit</module>
+	</modules>
 	<licenses>
 		<license>
 			<name>GNU General Public License v3.0</name>
 		</license>
 	</licenses>
-	<dependencies>
-		
-		<!-- Bukkit API -->
-		<dependency>
-			<groupId>org.bukkit</groupId>
-			<artifactId>bukkit</artifactId>
-			<version>1.15.2-R0.1-SNAPSHOT</version>
-			<type>jar</type>
-			<scope>provided</scope>
-		</dependency>
-		
-		<!-- JUnit5 (maven does not require this, but it is required for running tests in IDE's) -->
-		<dependency>
-			<groupId>org.junit.jupiter</groupId>
-			<artifactId>junit-jupiter-api</artifactId>
-			<version>5.1.0</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.junit.jupiter</groupId>
-			<artifactId>junit-jupiter-engine</artifactId>
-			<version>5.1.0</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.junit.jupiter</groupId>
-			<artifactId>junit-jupiter-params</artifactId>
-			<version>5.1.0</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-		<groupId>org.junit.platform</groupId>
-			<artifactId>junit-platform-launcher</artifactId>
-			<version>1.2.0</version>
-			<scope>test</scope>
-		</dependency>
-		
-		<!-- AssertJ junit test extension library -->
-		<dependency>
-			<groupId>org.assertj</groupId>
-			<artifactId>assertj-core</artifactId>
-			<version>3.9.1</version>
-			<scope>test</scope>
-		</dependency>
-		
-		<!-- Mockito junit test extension library -->
-		<dependency>
-			<groupId>org.mockito</groupId>
-			<artifactId>mockito-core</artifactId>
-			<version>2.18.3</version>
-			<scope>test</scope>
-		</dependency>
-		
-	</dependencies>
-	<repositories>
-		
-		<!-- Bukkit API repo -->
-		<repository>
-			<id>spigot-repo</id>
-			<url>https://hub.spigotmc.org/nexus/content/repositories/snapshots/</url>
-		</repository>
-		
-	</repositories>
 </project>
