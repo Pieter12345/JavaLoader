@@ -2,9 +2,7 @@ import io.github.pieter12345.javaloader.bukkit.JavaLoaderBukkitProject;
 import io.github.pieter12345.javaloader.bukkit.BukkitCommand;
 
 import org.bukkit.command.Command;
-import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
-import org.bukkit.command.TabCompleter;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
