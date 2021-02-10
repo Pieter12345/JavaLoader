@@ -1,0 +1,228 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<artifactId>JavaLoader-Velocity</artifactId>
+	<name>JavaLoader-Velocity</name>
+	<description>A plugin for the Velocity Minecraft proxy that allows you to
+			compile, enable, disable and hotswap Java projects in runtime.</description>
+	<parent>
+		<groupId>io.github.pieter12345</groupId>
+		<artifactId>JavaLoader</artifactId>
+		<version>0.0.6-SNAPSHOT</version>
+	</parent>
+	<properties>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+	</properties>
+	<build>
+		<plugins>
+			
+			<!-- Compile plugin (required for compilation) -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<version>3.7.0</version>
+				<configuration>
+					<showDeprecation>true</showDeprecation>
+					<source>1.8</source>
+					<target>1.8</target>
+				</configuration>
+			</plugin>
+			
+			<!-- Jar creation plugin (creates a jar without dependencies) -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-jar-plugin</artifactId>
+				<version>3.1.0</version>
+				<configuration>
+					<archive>
+						<addMavenDescriptor>false</addMavenDescriptor>
+						<manifest>
+							<addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+							<mainClass>io.github.pieter12345.javaloader.standalone.JavaLoaderStandalone</mainClass>
+						</manifest>
+						<manifestEntries>
+							<Built-By>Anonymous</Built-By>
+							<License>GNU General Public License v3.0</License>
+						</manifestEntries>
+					</archive>
+				</configuration>
+			</plugin>
+			
+			<!-- Shade plugin (include libraries in jar) -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-shade-plugin</artifactId>
+				<version>1.4</version>
+				<executions>
+					<execution>
+						<id>ShadedBundle</id>
+						<phase>package</phase>
+						<goals>
+							<goal>shade</goal>
+						</goals>
+						<configuration>
+							<shadedArtifactAttached>false</shadedArtifactAttached>
+							<shadedClassifierName>Bundle</shadedClassifierName>
+							<minimizeJar>false</minimizeJar>
+							<artifactSet>
+								<includes>
+									<include>io.github.pieter12345:JavaLoader-Core:jar:*</include>
+								</includes>
+							</artifactSet>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			
+			<!-- Surfire plugin (override to force JUnit5 usage) -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<version>2.19.1</version>
+				<dependencies>
+					<dependency>
+						<groupId>org.junit.platform</groupId>
+						<artifactId>junit-platform-surefire-provider</artifactId>
+						<version>1.1.0</version>
+					</dependency>
+					<dependency>
+						<groupId>org.junit.jupiter</groupId>
+						<artifactId>junit-jupiter-engine</artifactId>
+						<version>5.1.0</version>
+					</dependency>
+				</dependencies>
+			</plugin>
+			
+			<!-- Checkstyle plugin -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-checkstyle-plugin</artifactId>
+				<version>3.1.0</version>
+				<executions>
+					<execution>
+						<id>checkstyle</id>
+						<phase>test</phase>
+						<configuration>
+							<sourceDirectories>${project.compileSourceRoots}</sourceDirectories>
+							<testSourceDirectories>${project.testCompileSourceRoots}</testSourceDirectories>
+							<includeTestSourceDirectory>true</includeTestSourceDirectory>
+							<configLocation>${basedir}/../checkstyle.xml</configLocation>
+							<propertyExpansion>config_loc=${basedir}/..</propertyExpansion>
+							<encoding>UTF-8</encoding>
+							<consoleOutput>true</consoleOutput>
+							<failsOnError>true</failsOnError>
+							<linkXRef>false</linkXRef>
+						</configuration>
+						<goals>
+							<goal>check</goal>
+						</goals>
+					</execution>
+				</executions>
+				<dependencies>
+					<dependency>
+						<groupId>com.puppycrawl.tools</groupId>
+						<artifactId>checkstyle</artifactId>
+						<version>8.29</version>
+					</dependency>
+				</dependencies>
+			</plugin>
+			
+		</plugins>
+		<resources>
+			
+			<!-- Filter "velocity-plugin.json" (replaces ${tags}) -->
+			<resource>
+				<directory>src/main/resources</directory>
+				<filtering>true</filtering>
+				<includes>
+					<include>velocity-plugin.json</include>
+				</includes>
+			</resource>
+			<resource>
+				<directory>src/main/resources</directory>
+				<filtering>false</filtering>
+			</resource>
+			
+		</resources>
+	</build>
+	<dependencies>
+		
+		<!-- JavaLoader-Core -->
+		<dependency>
+			<groupId>io.github.pieter12345</groupId>
+			<artifactId>JavaLoader-Core</artifactId>
+			<version>${revision}</version>
+			<type>jar</type>
+		</dependency>
+		
+		<!-- JavaLoader-Core tests -->
+		<dependency>
+			<groupId>io.github.pieter12345</groupId>
+			<artifactId>JavaLoader-Core</artifactId>
+			<version>${revision}</version>
+			<type>test-jar</type>
+			<scope>test</scope>
+		</dependency>
+		
+		<!-- Velocity API -->
+		<dependency>
+			<groupId>com.velocitypowered</groupId>
+			<artifactId>velocity-api</artifactId>
+			<version>1.1.4</version>
+			<type>jar</type>
+			<scope>provided</scope>
+		</dependency>
+		
+		<!-- JUnit5 (maven does not require this, but it is required for running tests in IDE's) -->
+		<dependency>
+			<groupId>org.junit.jupiter</groupId>
+			<artifactId>junit-jupiter-api</artifactId>
+			<version>5.1.0</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.junit.jupiter</groupId>
+			<artifactId>junit-jupiter-engine</artifactId>
+			<version>5.1.0</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.junit.jupiter</groupId>
+			<artifactId>junit-jupiter-params</artifactId>
+			<version>5.1.0</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+		<groupId>org.junit.platform</groupId>
+			<artifactId>junit-platform-launcher</artifactId>
+			<version>1.2.0</version>
+			<scope>test</scope>
+		</dependency>
+		
+		<!-- AssertJ junit test extension library -->
+		<dependency>
+			<groupId>org.assertj</groupId>
+			<artifactId>assertj-core</artifactId>
+			<version>3.9.1</version>
+			<scope>test</scope>
+		</dependency>
+		
+		<!-- Mockito junit test extension library -->
+		<dependency>
+			<groupId>org.mockito</groupId>
+			<artifactId>mockito-core</artifactId>
+			<version>2.18.3</version>
+			<scope>test</scope>
+		</dependency>
+		
+	</dependencies>
+	<repositories>
+		
+		<!-- Velocity API repo -->
+		<repository>
+			<id>velocity-repo</id>
+			<url>https://nexus.velocitypowered.com/repository/maven-public/</url>
+		</repository>
+		
+	</repositories>
+</project>

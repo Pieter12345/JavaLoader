@@ -1,0 +1,8 @@
+{
+    "id": "javaloader",
+    "name": "JavaLoader",
+    "version": "${version}",
+    "description": "A plugin for the Velocity Minecraft proxy that allows you to compile, enable, disable and hotswap Java projects in runtime.",
+    "authors": ["Pieter12345/Woesh0007"],
+    "main": "io.github.pieter12345.javaloader.velocity.JavaLoaderVelocityPlugin"
+}

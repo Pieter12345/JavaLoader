@@ -28,6 +28,7 @@
 	<modules>
 		<module>JavaLoader-Core</module>
 		<module>JavaLoader-Bukkit</module>
+		<module>JavaLoader-Velocity</module>
 	</modules>
 	<licenses>
 		<license>
