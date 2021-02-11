@@ -26,13 +26,13 @@ import io.github.pieter12345.javaloader.core.JavaLoaderProject;
 import io.github.pieter12345.javaloader.core.JavaProject;
 import io.github.pieter12345.javaloader.core.ProjectManager;
 import io.github.pieter12345.javaloader.core.ProjectStateListener;
-import io.github.pieter12345.javaloader.core.dependency.ProjectDependencyParser;
 import io.github.pieter12345.javaloader.core.ProjectManager.LoadAllResult;
 import io.github.pieter12345.javaloader.core.exceptions.LoadException;
 import io.github.pieter12345.javaloader.core.exceptions.UnloadException;
 import io.github.pieter12345.javaloader.core.utils.AnsiColor;
 import io.github.pieter12345.javaloader.core.utils.Utils;
 import io.github.pieter12345.javaloader.velocity.command.JavaLoaderCommand;
+import io.github.pieter12345.javaloader.velocity.dependency.VelocityProjectDependencyParser;
 
 /**
  * JavaLoaderVelocityPlugin class.
@@ -108,7 +108,7 @@ public class JavaLoaderVelocityPlugin {
 		}
 		
 		// Create the project manager.
-		this.projectManager = new ProjectManager(this.projectsDir, new ProjectDependencyParser());
+		this.projectManager = new ProjectManager(this.projectsDir, new VelocityProjectDependencyParser(this.proxy));
 		
 		// Initialize project state listener.
 		this.projectStateListener = new ProjectStateListener() {
