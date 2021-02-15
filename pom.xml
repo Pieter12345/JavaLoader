@@ -3,7 +3,6 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>io.github.pieter12345</groupId>
 	<artifactId>JavaLoader</artifactId>
-	<version>${revision}</version>
 	<name>JavaLoader</name>
 	<description>Software that allows you to compile, enable, disable and hotswap Java projects in runtime,
 			intended to be wrapped in Java software with less flexible plugin systems.</description>
@@ -12,6 +11,7 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<revision>0.0.6-SNAPSHOT</revision>
 	</properties>
+	<version>${revision}</version>
 	<developers>
 		<developer>
 			<id>Pieter12345</id>
