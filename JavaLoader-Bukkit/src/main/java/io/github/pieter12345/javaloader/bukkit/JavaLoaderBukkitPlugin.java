@@ -153,8 +153,8 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 					BukkitCommand[] commands;
 					try {
 						commands = bukkitProjectInstance.getCommands();
-					} catch (Exception e) {
-						throw new LoadException(project, "An Exception occurred in " + project.getName() + "'s "
+					} catch (Throwable e) {
+						throw new LoadException(project, "A problem occurred in " + project.getName() + "'s "
 								+ bukkitProjectInstance.getClass().getName() + ".getCommands()."
 								+ " Is the project up to date?  Stacktrace:\n" + Utils.getStacktrace(e));
 					}

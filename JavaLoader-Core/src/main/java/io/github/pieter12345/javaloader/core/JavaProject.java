@@ -455,8 +455,13 @@ public class JavaProject {
 		// Get the project version (This has to happen before calling the onLoad(...) method on the stateListener).
 		try {
 			this.version = this.projectInstance.getVersion();
-		} catch (Exception e) {
-			throw new LoadException(this, "An Exception occurred in " + this.projectDir.getName() + "'s "
+		} catch (LinkageError e) {
+			throw new LoadException(this, "A LinkageError occurred in " + this.projectDir.getName() + "'s "
+					+ this.projectInstance.getClass().getName() + ".getVersion(). Is the compiled project missing a"
+					+ " dependency or was a dependency updated without recompiling the project?"
+					+ " Stacktrace:\n" + Utils.getStacktrace(e));
+		}  catch (Throwable e) {
+			throw new LoadException(this, "A problem occurred in " + this.projectDir.getName() + "'s "
 					+ this.projectInstance.getClass().getName() + ".getVersion(). Is the project up to date?"
 					+ " Stacktrace:\n" + Utils.getStacktrace(e));
 		}
@@ -477,16 +482,16 @@ public class JavaProject {
 		try {
 			this.projectInstance.onLoad();
 			this.isLoaded = true;
-		} catch (Exception e) {
-			throw new LoadException(this, "An Exception occurred in " + this.projectDir.getName() + "'s "
+		} catch (LinkageError e) {
+			throw new LoadException(this, "A LinkageError occurred in " + this.projectDir.getName() + "'s "
+					+ this.projectInstance.getClass().getName() + ".onLoad(). Is the compiled project missing a"
+					+ " dependency or was a dependency updated without recompiling the project?"
+					+ " Stacktrace:\n" + Utils.getStacktrace(e));
+		} catch (Throwable e) {
+			throw new LoadException(this, "A problem occurred in " + this.projectDir.getName() + "'s "
 					+ this.projectInstance.getClass().getName() + ".onLoad(). Is the project up to date?"
 					+ " Stacktrace:\n" + Utils.getStacktrace(e));
-		} catch (NoClassDefFoundError e) {
-			throw new LoadException(this, "A NoClassDefFoundError occurred in " + this.projectDir.getName() + "'s "
-					+ this.projectInstance.getClass().getName() + ".onLoad()."
-					+ " Is the compiled project missing a dependency? Stacktrace:\n" + Utils.getStacktrace(e));
 		}
-		
 	}
 	
 	/**
@@ -570,9 +575,15 @@ public class JavaProject {
 			try {
 				this.projectInstance.onUnload();
 				this.projectInstance = null;
-			} catch (Exception e) {
+			} catch (LinkageError e) {
 				exHandler.handleUnloadException(new UnloadException(this,
-						"An Exception occurred in " + this.projectDir.getName() + "'s "
+						"A LinkageError occurred in " + this.projectDir.getName() + "'s "
+						+ this.projectInstance.getClass().getName() + ".onUnload(). Is the compiled project missing a"
+						+ " dependency or was a dependency updated without recompiling the project?"
+						+ " Stacktrace:\n" + Utils.getStacktrace(e)));
+			}  catch (Throwable e) {
+				exHandler.handleUnloadException(new UnloadException(this,
+						"A problem occurred in " + this.projectDir.getName() + "'s "
 						+ this.projectInstance.getClass().getName() + ".onUnload(). Is the project up to date?"
 						+ " Stacktrace:\n" + Utils.getStacktrace(e)));
 			}
