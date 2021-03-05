@@ -464,7 +464,7 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 			org.bukkit.command.CommandSender sender, Command command, String alias, String[] args) {
 		if(command.getName().equals("javaloader")) {
 			String search = args[args.length - 1].toLowerCase();
-
+			
 			// TAB-complete "/javaloader <arg>".
 			if(args.length == 1) {
 				List<String> ret = new ArrayList<String>();
@@ -481,6 +481,17 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 					|| args[0].equalsIgnoreCase("unload") || args[0].equalsIgnoreCase("recompile"))) {
 				List<String> ret = new ArrayList<String>();
 				for(String comp : this.projectManager.getProjectNames()) {
+					if(comp.toLowerCase().startsWith(search)) {
+						ret.add(comp);
+					}
+				}
+				return ret;
+			}
+			
+			// TAB-complete "/javaloader help <arg>".
+			if(args.length == 2 && args[0].equalsIgnoreCase("help")) {
+				List<String> ret = new ArrayList<String>();
+				for(String comp : new String[] {"help", "list", "recompile", "load", "unload"}) {
 					if(comp.toLowerCase().startsWith(search)) {
 						ret.add(comp);
 					}
