@@ -31,7 +31,7 @@ import io.github.pieter12345.javaloader.core.exceptions.LoadException;
 import io.github.pieter12345.javaloader.core.exceptions.UnloadException;
 import io.github.pieter12345.javaloader.core.utils.AnsiColor;
 import io.github.pieter12345.javaloader.core.utils.Utils;
-import io.github.pieter12345.javaloader.velocity.command.JavaLoaderCommand;
+import io.github.pieter12345.javaloader.velocity.command.JavaLoaderProxyCommand;
 import io.github.pieter12345.javaloader.velocity.dependency.VelocityProjectDependencyParser;
 
 /**
@@ -131,12 +131,12 @@ public class JavaLoaderVelocityPlugin {
 			}
 		};
 		
-		// Register "/javaloader" command.
+		// Register "/javaloaderproxy" command.
 		CommandExecutor commandExecutor = new CommandExecutor(this.projectManager, this.projectStateListener, null,
-				"/javaloader", Arrays.asList(AUTHOR), VERSION,
+				"/javaloaderproxy", Arrays.asList(AUTHOR), VERSION,
 				(String str) -> AnsiColor.colorize(str), COMPILER_FEEDBACK_LIMIT);
-		this.proxy.getCommandManager().register("javaloader",
-				new JavaLoaderCommand(PREFIX_INFO, PREFIX_ERROR, commandExecutor, this.projectManager));
+		this.proxy.getCommandManager().register("javaloaderproxy",
+				new JavaLoaderProxyCommand(PREFIX_INFO, PREFIX_ERROR, commandExecutor, this.projectManager));
 		
 		// Loop over all project directories and add them as a JavaProject.
 		this.projectManager.addProjectsFromProjectDirectory(this.projectStateListener);

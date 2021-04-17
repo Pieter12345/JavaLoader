@@ -17,17 +17,17 @@ import io.github.pieter12345.javaloader.core.utils.Utils;
 import net.kyori.adventure.text.Component;
 
 /**
- * This class represents the "/javaloader" command.
+ * This class represents the "/javaloaderproxy" command.
  * @author P.J.S. Kools
  */
-public class JavaLoaderCommand implements SimpleCommand {
+public class JavaLoaderProxyCommand implements SimpleCommand {
 	
 	private final String infoPrefix;
 	private final String errorPrefix;
 	private final CommandExecutor commandExecutor;
 	private final ProjectManager projectManager;
 	
-	public JavaLoaderCommand(String infoPrefix, String errorPrefix,
+	public JavaLoaderProxyCommand(String infoPrefix, String errorPrefix,
 			CommandExecutor commandExecutor, ProjectManager projectManager) {
 		this.infoPrefix = infoPrefix;
 		this.errorPrefix = errorPrefix;
@@ -56,9 +56,9 @@ public class JavaLoaderCommand implements SimpleCommand {
 			public String getPrefix(MessageType messageType) {
 				switch(messageType) {
 					case ERROR:
-						return JavaLoaderCommand.this.errorPrefix;
+						return JavaLoaderProxyCommand.this.errorPrefix;
 					case INFO:
-						return JavaLoaderCommand.this.infoPrefix;
+						return JavaLoaderProxyCommand.this.infoPrefix;
 					default:
 						throw new Error("Unimplemented "
 								+ MessageType.class.getSimpleName() + ": " + messageType.name());
@@ -81,7 +81,7 @@ public class JavaLoaderCommand implements SimpleCommand {
 		
 		String search = args[args.length - 1].toLowerCase();
 		
-		// TAB-complete "/javaloader <arg>".
+		// TAB-complete "/javaloaderproxy <arg>".
 		if(args.length == 1) {
 			List<String> ret = new ArrayList<String>();
 			for(String comp : new String[] {"help", "list", "load", "unload", "recompile"}) {
@@ -92,11 +92,11 @@ public class JavaLoaderCommand implements SimpleCommand {
 			return ret;
 		}
 		
-		// TAB-complete "/javaloader <load, unload, recompile> <arg>".
+		// TAB-complete "/javaloaderproxy <load, unload, recompile> <arg>".
 		if(args.length == 2 && (args[0].equalsIgnoreCase("load")
 				|| args[0].equalsIgnoreCase("unload") || args[0].equalsIgnoreCase("recompile"))) {
 			List<String> ret = new ArrayList<String>();
-			for(String comp : JavaLoaderCommand.this.projectManager.getProjectNames()) {
+			for(String comp : JavaLoaderProxyCommand.this.projectManager.getProjectNames()) {
 				if(comp.toLowerCase().startsWith(search)) {
 					ret.add(comp);
 				}
