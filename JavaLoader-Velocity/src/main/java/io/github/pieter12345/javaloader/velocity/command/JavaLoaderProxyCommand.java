@@ -6,7 +6,6 @@ import java.util.Collections;
 import java.util.List;
 
 import com.velocitypowered.api.command.SimpleCommand;
-import com.velocitypowered.api.proxy.ConsoleCommandSource;
 
 import io.github.pieter12345.javaloader.core.CommandExecutor;
 import io.github.pieter12345.javaloader.core.CommandExecutor.CommandSender;
@@ -69,7 +68,7 @@ public class JavaLoaderProxyCommand implements SimpleCommand {
 	
 	@Override
 	public boolean hasPermission(Invocation invocation) {
-		return invocation.source() instanceof ConsoleCommandSource;
+		return invocation.source().hasPermission("javaloader.use");
 	}
 	
 	@Override
