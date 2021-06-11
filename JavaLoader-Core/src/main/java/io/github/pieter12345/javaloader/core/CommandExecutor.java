@@ -1,5 +1,6 @@
 package io.github.pieter12345.javaloader.core;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -11,6 +12,7 @@ import io.github.pieter12345.javaloader.core.ProjectManager.RecompileAllResult;
 import io.github.pieter12345.javaloader.core.ProjectManager.RecompileFeedbackHandler;
 import io.github.pieter12345.javaloader.core.exceptions.CompileException;
 import io.github.pieter12345.javaloader.core.exceptions.DepOrderViolationException;
+import io.github.pieter12345.javaloader.core.exceptions.DuplicateProjectIdentifierException;
 import io.github.pieter12345.javaloader.core.exceptions.LoadException;
 import io.github.pieter12345.javaloader.core.exceptions.UnloadException;
 import io.github.pieter12345.javaloader.core.utils.Utils;
@@ -239,6 +241,12 @@ public class CommandExecutor {
 						public void compilerFeedback(String feedback) {
 							messages.add(feedback);
 						}
+						@Override
+						public void handleDuplicateProjectIdentifierException(DuplicateProjectIdentifierException e) {
+							sender.sendMessage(MessageType.ERROR,
+									"Multiple projects found with name \"" + e.getProjectName() + "\" at: "
+									+ Utils.glueIterable(e.getProjectDirs(), (File f) -> f.getAbsolutePath(), ", "));
+						}
 					}, this.projectStateListener);
 					
 					// Give compiler feedback.
@@ -282,8 +290,15 @@ public class CommandExecutor {
 					// project manager.
 					JavaProject project = this.projectManager.getProject(projectName);
 					if(project == null) {
-						project = this.projectManager
-								.addProjectFromProjectDirectory(projectName, this.projectStateListener);
+						try {
+							project = this.projectManager
+									.addProjectFromProjectDirectory(projectName, this.projectStateListener);
+						} catch (DuplicateProjectIdentifierException e) {
+							sender.sendMessage(MessageType.ERROR,
+									"Multiple projects found with name \"" + e.getProjectName() + "\" at: "
+									+ Utils.glueIterable(e.getProjectDirs(), (File f) -> f.getAbsolutePath(), ", "));
+							return;
+						}
 						if(project == null) {
 							sender.sendMessage(MessageType.ERROR, "Project does not exist: \"" + projectName + "\".");
 							return;
@@ -477,7 +492,12 @@ public class CommandExecutor {
 				if(projectName.equals("*")) {
 					
 					// Add new projects (happens when a new project directory is created).
-					this.projectManager.addProjectsFromProjectDirectory(this.projectStateListener);
+					this.projectManager.addProjectsFromProjectDirectory(
+							this.projectStateListener, (DuplicateProjectIdentifierException ex) -> {
+						sender.sendMessage(MessageType.ERROR,
+								"Multiple projects found with name \"" + ex.getProjectName() + "\" at: "
+								+ Utils.glueIterable(ex.getProjectDirs(), (File f) -> f.getAbsolutePath(), ", "));
+					});
 					
 					// Load all projects.
 					LoadAllResult loadAllResult = this.projectManager.loadAllProjects((LoadException ex) -> {
@@ -496,15 +516,21 @@ public class CommandExecutor {
 					if(project == null) {
 						
 						// Attempt to load the project from file. This works if it has been added during runtime.
-						project = this.projectManager.addProjectFromProjectDirectory(
-								projectName, this.projectStateListener);
+						try {
+							project = this.projectManager
+									.addProjectFromProjectDirectory(projectName, this.projectStateListener);
+						} catch (DuplicateProjectIdentifierException e) {
+							sender.sendMessage(MessageType.ERROR,
+									"Multiple projects found with name \"" + e.getProjectName() + "\" at: "
+									+ Utils.glueIterable(e.getProjectDirs(), (File f) -> f.getAbsolutePath(), ", "));
+							return;
+						}
 						
 						// Print an error if the project does not exist.
 						if(project == null) {
 							sender.sendMessage(MessageType.ERROR, "Project does not exist: " + projectName);
 							return;
 						}
-						
 					}
 					
 					// Load the project if it wasn't loaded.

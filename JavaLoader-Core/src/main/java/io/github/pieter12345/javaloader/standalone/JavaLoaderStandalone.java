@@ -23,6 +23,7 @@ import io.github.pieter12345.javaloader.core.dependency.ProjectDependencyParser;
 import io.github.pieter12345.javaloader.core.CommandExecutor.CommandSender;
 import io.github.pieter12345.javaloader.core.CommandExecutor.MessageType;
 import io.github.pieter12345.javaloader.core.ProjectManager.LoadAllResult;
+import io.github.pieter12345.javaloader.core.exceptions.DuplicateProjectIdentifierException;
 import io.github.pieter12345.javaloader.core.exceptions.LoadException;
 import io.github.pieter12345.javaloader.core.exceptions.UnloadException;
 import io.github.pieter12345.javaloader.core.utils.AnsiColor;
@@ -153,7 +154,11 @@ public class JavaLoaderStandalone {
 		}, null, AUTHORS, VERSION, (String str) -> AnsiColor.colorize(str), COMPILER_FEEDBACK_LIMIT);
 		
 		// Loop over all project directories and add them as a JavaProject.
-		this.projectManager.addProjectsFromProjectDirectory(this.projectStateListener);
+		this.projectManager.addProjectsFromProjectDirectory(
+				this.projectStateListener, (DuplicateProjectIdentifierException ex) -> {
+			printFeedback(PREFIX_ERROR + "Multiple projects found with name \"" + ex.getProjectName() + "\" at: "
+					+ Utils.glueIterable(ex.getProjectDirs(), (File f) -> f.getAbsolutePath(), ", "));
+		});
 		
 		// Load all projects.
 		LoadAllResult loadAllResult = this.projectManager.loadAllProjects((LoadException ex) -> {

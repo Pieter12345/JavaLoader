@@ -27,6 +27,7 @@ import io.github.pieter12345.javaloader.core.JavaProject;
 import io.github.pieter12345.javaloader.core.ProjectManager;
 import io.github.pieter12345.javaloader.core.ProjectStateListener;
 import io.github.pieter12345.javaloader.core.ProjectManager.LoadAllResult;
+import io.github.pieter12345.javaloader.core.exceptions.DuplicateProjectIdentifierException;
 import io.github.pieter12345.javaloader.core.exceptions.LoadException;
 import io.github.pieter12345.javaloader.core.exceptions.UnloadException;
 import io.github.pieter12345.javaloader.core.utils.AnsiColor;
@@ -139,7 +140,11 @@ public class JavaLoaderVelocityPlugin {
 				new JavaLoaderProxyCommand(PREFIX_INFO, PREFIX_ERROR, commandExecutor, this.projectManager));
 		
 		// Loop over all project directories and add them as a JavaProject.
-		this.projectManager.addProjectsFromProjectDirectory(this.projectStateListener);
+		this.projectManager.addProjectsFromProjectDirectory(
+				this.projectStateListener, (DuplicateProjectIdentifierException ex) -> {
+			this.logger.error("Multiple projects found with name \"" + ex.getProjectName() + "\" at: "
+					+ Utils.glueIterable(ex.getProjectDirs(), (File f) -> f.getAbsolutePath(), ", "));
+		});
 		
 		// Load all projects.
 		LoadAllResult loadAllResult = this.projectManager.loadAllProjects((LoadException ex) -> {
