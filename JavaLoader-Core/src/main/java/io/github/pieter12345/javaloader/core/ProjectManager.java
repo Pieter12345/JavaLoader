@@ -9,7 +9,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
+import java.util.Stack;
 
 import io.github.pieter12345.graph.Graph;
 import io.github.pieter12345.graph.Graph.ChildBeforeParentGraphIterator;
@@ -22,9 +25,11 @@ import io.github.pieter12345.javaloader.core.dependency.ProjectDependencyParser;
 import io.github.pieter12345.javaloader.core.exceptions.CompileException;
 import io.github.pieter12345.javaloader.core.exceptions.DepOrderViolationException;
 import io.github.pieter12345.javaloader.core.exceptions.DependencyException;
+import io.github.pieter12345.javaloader.core.exceptions.DuplicateProjectIdentifierException;
 import io.github.pieter12345.javaloader.core.exceptions.JavaProjectException;
 import io.github.pieter12345.javaloader.core.exceptions.LoadException;
 import io.github.pieter12345.javaloader.core.exceptions.UnloadException;
+import io.github.pieter12345.javaloader.core.exceptions.handlers.DuplicateProjectIdentifierExceptionHandler;
 import io.github.pieter12345.javaloader.core.exceptions.handlers.LoadExceptionHandler;
 import io.github.pieter12345.javaloader.core.exceptions.handlers.ProjectExceptionHandler;
 import io.github.pieter12345.javaloader.core.exceptions.handlers.UnloadExceptionHandler;
@@ -551,7 +556,7 @@ public class ProjectManager {
 		}
 		
 		// Add new projects from the file system.
-		Set<JavaProject> addedProjects = this.addProjectsFromProjectDirectory(projectStateListener);
+		Set<JavaProject> addedProjects = this.addProjectsFromProjectDirectory(projectStateListener, feedbackHandler);
 		
 		// Validate that all binary directories are set to "bin" as we use this assumption below.
 		for(JavaProject project : projects) {
@@ -728,29 +733,63 @@ public class ProjectManager {
 	}
 	
 	/**
-	 * Reads through the projects directory (as defined in the constructor and accessible through
-	 * {@link #getProjectsDir()}) and adds a new project from every directory within this projects directory that
-	 * does not end with ".disabled". All new projects will be added to this project manager.
-	 * @param projectStateLister - A listener to add to all newly created projects. This may be null.
+	 * Scans through the projects directory (as defined in the constructor and accessible through
+	 * {@link #getProjectsDir()}) and adds all newly detected projects to this project manager.
+	 * The scanning process works as follows:
+	 * <lu>
+	 * <li>Directories within the projects directory are recursively traversed.</li>
+	 * <li>Directories ending with ".disabled" or starting with "." are skipped (including their content).</li>
+	 * <li>Directories containing a "src" and/or "bin" directory are added as projects.
+	 * Any other directories in a project directory are skipped.</li>
+	 * <li>Newly detected project directories without a unique project name generate a
+	 * {@link DuplicateProjectIdentifierException} and are not added in the process.</li>
+	 * </lu>
+	 * @param projectStateLister - A listener to add to all newly created projects. This may be {@code null}.
+	 * @param duplProjIdExHandler - An exception handler for {@link DuplicateProjectIdentifierException}s.
 	 * @return The added projects.
 	 */
-	public Set<JavaProject> addProjectsFromProjectDirectory(ProjectStateListener projectStateListener) {
-		Set<JavaProject> newProjects = new HashSet<JavaProject>();
-		if(this.projectsDir != null) {
-			File[] projectDirs = this.projectsDir.listFiles();
-			if(projectDirs != null) {
-				for(File projectDir : projectDirs) {
-					if(projectDir.isDirectory() && !projectDir.getName().toLowerCase().endsWith(".disabled")
-							&& !this.projects.containsKey(projectDir.getName())) {
-						JavaProject project = new JavaProject(
-								projectDir.getName(), projectDir, this, this.dependencyParser, projectStateListener);
-						this.projects.put(project.getName(), project);
-						newProjects.add(project);
-					}
+	public Set<JavaProject> addProjectsFromProjectDirectory(
+			ProjectStateListener projectStateListener, DuplicateProjectIdentifierExceptionHandler duplProjIdExHandler) {
+		Map<String, JavaProject> newProjects = new HashMap<>();
+		Map<String, Set<File>> duplicates = new HashMap<>();
+		for(File projectDir : this.discoverProjectDirs()) {
+			String projectName = projectDir.getName();
+			
+			// Handle duplicate project names.
+			if(duplicates.containsKey(projectName)) {
+				duplicates.get(projectName).add(projectDir);
+				continue;
+			}
+			JavaProject project = this.projects.get(projectName);
+			if(project != null) {
+				if(!project.getProjectDir().equals(projectDir)) {
+					Set<File> duplicatesSet = new HashSet<>();
+					duplicatesSet.add(projectDir);
+					duplicatesSet.add(project.getProjectDir());
+					duplicates.put(projectName, duplicatesSet);
 				}
+			} else {
+				
+				// Add the newly discovered project.
+				project = new JavaProject(projectName, projectDir, this, this.dependencyParser, projectStateListener);
+				this.projects.put(project.getName(), project);
+				newProjects.put(project.getName(), project);
 			}
 		}
-		return newProjects;
+		
+		// Generate exceptions for duplicate projects and don't add them to this project manager.
+		for(Entry<String, Set<File>> entry : duplicates.entrySet()) {
+			String projectName = entry.getKey();
+			if(newProjects.containsKey(projectName)) {
+				newProjects.remove(projectName);
+				this.projects.remove(projectName);
+			}
+			duplProjIdExHandler.handleDuplicateProjectIdentifierException(
+					new DuplicateProjectIdentifierException(projectName, entry.getValue()));
+		}
+		
+		// Return the result.
+		return new HashSet<>(newProjects.values());
 	}
 	
 	/**
@@ -758,36 +797,80 @@ public class ProjectManager {
 	 * and has not yet been added to this project manager.
 	 * @param projectName - The name of the project to attempt to find and add.
 	 * @param projectStateLister - A listener to add to the newly created project. This may be null.
-	 * @return The added project or null if no project matched the projectName
+	 * @return The added {@link JavaProject} or {@code null} if no project matched the projectName
 	 * or if a project with an equal name was already added to the project manager.
+	 * @throws DuplicateProjectIdentifierException When multiple project directories match the given project name,
+	 * and the project was not yet added to this project manager.
 	 */
-	public JavaProject addProjectFromProjectDirectory(String projectName, ProjectStateListener projectStateListener) {
+	public JavaProject addProjectFromProjectDirectory(String projectName, ProjectStateListener projectStateListener)
+			throws DuplicateProjectIdentifierException {
 		
 		// Return null if the project was already added or if no projects directory is set.
 		if(this.projects.containsKey(projectName) || this.projectsDir == null) {
 			return null;
 		}
 		
-		// Get the project directory.
-		File projectDir = new File(this.projectsDir.getAbsoluteFile(), projectName);
-		
-		// Validate that the projectName did not contain file path modifying characters.
-		if(!projectDir.getAbsoluteFile().getParent().equals(this.projectsDir.getAbsolutePath())
-				|| !projectDir.getName().equals(projectName)) {
-			return null;
+		// Discover all project directories with a matching name.
+		Set<File> matchingFiles = new HashSet<>();
+		for(File projectDir : this.discoverProjectDirs()) {
+			if(projectDir.getName().equals(projectName)) {
+				matchingFiles.add(projectDir);
+			}
 		}
 		
-		// Create the project if it was found.
-		if(projectDir.getName().equals(projectName) && projectDir.isDirectory()
-				&& !projectDir.getName().toLowerCase().endsWith(".disabled")) {
-			JavaProject project = new JavaProject(
-					projectDir.getName(), projectDir, this, this.dependencyParser, projectStateListener);
-			this.projects.put(project.getName(), project);
-			return project;
+		// Handle matches.
+		switch(matchingFiles.size()) {
+			case 0: {
+				return null; // Project not found.
+			}
+			case 1: {
+				File projectDir = matchingFiles.iterator().next();
+				JavaProject project = new JavaProject(
+						projectDir.getName(), projectDir, this, this.dependencyParser, projectStateListener);
+				this.projects.put(project.getName(), project);
+				return project;
+			}
+			default: {
+				throw new DuplicateProjectIdentifierException(projectName, matchingFiles);
+			}
 		}
-		
-		// Project not found.
-		return null;
+	}
+	
+	/**
+	 * Scans through the projects directory (as defined in the constructor and accessible through
+	 * {@link #getProjectsDir()}) and returns all project directories.
+	 * The scanning process works as follows:
+	 * <lu>
+	 * <li>Directories within the projects directory are recursively traversed.</li>
+	 * <li>Directories ending with ".disabled" or starting with "." are skipped (including their content).</li>
+	 * <li>Directories containing a "src" and/or "bin" directory are added.
+	 * Any other directories in a project directory are skipped.</li>
+	 * </lu>
+	 * @return The {@link List} of project directories.
+	 */
+	private List<File> discoverProjectDirs() {
+		List<File> projectDirs = new ArrayList<>();
+		if(this.projectsDir != null) {
+			Stack<File> dirStack = new Stack<>();
+			dirStack.push(this.projectsDir);
+			while(!dirStack.empty()) {
+				File dir = dirStack.pop();
+				File[] files = dir.listFiles((File file, String fileName) -> file.isDirectory()
+						&& !fileName.toLowerCase().endsWith(".disabled") && !fileName.startsWith("."));
+				if(files != null) {
+					for(File file : files) {
+						
+						// Check whether the directory is a project directory.
+						if(new File(file, "src").isDirectory() || new File(file, "bin").isDirectory()) {
+							projectDirs.add(file);
+						} else {
+							dirStack.push(file); // Add directory for further traversal.
+						}
+					}
+				}
+			}
+		}
+		return projectDirs;
 	}
 	
 	/**
@@ -878,7 +961,8 @@ public class ProjectManager {
 	 * Represents a {@link ProjectExceptionHandler} combined with a {@link CompilerFeedbackHandler}.
 	 * @author P.J.S. Kools
 	 */
-	public static interface RecompileFeedbackHandler extends ProjectExceptionHandler, CompilerFeedbackHandler {
+	public static interface RecompileFeedbackHandler
+			extends ProjectExceptionHandler, CompilerFeedbackHandler, DuplicateProjectIdentifierExceptionHandler {
 	}
 	
 }
