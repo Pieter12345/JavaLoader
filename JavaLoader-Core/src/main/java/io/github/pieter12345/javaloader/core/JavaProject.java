@@ -378,7 +378,8 @@ public class JavaProject {
 		
 		// Define the classloader.
 		try {
-			this.classLoader = new JavaProjectClassLoader(this.binDir, dependencyFiles, dependencyProjectClassLoaders);
+			this.classLoader = new JavaProjectClassLoader(
+					this.manager.getPlatformClassLoader(), this.binDir, dependencyFiles, dependencyProjectClassLoaders);
 		} catch (FileNotFoundException e) {
 			throw new LoadException(this, e.getMessage()); // Dependency file does not exist.
 		}

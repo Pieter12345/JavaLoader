@@ -30,10 +30,12 @@ public class JavaProjectClassLoader extends URLClassLoader {
 	/**
 	 * Constructor.
 	 * Creates a new JavaProjectClassLoader with the given bin directory.
+	 * @param platformClassLoader - The extra platform specific {@link ClassLoader} to use for resolving platform
+	 * specific class references, or {@code null} to use none.
 	 * @param binDir - The directory containing the package directories and .class files.
 	 */
-	public JavaProjectClassLoader(File binDir) {
-		super(null);
+	public JavaProjectClassLoader(ClassLoader platformClassLoader, File binDir) {
+		super(new java.net.URL[] {Utils.fileToURL(binDir)}, platformClassLoader);
 		this.binDir = binDir;
 		
 		// Initialize ProtectionDomain.
@@ -47,25 +49,30 @@ public class JavaProjectClassLoader extends URLClassLoader {
 	/**
 	 * Constructor.
 	 * Creates a new JavaProjectClassLoader with the given bin directory and dependency files.
+	 * @param platformClassLoader - The extra platform specific {@link ClassLoader} to use for resolving platform
+	 * specific class references, or {@code null} to use none.
 	 * @param binDir - The directory containing the package directories and .class files.
 	 * @param dependencies - A list of bin directories, .class files or .jar files.
 	 * @throws FileNotFoundException If a dependency file does not exist.
 	 */
-	public JavaProjectClassLoader(File binDir, List<File> dependencies) throws FileNotFoundException {
-		this(binDir, dependencies, null);
+	public JavaProjectClassLoader(
+			ClassLoader platformClassLoader, File binDir, List<File> dependencies) throws FileNotFoundException {
+		this(platformClassLoader, binDir, dependencies, null);
 	}
 	
 	/**
 	 * Constructor.
 	 * Creates a new JavaProjectClassLoader with the given bin directory and dependency files.
+	 * @param platformClassLoader - The extra platform specific {@link ClassLoader} to use for resolving platform
+	 * specific class references, or {@code null} to use none.
 	 * @param binDir - The directory containing the package directories and .class files.
 	 * @param dependencies - A list of bin directories, .class files or .jar files.
 	 * @param dependencyClassLoaders - A list of classloaders from dependencies.
 	 * @throws FileNotFoundException If a dependency file does not exist.
 	 */
-	public JavaProjectClassLoader(File binDir, List<File> dependencies,
+	public JavaProjectClassLoader(ClassLoader platformClassLoader, File binDir, List<File> dependencies,
 			List<ClassLoader> dependencyClassLoaders) throws FileNotFoundException {
-		super(new java.net.URL[] {Utils.fileToURL(binDir)});
+		super(new java.net.URL[] {Utils.fileToURL(binDir)}, platformClassLoader);
 		this.binDir = binDir;
 		this.dependencyClassLoaders = (dependencyClassLoaders == null
 				? null : new ArrayList<ClassLoader>(dependencyClassLoaders));
@@ -92,8 +99,10 @@ public class JavaProjectClassLoader extends URLClassLoader {
 	 * loadClass method.
 	 * Loads the class with given name. If a class exists in multiple places, it is loaded in this order:
 	 *  <br>1. The bin directory of the project.
-	 *  <br>2. The passed projects dependencies (should only be INCLUDE dependencies).
-	 *  <br>3. The ClassLoader used to load this ClassLoader.
+	 *  <br>2. The passed projects dependencies (only INCLUDE dependencies).
+	 *  <br>3. The ClassLoaders of project dependencies (when depending on other JavaLoader projects).
+	 *  <br>4. The parent ClassLoader.
+	 *  <br>5. The ClassLoader used to load this ClassLoader.
 	 * @param name - The binary name of the class (Example: "my.package.MyClass").
 	 * @return The resulting Class object.
 	 * @throws ClassNotFoundException If the class was not found.
@@ -133,10 +142,10 @@ public class JavaProjectClassLoader extends URLClassLoader {
 			}
 		}
 		
-		// Attempt to load the class using the default loadClass from the parent (URLClassLoader).
+		// Attempt to load the class using the URLClassLoader URLs, bypassing a lookup in the parent classloader.
 		// This loads classes from dependency directories, .class files and .jar files.
 		try {
-			Class<?> definedClass = super.loadClass(name);
+			Class<?> definedClass = super.findClass(name);
 			this.classMap.put(name, definedClass);
 			return definedClass;
 		} catch (ClassNotFoundException e) {
@@ -156,7 +165,18 @@ public class JavaProjectClassLoader extends URLClassLoader {
 			}
 		}
 		
-		// Check if the class can be loaded using the ClassLoader that loaded this ClassLoader.
+		// Attempt to load the class using the parent classloader.
+		try {
+			Class<?> definedClass = super.loadClass(name);
+			this.classMap.put(name, definedClass);
+			return definedClass;
+		} catch (ClassNotFoundException e) {
+			// Ignore.
+		}
+		
+		// Attempt to load the class using the ClassLoader that loaded this ClassLoader.
+		// This is necessary to resolve JavaLoader classes for platforms on which JavaLoader is loaded using a child
+		// classloader of the platform specific parent classloader, or if that parent classloader has not been set.
 		try {
 			Class<?> definedClass = JavaProjectClassLoader.class.getClassLoader().loadClass(name);
 			this.classMap.put(name, definedClass);

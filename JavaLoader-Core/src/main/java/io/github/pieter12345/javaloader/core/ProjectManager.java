@@ -40,6 +40,7 @@ public class ProjectManager {
 	private final HashMap<String, JavaProject> projects = new HashMap<String, JavaProject>();
 	private final File projectsDir;
 	private final ProjectDependencyParser dependencyParser;
+	private final ClassLoader platformClassLoader;
 	
 	/**
 	 * Creates a new {@link ProjectManager}.
@@ -47,8 +48,29 @@ public class ProjectManager {
 	 * @param dependencyParser - The parser used to parse project dependencies.
 	 */
 	public ProjectManager(File projectsDir, ProjectDependencyParser dependencyParser) {
+		this(projectsDir, dependencyParser, null);
+	}
+	
+	/**
+	 * Creates a new {@link ProjectManager}.
+	 * @param projectsDir - The directory containing the projects.
+	 * @param dependencyParser - The parser used to parse project dependencies.
+	 * @param platformClassLoader - The extra platform specific {@link ClassLoader} to use for resolving platform
+	 * specific class references for JavaLoader projects, or {@code null} to use none.
+	 */
+	public ProjectManager(File projectsDir, ProjectDependencyParser dependencyParser, ClassLoader platformClassLoader) {
 		this.projectsDir = projectsDir;
 		this.dependencyParser = dependencyParser;
+		this.platformClassLoader = platformClassLoader;
+	}
+	
+	/**
+	 * Gets the platform specific {@link ClassLoader} used for resolving platform specific class references for
+	 * JavaLoader projects, or {@code null} if none was set.
+	 * @return The {@link ClassLoader}.
+	 */
+	public ClassLoader getPlatformClassLoader() {
+		return this.platformClassLoader;
 	}
 	
 	/**
