@@ -128,7 +128,8 @@ public class JavaLoaderBukkitPlugin extends JavaPlugin {
 		}
 		
 		// Create the project manager.
-		this.projectManager = new ProjectManager(this.projectsDir, new BukkitProjectDependencyParser());
+		this.projectManager = new ProjectManager(
+				this.projectsDir, new BukkitProjectDependencyParser(), Server.class.getClassLoader());
 		
 		// Initialize injected and synced commands set.
 		this.injectedCommandsMap = new HashMap<String, Set<Command>>();
