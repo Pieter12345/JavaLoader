@@ -50,7 +50,7 @@ public class JavaLoaderVelocityPlugin {
 	private static final String PREFIX_ERROR =
 			AnsiColor.YELLOW + "[" + AnsiColor.CYAN + "JavaLoader" + AnsiColor.YELLOW + "]" + AnsiColor.RED + " ";
 	
-	protected static final String VERSION = "0.0.6-SNAPSHOT"; // TODO - Replace with "${version}" + Maven handling
+	protected static final String VERSION = Constants.VERSION;
 	protected static final String AUTHOR = "Pieter12345/Woesh0007";
 	
 	private static final int COMPILER_FEEDBACK_LIMIT = 5; // The max amount of warnings/errors to print per recompile.
