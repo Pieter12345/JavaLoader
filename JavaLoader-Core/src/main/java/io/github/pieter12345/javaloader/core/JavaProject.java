@@ -209,6 +209,7 @@ public class JavaProject {
 					compiler.getStandardFileManager(null, Locale.US, StandardCharsets.UTF_8);
 			CompilationTask compileTask = compiler.getTask(feedbackWriter, fileManager,
 					null, options, null, fileManager.getJavaFileObjects(files.toArray(new File[0])));
+			compileTask.setProcessors(Collections.emptySet());
 			try {
 				fileManager.close();
 			} catch (IOException e) {
