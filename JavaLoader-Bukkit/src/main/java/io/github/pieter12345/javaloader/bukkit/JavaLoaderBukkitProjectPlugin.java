@@ -20,6 +20,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.generator.BiomeProvider;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.plugin.PluginBase;
 import org.bukkit.plugin.PluginDescriptionFile;
@@ -439,5 +440,10 @@ public class JavaLoaderBukkitProjectPlugin extends PluginBase {
 //		}
 //		return plugin;
 		throw new RuntimeException("Method not implemented.");
+	}
+	
+	@Override
+	public BiomeProvider getDefaultBiomeProvider(String worldName, String id) {
+		return null;
 	}
 }
