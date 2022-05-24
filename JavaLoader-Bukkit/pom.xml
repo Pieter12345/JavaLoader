@@ -8,7 +8,7 @@
 	<parent>
 		<groupId>io.github.pieter12345</groupId>
 		<artifactId>JavaLoader</artifactId>
-		<version>0.0.7</version>
+		<version>0.0.8-SNAPSHOT</version>
 	</parent>
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
