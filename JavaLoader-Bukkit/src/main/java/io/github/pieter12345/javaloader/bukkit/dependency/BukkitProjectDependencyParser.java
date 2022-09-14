@@ -1,10 +1,19 @@
 package io.github.pieter12345.javaloader.bukkit.dependency;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.security.CodeSource;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
@@ -21,6 +30,8 @@ import io.github.pieter12345.javaloader.core.exceptions.DependencyException;
  * @author P.J.S. Kools
  */
 public class BukkitProjectDependencyParser extends ProjectDependencyParser {
+	
+	private static List<String> bundledLibNameList = null;
 	
 	/**
 	 * Creates a new {@link BukkitProjectDependencyParser}.
@@ -51,7 +62,76 @@ public class BukkitProjectDependencyParser extends ProjectDependencyParser {
 			}
 		}
 		
+		// Handle bundled Minecraft libraries.
+		if(dependencyStr.toLowerCase().startsWith("mclib ")) {
+			String libName = dependencyStr.substring("mclib ".length()).trim();
+			
+			// Get library names.
+			List<String> libNameList;
+			try {
+				libNameList = this.getBundledMCLibNameList();
+			} catch (FileNotFoundException e1) {
+				throw new DependencyException("Unable to obtain bundled library list from server jar"
+						+ " (could not find resource META-INF/libraries.list): " + libName);
+			} catch (IOException e1) {
+				throw new DependencyException("Unable to obtain bundled library list from server jar"
+						+ " (could not read resource META-INF/libraries.list): " + libName);
+			}
+			
+			// Match given library name.
+			if(!libNameList.contains(libName + ".jar")) {
+				throw new DependencyException("Library not bundled in server jar: " + libName);
+			}
+			
+			// Get library jar path.
+			String bundlerRepoDir = System.getProperty("bundlerRepoDir", "bundler");
+			File libFile = new File(bundlerRepoDir + File.separator + "libraries" + File.separator + libName + ".jar");
+			if(!libFile.exists()) {
+				throw new DependencyException(
+						"Library not found in bundler libraries directory at: " + libFile.getAbsolutePath());
+			}
+			
+			// Return library jar dependency.
+			return new JarDependency(libFile, DependencyScope.PROVIDED);
+		}
+		
 		// Handle dependency through the parent.
 		return super.parseDependency(project, dependencyStr);
+	}
+	
+	/**
+	 * Gets the list of bundled Minecraft library names from the server bootstrap jar (MC 1.18+).
+	 * The result from this call will be cached upon success.
+	 * @return The list of library names.
+	 * @throws FileNotFoundException If the "META-INF/libraries.list" resource could not be found.
+	 * @throws IOException If an I/O error occurs while reading the "META-INF/libraries.list" resource.
+	 */
+	private List<String> getBundledMCLibNameList() throws FileNotFoundException, IOException {
+		
+		// Return cached library list if available.
+		if(bundledLibNameList != null) {
+			return bundledLibNameList;
+		}
+		
+		// Read libraries list.
+		InputStream inStream = Bukkit.class.getClassLoader().getResourceAsStream("META-INF/libraries.list");
+		if(inStream == null) {
+			throw new FileNotFoundException();
+		}
+		BufferedReader reader = new BufferedReader(new InputStreamReader(inStream, StandardCharsets.UTF_8));
+		List<String> libEntries = reader.lines().collect(Collectors.toList());
+		
+		// Parse library list.
+		List<String> libList = new ArrayList<>();
+		for(String libEntry : libEntries) {
+			String[] split = libEntry.split(" ");
+			if(split.length == 2 && split[1].length() > 1) {
+				libList.add(split[1].substring(1));
+			}
+		}
+		
+		// Cache and return library list.
+		bundledLibNameList = libList;
+		return libList;
 	}
 }
