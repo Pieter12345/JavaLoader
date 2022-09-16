@@ -50,16 +50,6 @@ public abstract class JavaLoaderProject {
 	}
 	
 	/**
-	 * isEnabled method.
-	 * @return True if the project is enabled, false otherwise.
-	 * @deprecated Use the {@link #isLoaded()} method instead.
-	 */
-	@Deprecated
-	public final boolean isEnabled() {
-		return this.isLoaded();
-	}
-	
-	/**
 	 * isLoaded method.
 	 * @return {@code true} if the project is loaded, {@code false} otherwise.
 	 */
