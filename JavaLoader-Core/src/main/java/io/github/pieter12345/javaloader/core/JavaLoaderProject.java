@@ -42,6 +42,14 @@ public abstract class JavaLoaderProject {
 	}
 	
 	/**
+	 * Gets the {@link ProjectManager} containing this project.
+	 * @return The {@link ProjectManager}.
+	 */
+	public final ProjectManager getProjectManager() {
+		return this.project.getProjectManager();
+	}
+	
+	/**
 	 * isEnabled method.
 	 * @return True if the project is enabled, false otherwise.
 	 * @deprecated Use the {@link #isLoaded()} method instead.
