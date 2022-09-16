@@ -19,64 +19,6 @@ import org.junit.jupiter.api.Test;
 class BukkitCommandTest {
 	
 	/**
-	 * Tests that the constructor (with aliases list) properly sets all passed values according to getters.
-	 * @deprecated Tests deprecated constructor.
-	 */
-	@Test
-	@Deprecated
-	void testConstructorAndGetters() {
-		
-		// Create the BukkitCommand.
-		String name = "someCommand";
-		String desc = "This is a command for Bukkit.";
-		String usageMessage = "Usage: /someCommand";
-		String permission = "some.perm.node";
-		List<String> aliases = Arrays.asList("someAlias", "someOtherAlias");
-		CommandExecutor executor = mock(CommandExecutor.class);
-		TabCompleter completer = mock(TabCompleter.class);
-		BukkitCommand command = new BukkitCommand(name, desc, usageMessage, permission, aliases, executor, completer);
-		
-		// Assert that the getters return the set values.
-		assertThat(command.getName()).isEqualTo(name.toLowerCase(Locale.ENGLISH)); // Name gets lowercased.
-		assertThat(command.getDescription()).isEqualTo(desc);
-		assertThat(command.getUsageMessage()).isEqualTo(usageMessage);
-		assertThat(command.getPermission()).isEqualTo(permission);
-		assertThat(command.getAliases()).containsExactlyInAnyOrder(aliases.toArray(new String[0]));
-		assertThat(command.getExecutor()).isSameAs(executor);
-		assertThat(command.getTabCompleter()).isSameAs(completer);
-		
-	}
-	
-	/**
-	 * Tests that the constructor (with aliases array) properly sets all passed values according to getters.
-	 * @deprecated Tests deprecated constructor.
-	 */
-	@Test
-	@Deprecated
-	void testConstructorAndGetters2() {
-		
-		// Create the BukkitCommand.
-		String name = "someCommand";
-		String desc = "This is a command for Bukkit.";
-		String usageMessage = "Usage: /someCommand";
-		String permission = "some.perm.node";
-		String[] aliases = new String[] {"someAlias", "someOtherAlias"};
-		CommandExecutor executor = mock(CommandExecutor.class);
-		TabCompleter completer = mock(TabCompleter.class);
-		BukkitCommand command = new BukkitCommand(name, desc, usageMessage, permission, aliases, executor, completer);
-		
-		// Assert that the getters return the set values.
-		assertThat(command.getName()).isEqualTo(name.toLowerCase(Locale.ENGLISH)); // Name gets lowercased.
-		assertThat(command.getDescription()).isEqualTo(desc);
-		assertThat(command.getUsageMessage()).isEqualTo(usageMessage);
-		assertThat(command.getPermission()).isEqualTo(permission);
-		assertThat(command.getAliases()).containsExactlyInAnyOrder(aliases);
-		assertThat(command.getExecutor()).isSameAs(executor);
-		assertThat(command.getTabCompleter()).isSameAs(completer);
-		
-	}
-	
-	/**
 	 * Tests BukkitCommand(String) constructor, setters and getters.
 	 */
 	@Test
@@ -104,7 +46,6 @@ class BukkitCommandTest {
 		assertThat(command.getAliases()).containsExactlyInAnyOrder(aliases.toArray(new String[0]));
 		assertThat(command.getExecutor()).isSameAs(executor);
 		assertThat(command.getTabCompleter()).isSameAs(completer);
-		
 	}
 	
 	/**
@@ -149,29 +90,6 @@ class BukkitCommandTest {
 	
 	/**
 	 * Tests that the constructor sets all values as expected when allowed null arguments are passed.
-	 * @deprecated Tests deprecated constructor.
-	 */
-	@Deprecated
-	@Test
-	void testConstructorAllAllowedNull() {
-		
-		// Create the BukkitCommand.
-		String name = "someCommand";
-		BukkitCommand command = new BukkitCommand(name, null, null, null, (List<String>) null, null, null);
-		
-		// Assert that the getters return the set values.
-		assertThat(command.getName()).isEqualTo(name.toLowerCase(Locale.ENGLISH)); // Name gets lowercased.
-		assertThat(command.getDescription()).isEmpty();
-		assertThat(command.getUsageMessage()).isNull();
-		assertThat(command.getPermission()).isNull();
-		assertThat(command.getAliases()).isEmpty();
-		assertThat(command.getExecutor()).isNull();
-		assertThat(command.getTabCompleter()).isNull();
-		
-	}
-	
-	/**
-	 * Tests that the constructor sets all values as expected when allowed null arguments are passed.
 	 */
 	@Test
 	void testConstructorDefaultValues() {
@@ -188,7 +106,6 @@ class BukkitCommandTest {
 		assertThat(command.getAliases()).isEmpty();
 		assertThat(command.getExecutor()).isNull();
 		assertThat(command.getTabCompleter()).isNull();
-		
 	}
 	
 	/**
@@ -196,23 +113,6 @@ class BukkitCommandTest {
 	 */
 	@Test
 	void testConstructorNameNonNull() {
-		assertThrows(NullPointerException.class,
-				() -> new BukkitCommand(null));
-		
+		assertThrows(NullPointerException.class, () -> new BukkitCommand(null));
 	}
-	
-	/**
-	 * Tests that the constructor throws an exception when a null name is passed.
-	 * @deprecated Tests deprecated constructor.
-	 */
-	@Test
-	@Deprecated
-	@SuppressWarnings("deprecation")
-	void testConstructorNameNonNull2() {
-		assertThrows(NullPointerException.class,
-				() -> new BukkitCommand(null, "", "", "", (List<String>) null, null, null));
-		
-	}
-	
-	
 }
