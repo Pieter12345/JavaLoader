@@ -74,14 +74,10 @@ public class JavaLoaderProxyCommand implements SimpleCommand {
 	@Override
 	public List<String> suggest(Invocation invocation) {
 		String[] args = invocation.arguments();
-		if(args.length == 0) {
-			return Collections.emptyList();
-		}
-		
-		String search = args[args.length - 1].toLowerCase();
+		String search = args.length == 0 ? "" : args[args.length - 1].toLowerCase();
 		
 		// TAB-complete "/javaloaderproxy <arg>".
-		if(args.length == 1) {
+		if(args.length <= 1) {
 			List<String> ret = new ArrayList<String>();
 			for(String comp : new String[] {"help", "list", "load", "unload", "recompile"}) {
 				if(comp.startsWith(search)) {
