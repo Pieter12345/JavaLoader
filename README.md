@@ -37,4 +37,4 @@ Place the JavaLoader jar file in the `<server dir>/plugins` directory of your Bu
  - When a class is defined in multiple places, the first found definition is used. The classloading search order is: `project` > `include scope dependencies` > `project dependencies (including their dependencies)` > `Server main ClassLoader (Bukkit classes and possibly Bukkit plugin classes)` > `JavaLoader plugin classloader (Bukkit plugin classes)`.
 
 ## Contributing
-You can contribute to this project by reporting bugs using the issue tracker on GitHub. Pull requests will not be accepted at this time.
+You can contribute to this project by reporting bugs and requesting features using the issue tracker on GitHub. Pull requests are very much welcome, but do keep in mind to discuss changes beforehand to increase the chance of pull requests being accepted.
