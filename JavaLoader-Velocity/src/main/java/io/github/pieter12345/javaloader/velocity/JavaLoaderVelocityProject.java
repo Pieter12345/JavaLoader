@@ -36,11 +36,16 @@ public abstract class JavaLoaderVelocityProject extends JavaLoaderProject implem
 	
 	/**
 	 * {@inheritDoc}
-	 * By default, this returns {@code null}.
+	 * By default, this returns a {@link PluginDescription} with the project name as ID.
 	 */
 	@Override
 	public PluginDescription getDescription() {
-		return null;
+		return new PluginDescription() {
+			@Override
+			public String getId() {
+				return JavaLoaderVelocityProject.this.getName();
+			}
+		};
 	}
 	
 	/**
