@@ -354,7 +354,7 @@ public class ProjectManager {
 			}
 			
 			// Get the dependencies of the project.
-			Dependency[] dependencies;
+			List<Dependency> dependencies;
 			if(useSourceDependencies) {
 				try {
 					dependencies = project.getSourceDependencies();

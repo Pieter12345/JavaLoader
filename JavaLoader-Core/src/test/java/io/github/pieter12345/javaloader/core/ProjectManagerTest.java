@@ -7,13 +7,16 @@ import static org.mockito.Mockito.*;
 
 import java.io.File;
 import java.io.Writer;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
 
 import io.github.pieter12345.javaloader.core.JavaProject.UnloadMethod;
+import io.github.pieter12345.javaloader.core.dependency.Dependency;
 import io.github.pieter12345.javaloader.core.dependency.ProjectDependency;
 import io.github.pieter12345.javaloader.core.dependency.ProjectDependencyParser;
 import io.github.pieter12345.javaloader.core.exceptions.JavaProjectException;
@@ -419,9 +422,9 @@ class ProjectManagerTest {
 		JavaProject project = mock(JavaProject.class);
 		
 		// Generate project dependencies array.
-		ProjectDependency[] dependencies = new ProjectDependency[projectDependencies.length];
+		List<Dependency> dependencies = new ArrayList<>(projectDependencies.length);
 		for(int i = 0; i < projectDependencies.length; i++) {
-			dependencies[i] = new ProjectDependency(projectDependencies[i], manager);
+			dependencies.add(new ProjectDependency(projectDependencies[i], manager));
 		}
 		
 		// Set return values for methods that will be called.

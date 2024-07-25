@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import java.io.File;
+import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -47,13 +48,13 @@ public class ProjectDependencyParserTest {
 	
 	@Test
 	void testParseDependenciesEmptyString() throws DependencyException {
-		Dependency[] dependencies = this.dependencyParser.parseDependencies(this.projectMock, "");
+		List<Dependency> dependencies = this.dependencyParser.parseDependencies(this.projectMock, "");
 		assertThat(dependencies).isEmpty();
 	}
 	
 	@Test
 	void testParseDependenciesSingleJarDep() throws DependencyException {
-		Dependency[] dependencies = this.dependencyParser.parseDependencies(
+		List<Dependency> dependencies = this.dependencyParser.parseDependencies(
 				this.projectMock, "jar " + BASE_DIR_PATH + "/path/to/myJar.jar");
 		assertThat(dependencies).containsExactly(new JarDependency(
 				new File(BASE_DIR_PATH, "path/to/myJar.jar"), INCLUDE));
@@ -61,7 +62,7 @@ public class ProjectDependencyParserTest {
 	
 	@Test
 	void testParseDependenciesSingleRelativeJarDep() throws DependencyException {
-		Dependency[] dependencies = this.dependencyParser.parseDependencies(
+		List<Dependency> dependencies = this.dependencyParser.parseDependencies(
 				this.projectMock, "jar ./../../path/to/myJar.jar");
 		assertThat(dependencies).containsExactly(new JarDependency(
 				new File(BASE_DIR_PATH, "path/to/myJar.jar"), INCLUDE));
@@ -69,7 +70,7 @@ public class ProjectDependencyParserTest {
 	
 	@Test
 	void testParseDependenciesSingleRelativeJarDep2() throws DependencyException {
-		Dependency[] dependencies = this.dependencyParser.parseDependencies(
+		List<Dependency> dependencies = this.dependencyParser.parseDependencies(
 				this.projectMock, "jar ./path/to/myJar.jar");
 		assertThat(dependencies).containsExactly(new JarDependency(
 				new File(this.projectDir.getAbsoluteFile(), "path/to/myJar.jar"), INCLUDE));
@@ -77,7 +78,7 @@ public class ProjectDependencyParserTest {
 	
 	@Test
 	void testParseDependenciesSingleRelativeJarDep3() throws DependencyException {
-		Dependency[] dependencies = this.dependencyParser.parseDependencies(
+		List<Dependency> dependencies = this.dependencyParser.parseDependencies(
 				this.projectMock, "jar .\\path\\to\\myJar.jar");
 		assertThat(dependencies).containsExactly(new JarDependency(
 				new File(this.projectDir.getAbsoluteFile(), "path/to/myJar.jar"), INCLUDE));
@@ -85,7 +86,7 @@ public class ProjectDependencyParserTest {
 	
 	@Test
 	void testParseDependenciesSingleIncludeJarDep() throws DependencyException {
-		Dependency[] dependencies = this.dependencyParser.parseDependencies(
+		List<Dependency> dependencies = this.dependencyParser.parseDependencies(
 				this.projectMock, "jar -include " + BASE_DIR_PATH + "/path/to/myJar.jar");
 		assertThat(dependencies).containsExactly(new JarDependency(
 				new File(BASE_DIR_PATH, "path/to/myJar.jar"), INCLUDE));
@@ -93,7 +94,7 @@ public class ProjectDependencyParserTest {
 	
 	@Test
 	void testParseDependenciesSingleIncludeRandomCasingJarDep() throws DependencyException {
-		Dependency[] dependencies = this.dependencyParser.parseDependencies(
+		List<Dependency> dependencies = this.dependencyParser.parseDependencies(
 				this.projectMock, "jar -IncLUdE " + BASE_DIR_PATH + "/path/to/myJar.jar");
 		assertThat(dependencies).containsExactly(new JarDependency(
 				new File(BASE_DIR_PATH, "path/to/myJar.jar"), INCLUDE));
@@ -101,7 +102,7 @@ public class ProjectDependencyParserTest {
 	
 	@Test
 	void testParseDependenciesSingleProvidedJarDep() throws DependencyException {
-		Dependency[] dependencies = this.dependencyParser.parseDependencies(
+		List<Dependency> dependencies = this.dependencyParser.parseDependencies(
 				this.projectMock, "jar -provided " + BASE_DIR_PATH + "/path/to/myJar.jar");
 		assertThat(dependencies).containsExactly(new JarDependency(
 				new File(BASE_DIR_PATH, "path/to/myJar.jar"), PROVIDED));
@@ -109,7 +110,7 @@ public class ProjectDependencyParserTest {
 	
 	@Test
 	void testParseDependenciesSingleProjectDep() throws DependencyException {
-		Dependency[] dependencies = this.dependencyParser.parseDependencies(this.projectMock, "project projName");
+		List<Dependency> dependencies = this.dependencyParser.parseDependencies(this.projectMock, "project projName");
 		assertThat(dependencies).containsExactly(new ProjectDependency("projName", this.manager));
 	}
 	
@@ -151,7 +152,7 @@ public class ProjectDependencyParserTest {
 				+ "\njar -provided ./myJarProv.jar"
 				+ "\nproject project1"
 				+ "\nproject project2";
-		Dependency[] dependencies = this.dependencyParser.parseDependencies(this.projectMock, input);
+		List<Dependency> dependencies = this.dependencyParser.parseDependencies(this.projectMock, input);
 		assertThat(dependencies).containsExactly(
 				new JarDependency(new File(this.projectDir.getAbsoluteFile(), "myJar.jar"), INCLUDE),
 				new JarDependency(new File(this.projectDir.getAbsoluteFile(), "myJarInc.jar"), INCLUDE),
