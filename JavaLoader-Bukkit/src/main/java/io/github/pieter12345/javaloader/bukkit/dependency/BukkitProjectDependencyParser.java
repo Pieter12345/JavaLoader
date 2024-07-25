@@ -14,6 +14,8 @@ import java.security.CodeSource;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
 
 import org.bukkit.Bukkit;
@@ -66,7 +68,7 @@ public class BukkitProjectDependencyParser extends ProjectDependencyParser {
 		
 		// Handle bundled Minecraft libraries.
 		if(dependencyStr.toLowerCase().startsWith("mclib ")) {
-			String libName = dependencyStr.substring("mclib ".length()).trim();
+			String libNameDesc = dependencyStr.substring("mclib ".length()).trim();
 			
 			// Get library names.
 			List<String> libNameList;
@@ -74,27 +76,54 @@ public class BukkitProjectDependencyParser extends ProjectDependencyParser {
 				libNameList = this.getBundledMCLibNameList();
 			} catch (FileNotFoundException e1) {
 				throw new DependencyException("Unable to obtain bundled library list from server jar"
-						+ " (could not find resource META-INF/libraries.list): " + libName);
+						+ " (could not find resource META-INF/libraries.list): " + libNameDesc);
 			} catch (IOException e1) {
 				throw new DependencyException("Unable to obtain bundled library list from server jar"
-						+ " (could not read resource META-INF/libraries.list): " + libName);
+						+ " (could not read resource META-INF/libraries.list): " + libNameDesc);
 			}
 			
 			// Match given library name.
-			if(!libNameList.contains(libName + ".jar")) {
-				throw new DependencyException("Library not bundled in server jar: " + libName);
+			List<String> libNames = new ArrayList<>();
+			boolean isRegexMatch = libNameDesc.startsWith("<") && libNameDesc.endsWith(">");
+			if(isRegexMatch) {
+				
+				// Handle "<...>" entries as regex.
+				String libNameRegex = libNameDesc.substring(1, libNameDesc.length() - 1) + "\\.jar";
+				Pattern matchPattern;
+				try {
+					matchPattern = Pattern.compile(libNameRegex);
+				} catch (PatternSyntaxException e) {
+					throw new DependencyException("Invalid mclib name regex: "
+							+ libNameRegex.substring(0, libNameRegex.length() - "\\.jar".length()));
+				}
+				for(String libName : libNameList) {
+					if(matchPattern.matcher(libName).matches()) {
+						libNames.add(libName);
+					}
+				}
+			} else if(!libNameList.contains(libNameDesc + ".jar")) {
+				throw new DependencyException("Library not bundled in server jar: " + libNameDesc);
+			} else {
+				libNames.add(libNameDesc + ".jar");
 			}
 			
-			// Get library jar path.
+			// Get library jar paths and convert them to library jar dependencies.
+			List<Dependency> dependencies = new ArrayList<>();
 			String bundlerRepoDir = System.getProperty("bundlerRepoDir", "bundler");
-			File libFile = new File(bundlerRepoDir + File.separator + "libraries" + File.separator + libName + ".jar");
-			if(!libFile.exists()) {
-				throw new DependencyException(
-						"Library not found in bundler libraries directory at: " + libFile.getAbsolutePath());
+			for(String libName : libNames) {
+				File libFile = new File(bundlerRepoDir, "libraries" + File.separator + libName);
+				if(!libFile.exists()) {
+					if(isRegexMatch) {
+						continue; // Ignore non-existent (accidentally) matched entry. Not all entries are unpacked.
+					}
+					throw new DependencyException(
+							"Library not found in bundler libraries directory at: " + libFile.getAbsolutePath());
+				}
+				dependencies.add(new JarDependency(libFile, DependencyScope.PROVIDED));
 			}
 			
-			// Return library jar dependency.
-			return Arrays.asList(new JarDependency(libFile, DependencyScope.PROVIDED));
+			// Return library jar dependencies.
+			return dependencies;
 		}
 		
 		// Handle dependency through the parent.

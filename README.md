@@ -31,7 +31,7 @@ Place the JavaLoader jar file in the `<server dir>/plugins` directory of your Bu
  - Bukkit plugin dependencies can be included by adding the following line to the dependencies.txt file:
 `plugin pluginName` where pluginName is the name of the plugin as known by Bukkit.
  - Libraries that are bundled with Minecraft (MC 1.18+) can be depended on by adding the following line to the dependencies.txt file:
- `mclib libName` where libName is the name of the bundled library jar (including the version number and excluding the `.jar` file extension).
+ `mclib libName` where libName is the name of the bundled Minecraft library jar (including the version number and excluding the `.jar` file extension). Placing libName between `<>` will cause it to be handled as a regex, matching 0 to many bundled Minecraft library jars (example: `mclib <spigot-api-.*>` to include Spigot API or `mclib <.*>` to include all bundled Minecraft libraries).
  - Circular project dependencies are not allowed.
  - In bulk load/unload/compile operations, an order is ensured in which all loaded projects can be certain that their children are loaded as well. So if A depends on B, then B would load before A and A would unload before B.
  - When a class is defined in multiple places, the first found definition is used. The classloading search order is: `project` > `include scope dependencies` > `project dependencies (including their dependencies)` > `Server main ClassLoader (Bukkit classes and possibly Bukkit plugin classes)` > `JavaLoader plugin classloader (Bukkit plugin classes)`.
