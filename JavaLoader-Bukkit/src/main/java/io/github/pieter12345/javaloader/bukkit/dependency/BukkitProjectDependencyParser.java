@@ -12,6 +12,7 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.security.CodeSource;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -40,7 +41,7 @@ public class BukkitProjectDependencyParser extends ProjectDependencyParser {
 	}
 	
 	@Override
-	public Dependency parseDependency(JavaProject project, String dependencyStr) throws DependencyException {
+	public List<Dependency> parseDependency(JavaProject project, String dependencyStr) throws DependencyException {
 		
 		// Handle Bukkit plugin dependencies ("plugin pluginName").
 		if(dependencyStr.toLowerCase().startsWith("plugin ")) {
@@ -56,7 +57,8 @@ public class BukkitProjectDependencyParser extends ProjectDependencyParser {
 				throw new DependencyException("Unable to obtain jar file from Bukkit plugin: " + pluginName);
 			}
 			try {
-				return new JarDependency(new File(URLDecoder.decode(path, "UTF-8")), DependencyScope.PROVIDED);
+				return Arrays.asList(new JarDependency(
+						new File(URLDecoder.decode(path, "UTF-8")), DependencyScope.PROVIDED));
 			} catch (UnsupportedEncodingException e) {
 				throw new Error(e); // Should be impossible.
 			}
@@ -92,7 +94,7 @@ public class BukkitProjectDependencyParser extends ProjectDependencyParser {
 			}
 			
 			// Return library jar dependency.
-			return new JarDependency(libFile, DependencyScope.PROVIDED);
+			return Arrays.asList(new JarDependency(libFile, DependencyScope.PROVIDED));
 		}
 		
 		// Handle dependency through the parent.

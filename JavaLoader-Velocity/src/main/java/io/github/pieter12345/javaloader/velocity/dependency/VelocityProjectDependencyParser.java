@@ -5,6 +5,8 @@ import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.security.CodeSource;
+import java.util.Arrays;
+import java.util.List;
 
 import com.velocitypowered.api.plugin.PluginContainer;
 import com.velocitypowered.api.proxy.ProxyServer;
@@ -33,7 +35,7 @@ public class VelocityProjectDependencyParser extends ProjectDependencyParser {
 	}
 	
 	@Override
-	public Dependency parseDependency(JavaProject project, String dependencyStr) throws DependencyException {
+	public List<Dependency> parseDependency(JavaProject project, String dependencyStr) throws DependencyException {
 		
 		// Handle Velocity plugin dependencies ("plugin pluginName").
 		if(dependencyStr.toLowerCase().startsWith("plugin ")) {
@@ -53,7 +55,8 @@ public class VelocityProjectDependencyParser extends ProjectDependencyParser {
 				throw new DependencyException("Unable to obtain jar file from Velocity plugin: " + pluginName);
 			}
 			try {
-				return new JarDependency(new File(URLDecoder.decode(path, "UTF-8")), DependencyScope.PROVIDED);
+				return Arrays.asList(new JarDependency(
+						new File(URLDecoder.decode(path, "UTF-8")), DependencyScope.PROVIDED));
 			} catch (UnsupportedEncodingException e) {
 				throw new Error(e); // Should be impossible.
 			}

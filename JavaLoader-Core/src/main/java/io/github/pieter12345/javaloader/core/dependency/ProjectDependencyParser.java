@@ -2,6 +2,7 @@ package io.github.pieter12345.javaloader.core.dependency;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import io.github.pieter12345.javaloader.core.JavaProject;
@@ -50,9 +51,9 @@ public class ProjectDependencyParser {
 			return new ArrayList<>();
 		}
 		String[] dependencyStrs = dependencyStr.split("\n");
-		List<Dependency> dependencies = new ArrayList<>(dependencyStrs.length);
+		List<Dependency> dependencies = new ArrayList<>();
 		for(int i = 0; i < dependencyStrs.length; i++) {
-			dependencies.add(this.parseDependency(project, dependencyStrs[i]));
+			dependencies.addAll(this.parseDependency(project, dependencyStrs[i]));
 		}
 		
 		// Return the dependencies.
@@ -60,18 +61,18 @@ public class ProjectDependencyParser {
 	}
 	
 	/**
-	 * Parses the given dependency string and returns the Dependency object that represents this dependency.
-	 * @param project - The {@link JavaProject} which's dependencies are parsed.
-	 * @param dependencyStr - The dependency string to parse.
-	 * @return The parsed dependency.
-	 * @throws DependencyException If the dependency description is in an invalid format.
+	 * Parses the given dependency entry and returns the {@link Dependency} objects that it represents.
+	 * @param project - The {@link JavaProject} for which this dependency entry is being parsed.
+	 * @param dependencyStr - The dependency entry string to parse.
+	 * @return The {@link List} containing the resulting dependencies.
+	 * @throws DependencyException If the dependency entry is in an invalid format.
 	 */
-	public Dependency parseDependency(JavaProject project, String dependencyStr) throws DependencyException {
+	public List<Dependency> parseDependency(JavaProject project, String dependencyStr) throws DependencyException {
 		
 		// Handle JavaProject dependencies ("project projectName").
 		if(dependencyStr.toLowerCase().startsWith("project ")) {
 			String projectName = dependencyStr.substring("project ".length()).trim();
-			return new ProjectDependency(projectName, project.getProjectManager());
+			return Arrays.asList(new ProjectDependency(projectName, project.getProjectManager()));
 		}
 		
 		// Handle .jar file dependencies ("jar -provided ./rel/path/to/dep.jar" or "jar C:/path/to/dep.jar").
@@ -118,7 +119,7 @@ public class ProjectDependencyParser {
 			File file = new File(dependency);
 			
 			// Add the dependency to the array.
-			return new JarDependency(file, scope);
+			return Arrays.asList(new JarDependency(file, scope));
 		}
 		
 		// Dependency format not recognised.
