@@ -128,6 +128,12 @@ public class JavaLoaderVelocityPlugin {
 			
 			@Override
 			public void onUnload(JavaProject project) throws UnloadException {
+				
+				// Deinitialize project instance.
+				if(project.getInstance() instanceof JavaLoaderVelocityProject) {
+					JavaLoaderVelocityProject veloProjectInstance = (JavaLoaderVelocityProject) project.getInstance();
+					veloProjectInstance.deinitialize();
+				}
 			}
 		};
 		

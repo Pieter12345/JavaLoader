@@ -2,9 +2,11 @@ package io.github.pieter12345.javaloader.velocity;
 
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import org.slf4j.Logger;
 
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.velocitypowered.api.plugin.PluginContainer;
 import com.velocitypowered.api.plugin.PluginDescription;
 import com.velocitypowered.api.proxy.ProxyServer;
@@ -21,6 +23,7 @@ public abstract class JavaLoaderVelocityProject extends JavaLoaderProject implem
 	
 	private ProxyServer proxy = null;
 	private Logger logger = null;
+	private volatile ExecutorService executorService;
 	
 	/**
 	 * Initializes the {@link JavaLoaderVelocityProject} with the given {@link JavaProject} and {@link ProxyServer}.
@@ -32,6 +35,15 @@ public abstract class JavaLoaderVelocityProject extends JavaLoaderProject implem
 		super.initialize(project);
 		this.proxy = proxy;
 		this.logger = logger;
+	}
+	
+	/**
+	 * Deinitializes the {@link JavaLoaderVelocityProject}.
+	 */
+	protected final void deinitialize() {
+		if(this.executorService != null) {
+			this.executorService.shutdown();
+		}
 	}
 	
 	/**
@@ -58,11 +70,19 @@ public abstract class JavaLoaderVelocityProject extends JavaLoaderProject implem
 	
 	/**
 	 * {@inheritDoc}
-	 * By default, this returns {@code null}.
 	 */
 	@Override
 	public ExecutorService getExecutorService() {
-		return null;
+		if(this.executorService == null) {
+			synchronized(this) {
+				if(this.executorService == null) {
+					this.executorService = Executors.unconfigurableExecutorService(Executors.newCachedThreadPool(
+							new ThreadFactoryBuilder().setDaemon(true)
+									.setNameFormat(this.getName() + " - Task Executor #%d").setDaemon(true).build()));
+				}
+			}
+		}
+		return this.executorService;
 	}
 	
 	/**
