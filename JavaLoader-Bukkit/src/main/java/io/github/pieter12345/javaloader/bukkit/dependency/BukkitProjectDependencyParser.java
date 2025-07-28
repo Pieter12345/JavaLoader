@@ -35,6 +35,7 @@ import io.github.pieter12345.javaloader.core.exceptions.DependencyException;
 public class BukkitProjectDependencyParser extends ProjectDependencyParser {
 	
 	private static List<String> bundledLibNameList = null;
+	private static List<String> bundledVersionNameList = null;
 	
 	/**
 	 * Creates a new {@link BukkitProjectDependencyParser}.
@@ -74,10 +75,10 @@ public class BukkitProjectDependencyParser extends ProjectDependencyParser {
 			List<String> libNameList;
 			try {
 				libNameList = this.getBundledMCLibNameList();
-			} catch (FileNotFoundException e1) {
+			} catch (FileNotFoundException e) {
 				throw new DependencyException("Unable to obtain bundled library list from server jar"
 						+ " (could not find resource META-INF/libraries.list): " + libNameDesc);
-			} catch (IOException e1) {
+			} catch (IOException e) {
 				throw new DependencyException("Unable to obtain bundled library list from server jar"
 						+ " (could not read resource META-INF/libraries.list): " + libNameDesc);
 			}
@@ -126,6 +127,68 @@ public class BukkitProjectDependencyParser extends ProjectDependencyParser {
 			return dependencies;
 		}
 		
+		// Handle bundled Minecraft server.
+		if(dependencyStr.toLowerCase().startsWith("mcserver ") || dependencyStr.equalsIgnoreCase("mcserver")) {
+			String versionNameDesc = dependencyStr.substring("mcserver".length()).trim();
+			
+			// Get MC server version names.
+			List<String> versionNameList;
+			try {
+				versionNameList = this.getBundledMCVersionsNameList();
+			} catch (FileNotFoundException e) {
+				throw new DependencyException("Unable to obtain bundled MC server version list from server jar"
+						+ " (could not find resource META-INF/versions.list): " + versionNameDesc);
+			} catch (IOException e) {
+				throw new DependencyException("Unable to obtain bundled MC server version list from server jar"
+						+ " (could not read resource META-INF/versions.list): " + versionNameDesc);
+			}
+			
+			// Match given version name.
+			List<String> versionNames = new ArrayList<>();
+			boolean isRegexMatch = versionNameDesc.startsWith("<") && versionNameDesc.endsWith(">");
+			if(isRegexMatch) {
+				
+				// Handle "<...>" entries as regex.
+				String versionNameRegex = versionNameDesc.substring(1, versionNameDesc.length() - 1) + "\\.jar";
+				Pattern matchPattern;
+				try {
+					matchPattern = Pattern.compile(versionNameRegex);
+				} catch (PatternSyntaxException e) {
+					throw new DependencyException("Invalid mcserver name regex: "
+							+ versionNameRegex.substring(0, versionNameRegex.length() - "\\.jar".length()));
+				}
+				for(String versionName : versionNameList) {
+					if(matchPattern.matcher(versionName).matches()) {
+						versionNames.add(versionName);
+					}
+				}
+			} else if(versionNameDesc.isEmpty()) {
+				versionNames.addAll(versionNameList);
+			} else if(!versionNameList.contains(versionNameDesc + ".jar")) {
+				throw new DependencyException("MC server version not bundled in server jar: " + versionNameDesc);
+			} else {
+				versionNames.add(versionNameDesc + ".jar");
+			}
+			
+			// Get version jar paths and convert them to jar dependencies.
+			List<Dependency> dependencies = new ArrayList<>();
+			String bundlerRepoDir = System.getProperty("bundlerRepoDir", "bundler");
+			for(String versionName : versionNames) {
+				File versionFile = new File(bundlerRepoDir, "versions" + File.separator + versionName);
+				if(!versionFile.exists()) {
+					if(isRegexMatch) {
+						continue; // Ignore non-existent (accidentally) matched entry. Not all entries are unpacked.
+					}
+					throw new DependencyException("MC server version not found in bundler versions directory at: "
+							+ versionFile.getAbsolutePath());
+				}
+				dependencies.add(new JarDependency(versionFile, DependencyScope.PROVIDED));
+			}
+			
+			// Return library jar dependencies.
+			return dependencies;
+		}
+		
 		// Handle dependency through the parent.
 		return super.parseDependency(project, dependencyStr);
 	}
@@ -164,5 +227,41 @@ public class BukkitProjectDependencyParser extends ProjectDependencyParser {
 		// Cache and return library list.
 		bundledLibNameList = libList;
 		return libList;
+	}
+	
+	/**
+	 * Gets the list of bundled Minecraft version names from the server bootstrap jar (MC 1.18+).
+	 * The result from this call will be cached upon success.
+	 * @return The list of version names.
+	 * @throws FileNotFoundException If the "META-INF/versions.list" resource could not be found.
+	 * @throws IOException If an I/O error occurs while reading the "META-INF/versions.list" resource.
+	 */
+	private List<String> getBundledMCVersionsNameList() throws FileNotFoundException, IOException {
+		
+		// Return cached version list if available.
+		if(bundledVersionNameList != null) {
+			return bundledVersionNameList;
+		}
+		
+		// Read versions list.
+		InputStream inStream = Bukkit.class.getClassLoader().getResourceAsStream("META-INF/versions.list");
+		if(inStream == null) {
+			throw new FileNotFoundException();
+		}
+		BufferedReader reader = new BufferedReader(new InputStreamReader(inStream, StandardCharsets.UTF_8));
+		List<String> versionEntries = reader.lines().collect(Collectors.toList());
+		
+		// Parse version list.
+		List<String> versionList = new ArrayList<>();
+		for(String versionEntry : versionEntries) {
+			String[] split = versionEntry.split(" ");
+			if(split.length == 2 && split[1].length() > 1) {
+				versionList.add(split[1].substring(1));
+			}
+		}
+		
+		// Cache and return library list.
+		bundledVersionNameList = versionList;
+		return versionList;
 	}
 }
